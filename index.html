@@ -23,7 +23,11 @@
     background:radial-gradient(ellipse at center, transparent 45%, #000000ee 100%); }
 
   /* 책 화면 */
-  #bookView { position:fixed; inset:0; z-index:12; background:rgba(7,5,3,.93); display:flex; flex-direction:column; align-items:center; justify-content:center; }
+  #bookView { position:fixed; inset:0; z-index:12; display:flex; flex-direction:column; align-items:center; justify-content:center; isolation:isolate;
+    background-color:#3a2414;
+    background-image:repeating-linear-gradient(90deg, #00000000 0 37px, #0000001a 37px 39px, #00000000 39px 83px, #ffffff08 83px 84px),
+      repeating-linear-gradient(90deg, #4a2e1a 0, #3d2615 9px, #46301c 17px, #3a2414 26px); }
+  #book { box-shadow:0 18px 40px #000c, 0 4px 10px #0008; }
   #stage { position:relative; display:flex; align-items:center; justify-content:center; }
   #book { position:relative; perspective:2200px; }
   #faces { display:flex; position:absolute; inset:0; }
@@ -48,11 +52,12 @@
   #ear { position:absolute; left:0; bottom:0; width:30px; height:30px; z-index:2; pointer-events:none; opacity:.12; transition:opacity .3s;
     background:linear-gradient(225deg, transparent 50%, #b3a27c 50%); box-shadow:2px -2px 5px #0002; }
   #ear.ready { opacity:1; }
-  .lightL { position:absolute; inset:-1px; pointer-events:none; z-index:5; mix-blend-mode:multiply; transition:opacity 2.5s; }
-  #dimL { opacity:1; background:radial-gradient(ellipse 75% 55% at 74% 20%, rgb(158,162,182) 0%, rgb(92,94,110) 32%, rgb(30,30,38) 68%, rgb(14,14,18) 100%); }
-  #warmL { opacity:0; background:radial-gradient(ellipse 95% 80% at 50% 105%, rgb(255,247,230) 0%, rgb(244,226,192) 45%, rgb(176,146,108) 100%); }
-  #book.lit #dimL { opacity:0; }
-  #book.lit #warmL { opacity:1; animation:flick 3.3s infinite; }
+  .lightL { position:fixed; inset:0; pointer-events:none; z-index:8; mix-blend-mode:multiply; transition:opacity 2.5s; }
+  #bookBar { position:relative; z-index:9; }
+  #dimL { opacity:1; background:radial-gradient(ellipse 60% 50% at 70% 26%, rgb(160,164,184) 0%, rgb(96,98,114) 30%, rgb(32,32,40) 64%, rgb(12,12,16) 100%); }
+  #warmL { opacity:0; background:radial-gradient(ellipse 70% 75% at 50% 62%, rgb(255,246,226) 0%, rgb(236,214,176) 38%, rgb(150,116,80) 72%, rgb(60,42,28) 100%); }
+  #bookView.lit #dimL { opacity:0; }
+  #bookView.lit #warmL { opacity:1; animation:flick 3.3s infinite; }
   @keyframes flick { 0%,100%{opacity:1} 37%{opacity:.9} 41%{opacity:1} 70%{opacity:.94} }
   #passShadow { position:absolute; inset:0; pointer-events:none; z-index:5; opacity:0;
     background:linear-gradient(90deg, transparent 0%, #000000aa 45%, #000000aa 55%, transparent 100%); background-size:60% 100%; background-repeat:no-repeat; }
@@ -141,11 +146,12 @@
       <div id="faces"></div>
       <div id="leaf"></div>
       <div id="loupe"><div id="lz"></div></div>
-      <div id="dimL" class="lightL"></div><div id="warmL" class="lightL"></div><div id="passShadow"></div>
+      <div id="passShadow"></div>
     </div>
     <div id="cover"><div class="slip">□□</div><div class="bind"></div></div>
     <div id="thread"></div>
   </div>
+  <div id="dimL" class="lightL"></div><div id="warmL" class="lightL"></div>
   <div id="bookBar"><button class="sbtn" id="bGlass">돋보기</button><button class="sbtn" id="bClose">책을 덮는다</button></div>
 </div>
 
@@ -310,7 +316,7 @@ function snapshot(){ prevTxt = LINES.map((_,i) => showText(i)); }
 function renderFaces(){
   faces.forEach((f,i) => { f.innerHTML = faceInner(f.dataset.kind, S.D, false) + (i === 0 ? EAR : ''); f.style.backgroundImage = stain(S.earned*2 + i); });
   snapshot();
-  book.classList.toggle('lit', !!S.owned.lamp);
+  book.classList.toggle('lit', !!S.owned.lamp); bookView.classList.toggle('lit', !!S.owned.lamp);
   document.getElementById('bGlass').classList.toggle('hidden', !S.owned.glass);
   if (loupeOn) buildLoupe();
 }
@@ -461,9 +467,20 @@ const M = {
     if (y<=4 && zz < hgt && (x-1)%3 !== 2) return BOOKC[(bi+row*2)%6];
     return null;
   }),
-  chest: model(14,9,8,(x,y,z)=>{
-    if (z<6){ if (x===0||x===13||y===0||y===8||z===0) return (z===0||z===5) ? DARK : WOOD; if (z===4 && x>2&&x<11&&y>2&&y<7) return (x===7) ? '#8a7d62' : PAPER; return null; }
-    if (y===0 && x>0 && x<13) return WOOD; return null;
+  chest: model(16,11,15,(x,y,z)=>{
+    const BR = '#9a7a3a';
+    if (z < 7){
+      const wall = x===0||x===15||y===1||y===10||z===0;
+      if (wall){
+        if ((x<=1||x>=14) && (y<=2||y>=9)) return BR;                         // 모서리 장식
+        if (y===10 && x>=6 && x<=9 && z>=3 && z<=5) return z===4 && (x===7||x===8) ? '#3a2a10' : BR;   // 앞 자물쇠 판
+        return z===6 ? DARK : WOOD;
+      }
+      if (z===5 && x>=3 && x<=12 && y>=3 && y<=8) return x===7||x===8 ? '#8a7d62' : (y===3||y===8 ? '#bfb393' : PAPER);   // 안에 펼친 책
+      return null;
+    }
+    if (y===0 && x>=0 && x<=15 && z<=14) return (x<=1||x>=14) && z>=12 ? BR : (z===14 || x===0 || x===15 ? DARK : WOOD);   // 뒤로 젖혀진 뚜껑
+    return null;
   }),
   lamp: model(5,5,8,(x,y,z)=>{ const r=Math.hypot(x-2,y-2);
     if (z<2) return r<=2.2 ? '#4a3a2a' : null; if (z<5) return r<0.8 ? '#4a3a2a' : null; if (z===5) return r<=2.1 ? '#6a5236' : null;
@@ -493,7 +510,7 @@ const OBJ = [
 let W=0, H=0, DPR=1, SC=4, ang=-0.35, drag=0, t0=performance.now(), steamUntil=0, glitchUntil=0;
 function resize(){ const r = cv.getBoundingClientRect(); DPR = Math.min(2, window.devicePixelRatio||1);
   W = cv.width = Math.floor(r.width*DPR); H = cv.height = Math.floor(r.height*DPR);
-  SC = Math.max(2, Math.floor(Math.min(W/92, H/62))); }
+  SC = Math.max(2, Math.floor(Math.min(W/96, H/78))); }
 window.addEventListener('resize', resize);
 function drawModel(m, sx, sy, a, alpha, z0=0){
   const step = SC*0.85; cx.globalAlpha = alpha;
@@ -503,7 +520,7 @@ function drawModel(m, sx, sy, a, alpha, z0=0){
   cx.globalAlpha = 1;
 }
 function frame(now){
-  const t = (now - t0)/1000, a = ang + Math.sin(t*0.12)*0.1 + drag, c = Math.cos(a), s = Math.sin(a), ox = W/2, oy = H*0.5;
+  const t = (now - t0)/1000, a = ang + Math.sin(t*0.12)*0.1 + drag, c = Math.cos(a), s = Math.sin(a), ox = W/2, oy = H*0.58;
   if (bookView.classList.contains('hidden')){
     cx.fillStyle = '#0b0907'; cx.fillRect(0,0,W,H); cx.imageSmoothingEnabled = false;
     drawModel(M.floor, ox, oy, a, 1, -1);
