@@ -71,6 +71,12 @@
   #overlay { position:fixed; inset:0; background:#000c; display:flex; align-items:center; justify-content:center; z-index:30; }
   #overlay .hanji { max-height:84vh; overflow:auto; font-size:15px; line-height:1.9; }
   #overlay .hanji h3 { margin:0 0 12px; letter-spacing:6px; font-size:16px; }
+  .side { cursor:pointer; min-height:220px; display:flex; flex-direction:column; justify-content:center; text-align:center; }
+  .side .hj { font-size:26px; letter-spacing:6px; margin:10px 0 18px; }
+  .side .kr { font-size:15px; min-height:1.9em; }
+  .side .note { font-size:14px; color:#6a2a16; font-style:italic; transform:rotate(-1.2deg); padding:0 6px; }
+  .side .pg { font-size:11px; opacity:.5; margin-top:22px; }
+  .spine { display:flex; justify-content:space-between; }
   .rec { padding:8px 0; border-bottom:1px solid #00000022; cursor:pointer; }
   .close { margin-top:18px; text-align:center; font-size:13px; opacity:.6; }
   #endnote { position:absolute; left:0; right:0; bottom:6px; text-align:center; font-size:12px; color:#8d8168; opacity:0; transition:opacity 3s; pointer-events:none; }
@@ -309,7 +315,7 @@ const M = {
 };
 // 서고 물건 배치 (x, y는 서고 바닥 위 좌표)
 const OBJ = [
-  { id:'shelf', x:-24, y:-17, rot:0 },
+  { id:'shelf', x:-24, y:-17, rot:0, click:()=>showShelf() },
   { id:'scroll', x:-6, y:-24, rot:0, z:6, show:()=>S.gahun>=0, click:showGahun },
   { id:'chest', x:0, y:2, rot:0.05, click:flip },
   { id:'lamp', x:11, y:-1, buy:{ cost:15, name:'등잔' } },
@@ -382,7 +388,7 @@ function mult(){ return (1 + (S.owned.brush?0.5:0) + (S.owned.glass?1:0)) * (S.f
 function tick(now){
   const dt = Math.min(0.5, (now - lastTick)/1000); lastTick = now;
   if (S.stage !== 'room') return;
-  if (S.D >= T.fearOn && now > steamUntil) S.fear = Math.min(0.8, S.fear + dt*0.025);
+  if (S.D >= T.fearOn && now > steamUntil) S.fear = Math.min(0.8, S.fear + dt*0.025*(S.sideRead && S.sideRead.dongui ? 0.6 : 1));
   document.getElementById('fear').style.opacity = S.fear.toFixed(2);
   let txt = String(S.pages);
   if (!S.glitchDone && S.D >= T.glitch){ S.glitchDone = true; glitchUntil = now + 200; save(); }
@@ -422,10 +428,55 @@ function recJokbo(){ const g = glyphs('물가에서', 41), g2 = glyphs('문을 �
 function recLedger(){ let h = '<h3>서고 장부</h3>'; for (let i=0;i<8;i++) h += alienHtml(lineText(i)) + '<br>'; return h; }
 function recNotes(){ const done = []; for (let i=0;i<11;i++) if (S.D >= lineDone(i)) done.push(esc(LINES[i][LINES[i].length-1]));
   return `<h3>해독 노트</h3><div style="font-style:italic">${done.length ? done.join('<br>') : '아직 받아 적은 줄이 없다.'}</div><div style="margin-top:10px;font-size:12px;opacity:.6">받아 적은 줄 ${done.length} / ${LINES.length}</div>`; }
+const DONGUI = [
+  { h:'肝者 將軍之官 謀慮出焉', k:'간은 장군의 벼슬이니, 꾀가 여기서 나온다.' },
+  { h:'肝藏魂', k:'간은 혼(魂)을 갈무리한다.' },
+  { h:'肝氣虛則恐', k:'간의 기운이 허하면 두려워하고,' },
+  { h:'實則怒', k:'차면 성낸다.' },
+  { note:'두려움이 없는 자는 간이 없는 자다.' },
+  { note:'바다에서 돌아온 이는 겁이 없었다.<br>간을 어디 두고 왔느냐 물으니 웃기만 하였다.' },
+];
+function showShelf(){
+  if (!S.owned.lamp) { openOv('<h3>책장</h3>어두워서 책등이 보이지 않는다.'); return; }
+  const books = [
+    ['소학', 0], [alienHtml(glyphs('이름모를책', 51)), 0], ['농가집성 一', 0], ['동의보감 一', 0], [alienHtml(glyphs('이름모를', 52)), 0], ['동의보감 二', 0],
+    ['농가집성 二', 0], ['동의보감 三', 1], [alienHtml(glyphs('모를책', 53)), 0], ['시조 묶음', 0], [alienHtml(glyphs('이름모를책', 54)), 0], [alienHtml(glyphs('모를', 55)), 0],
+  ];
+  const read = S.sideRead && S.sideRead.dongui;
+  openOv('<h3>책장 — 열두 권</h3>' + books.map((b,i) => `<div class="rec spine" data-i="${i}"><span>${b[0]}</span><span style="opacity:.45;font-size:12px">${b[1] ? (read ? '읽음' : '손때') : ''}</span></div>`).join(''));
+  ovBody.querySelectorAll('.spine').forEach(el => el.addEventListener('click', ev => {
+    ev.stopPropagation();
+    if (books[+el.dataset.i][1]) readDongui();
+    else openOv('<h3>책장</h3>꺼내지지 않는다.<br>옆 책과 붙어 있다.');
+  }));
+}
+function readDongui(){
+  let idx = 0, shown = false;
+  const draw = () => {
+    const p = DONGUI[idx];
+    openOv(`<h3>동의보감 三 — 잡병편</h3><div class="rec side" id="sideP">`
+      + (p.h ? `<div class="hj">${p.h}</div><div class="kr">${shown ? p.k : ''}</div>` : `<div class="note">${p.note}</div>`)
+      + `<div class="pg">${idx+1} / ${DONGUI.length}</div></div>`);
+    document.getElementById('sideP').addEventListener('click', ev => {
+      ev.stopPropagation();
+      if (p.h && !shown) { shown = true; noise(0.08, 3000, 0.05); draw(); return; }
+      idx++; shown = false; sFlip();
+      if (idx < DONGUI.length) { draw(); return; }
+      const first = !(S.sideRead && S.sideRead.dongui);
+      S.sideRead = Object.assign({}, S.sideRead, { dongui: true }); save();
+      openOv('<h3>동의보감 三</h3>다 읽었다.<br>간을 다룬 장에만 손때가 많다. 누군가 이 장만 여러 번 펼쳤다.' + (first ? '<br><br>두려움이 조금 더디게 찾아온다.' : ''));
+    });
+  };
+  draw();
+}
+function recDongui(){
+  return '<h3>동의보감 三 — 간 장</h3>' + DONGUI.map(p => p.h ? `${p.h}<br>${p.k}` : `<span style="color:#6a2a16;font-style:italic">${p.note}</span>`).join('<br><br>');
+}
 function letterHtml(){ return `<h3>편지</h3>${esc(S.sur)}씨 가문 서고에 올립니다.<br><br>저는 글자를 읽는 일을 해 온 사람입니다. 댁의 서고에 읽히지 않는 책이 있다는 말을 들었습니다.<br>누구에게 들었는지는 기억나지 않습니다.<br><br>서고에서 일하게 해 주십시오. 밤에는 일하지 않겠습니다.<br><br><div style="text-align:right">한서진(韓瑞眞) 올림.</div>`; }
 function showLibrary(){
   const recs = [['족보 첫 장', recJokbo], ['서고 장부', recLedger]];
   if (S.owned.brush) recs.push(['해독 노트', recNotes]);
+  if (S.sideRead && S.sideRead.dongui) recs.push(['동의보감 三 — 간 장', recDongui]);
   if (S.letterRead) recs.push(['편지 — 한서진', letterHtml]);
   openOv('<h3>도서관</h3>' + recs.map((r,i)=>`<div class="rec" data-i="${i}">${r[0]}</div>`).join(''));
   ovBody.querySelectorAll('.rec').forEach(el => el.addEventListener('click', ev => { ev.stopPropagation(); openOv(recs[+el.dataset.i][1]()); }));
