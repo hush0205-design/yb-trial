@@ -26,8 +26,14 @@
     font-size:12px; color:#3b2f22; opacity:.28; letter-spacing:6px; transform:rotate(1.5deg); pointer-events:none; }
   #book { perspective:1800px; }
   .page, .face { background-color:var(--paper); }
-  #leaf { position:absolute; top:0; bottom:0; left:50%; width:50%; transform-origin:left center; transform-style:preserve-3d;
-    pointer-events:none; display:none; z-index:3; }
+  #leaf { position:absolute; top:0; bottom:0; left:50%; width:50%; transform-style:preserve-3d; pointer-events:none; display:none; z-index:3; }
+  .strip { position:absolute; top:0; height:100%; transform-style:preserve-3d; transform-origin:left center; }
+  .sface { position:absolute; top:0; bottom:0; left:-0.5px; right:-0.5px; overflow:hidden; backface-visibility:hidden; -webkit-backface-visibility:hidden; background-color:var(--paper); }
+  .sface.back { transform:rotateY(180deg); }
+  .pc { position:absolute; top:0; height:100%; padding:12px 14px 12px 16px; font-size:13.5px; line-height:1.68; background-color:var(--paper); }
+  .sh { position:absolute; inset:0; pointer-events:none; background:#4a3418; opacity:0; }
+  .page::before, .pc::before { content:''; position:absolute; inset:0; pointer-events:none; opacity:.55;
+    background:repeating-linear-gradient(83deg, #0000 0 3px, #6a5a3a0d 3px 4px), repeating-linear-gradient(-9deg, #0000 0 7px, #ffffff1c 7px 8px); }
   #leaf.turn { display:block; animation:turn .85s cubic-bezier(.45,.05,.25,1) forwards; }
   #leaf.turn.slow, #leaf.turn.slow .face::after { animation-duration:1.9s; }
   #ear { position:absolute; right:0; bottom:0; width:30px; height:30px; z-index:4; pointer-events:none; opacity:.1; transition:opacity .3s;
@@ -90,7 +96,7 @@
 <body>
 <div id="app">
   <div id="room"><canvas id="cv"></canvas><div id="counter">쪽 <span id="cnt">0</span></div><div id="endnote">— 체험판은 여기까지입니다 —</div></div>
-  <div id="book"><div class="page left" id="pL"></div><div class="page right" id="pR"></div><div id="margin"></div><div id="leaf"><div class="face front" id="lfF"></div><div class="face back" id="lfB"></div></div><div id="ear" class="ready"></div><div id="pageno"></div><div id="loupe"><div class="lz" id="lz"></div></div><div id="bookShade"></div></div>
+  <div id="book"><div class="page left" id="pL"></div><div class="page right" id="pR"></div><div id="margin"></div><div id="leaf"></div><div id="ear" class="ready"></div><div id="pageno"></div><div id="loupe"><div class="lz" id="lz"></div></div><div id="bookShade"></div></div>
 </div>
 <div id="fear"></div>
 
@@ -241,18 +247,50 @@ function toggleLoupe(){
 }
 book.addEventListener('pointermove', e => { if (!loupeOn) return; const r = book.getBoundingClientRect(); loupeX = e.clientX - r.left; loupeY = e.clientY - r.top; placeLoupe(); });
 book.addEventListener('pointerdown', e => { if (!loupeOn) return; const r = book.getBoundingClientRect(); loupeX = e.clientX - r.left; loupeY = e.clientY - r.top; placeLoupe(); });
-const leaf = document.getElementById('leaf'), lfF = document.getElementById('lfF'), lfB = document.getElementById('lfB');
+const leaf = document.getElementById('leaf');
+const NS = 14;              // 낱장을 나눈 띠 수
+let strips = [], shades = [], anim = null;
+function buildLeaf(frontHtml, frontBg, backHtml, backBg){
+  leaf.innerHTML = ''; strips = []; shades = [];
+  const Wl = book.clientWidth / 2, w = Wl / NS;
+  let parent = leaf;
+  for (let i=0; i<NS; i++){
+    const st = document.createElement('div'); st.className = 'strip';
+    st.style.left = (i ? w : 0) + 'px'; st.style.width = w + 'px';
+    st.innerHTML = `<div class="sface"><div class="pc" style="left:${-i*w}px;width:${Wl}px;background-image:${frontBg}">${frontHtml}</div><div class="sh"></div></div>`
+      + `<div class="sface back"><div class="pc" style="left:${-(Wl-(i+1)*w)}px;width:${Wl}px;background-image:${backBg}">${backHtml}</div><div class="sh"></div></div>`;
+    parent.appendChild(st); parent = st; strips.push(st); shades.push(st.querySelectorAll(':scope > .sface > .sh'));
+  }
+}
+// 끝(바깥쪽)이 먼저 들리고, 종이가 휘었다가 펴지며 내려앉음
+function animateLeaf(dur, done){
+  const t0 = performance.now(); leaf.style.display = 'block';
+  const step = now => {
+    const t = Math.min(1, (now - t0) / dur);
+    const e = t < .5 ? 2*t*t : 1 - Math.pow(-2*t + 2, 2) / 2;
+    const base = -180 * Math.pow(e, 1.12);
+    const bend = 85 * Math.sin(Math.PI * Math.min(1, t*1.15)) * (1 - t*0.85);
+    let cum = 0;
+    for (let i=0; i<NS; i++){
+      const d = i === 0 ? base : -bend * (2*i) / (NS*(NS-1));
+      cum += d; strips[i].style.transform = `rotateY(${d}deg)`;
+      const op = (0.03 + 0.2 * Math.abs(Math.sin(cum * Math.PI / 180))).toFixed(3);
+      shades[i].forEach(x => x.style.opacity = op);
+    }
+    if (t < 1) anim = requestAnimationFrame(step); else { anim = null; done(); }
+  };
+  anim = requestAnimationFrame(step);
+}
 let pendingLeft = null, turnTimer = null;
-function finishTurn(){ if (pendingLeft === null) return; clearTimeout(turnTimer); leaf.classList.remove('slow'); pL.innerHTML = pendingLeft.html; pL.style.backgroundImage = pendingLeft.bg; pendingLeft = null; leaf.classList.remove('turn'); clearTimeout(turnTimer); }
+function finishTurn(){ if (pendingLeft === null) return; clearTimeout(turnTimer); if (anim) { cancelAnimationFrame(anim); anim = null; } leaf.style.display = 'none'; pL.innerHTML = pendingLeft.html; pL.style.backgroundImage = pendingLeft.bg; pendingLeft = null; leaf.classList.remove('turn'); clearTimeout(turnTimer); }
 function turnPage(slow){
   finishTurn();
-  lfF.innerHTML = pR.innerHTML; lfF.style.backgroundImage = pR.style.backgroundImage;
+  const oldR = pR.innerHTML, oldBg = pR.style.backgroundImage;
   const nl = leftHtml(true), nr = rightHtml(true), n = S.earned*2;
-  lfB.innerHTML = nl; lfB.style.backgroundImage = stain(n);
+  buildLeaf(oldR, oldBg, nl, stain(n));
   pR.innerHTML = nr; pR.style.backgroundImage = stain(n+1);
   pendingLeft = { html: nl, bg: stain(n) }; snapshot();
-  leaf.classList.remove('turn', 'slow'); void leaf.offsetWidth; leaf.classList.add('turn'); if (slow) leaf.classList.add('slow');
-  turnTimer = setTimeout(() => { finishTurn(); if (loupeOn) buildLoupe(); }, slow ? 1900 : 850);
+  animateLeaf(slow ? 2000 : 950, () => { finishTurn(); if (loupeOn) buildLoupe(); });
   document.getElementById('pageno').textContent = `${S.earned}`;
 }
 
