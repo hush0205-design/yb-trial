@@ -11,61 +11,82 @@
   * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
   html,body { margin:0; height:100%; background:var(--bg); color:#cfc3a8; overflow:hidden;
     font-family:'Nanum Myeongjo','Noto Serif KR','Batang',serif; user-select:none; -webkit-user-select:none; }
-  #app { position:relative; width:100%; height:100%; max-width:820px; margin:0 auto; display:flex; flex-direction:column; }
-  #room { position:relative; flex:1 1 55%; min-height:0; }
+  .hidden { display:none !important; }
+
+  /* 서고 */
+  #room { position:fixed; inset:0; }
   canvas { width:100%; height:100%; display:block; image-rendering:pixelated; touch-action:none; }
-  #counter { position:absolute; left:14px; top:10px; font-size:15px; letter-spacing:2px; color:#bfb293; opacity:.85; }
-  #book { position:relative; flex:0 0 50%; margin:0 10px 10px; background:var(--paper); color:var(--ink);
-    border-radius:3px; display:flex; box-shadow:0 0 0 1px #00000060, 0 6px 30px #000a inset; overflow:hidden; cursor:pointer; }
-  .page { flex:1; padding:12px 14px 12px 16px; font-size:13.5px; line-height:1.68; overflow:hidden; position:relative; }
-  .page.left { border-right:1px solid #00000025; }
-  .ln { white-space:pre-wrap; word-break:keep-all; min-height:1.68em; }
+  #counter { position:fixed; left:14px; top:10px; font-size:15px; letter-spacing:2px; color:#bfb293; opacity:.85; z-index:25; }
+  #setBtn { position:fixed; right:10px; top:8px; font-size:13px; color:#a99a7a; opacity:.75; cursor:pointer; z-index:25; padding:4px 8px; border:1px solid #6d635088; }
+  #endnote { position:fixed; left:0; right:0; bottom:10px; text-align:center; font-size:12px; color:#8d8168; opacity:0; transition:opacity 3s; pointer-events:none; }
+  #fear { position:fixed; inset:0; pointer-events:none; opacity:0; transition:opacity 1.2s; z-index:13;
+    background:radial-gradient(ellipse at center, transparent 45%, #000000ee 100%); }
+
+  /* 책 화면 */
+  #bookView { position:fixed; inset:0; z-index:12; background:rgba(7,5,3,.93); display:flex; flex-direction:column; align-items:center; justify-content:center; }
+  #stage { position:relative; display:flex; align-items:center; justify-content:center; }
+  #book { position:relative; perspective:2200px; }
+  #faces { display:flex; position:absolute; inset:0; }
+  .face { position:relative; flex:0 0 auto; background-color:var(--paper); overflow:hidden; color:var(--ink);
+    box-shadow:inset 0 0 40px #5a3a1a22, 0 0 0 1px #00000055; }
+  .face::before, .pc::before { content:''; position:absolute; inset:0; pointer-events:none; opacity:.55;
+    background:repeating-linear-gradient(83deg, #0000 0 3px, #6a5a3a0d 3px 4px), repeating-linear-gradient(-9deg, #0000 0 7px, #ffffff1c 7px 8px); }
+  .rule { position:absolute; top:calc(var(--pt) - 8px); bottom:14px; left:12px; right:12px; border:4px double #6a4a2a88; pointer-events:none; }
+  .txt { position:absolute; top:var(--pt); bottom:20px; left:18px; right:18px; writing-mode:vertical-rl; font-size:var(--fs); line-height:var(--lh);
+    word-break:break-all; overflow:hidden; padding:4px 0;
+    background-image:repeating-linear-gradient(to left, transparent 0, transparent calc(var(--lh) - 1px), #6a4a2a2e calc(var(--lh) - 1px), #6a4a2a2e var(--lh)); }
+  .horiz .txt { writing-mode:horizontal-tb; background-image:none; word-break:keep-all; line-height:1.7; padding:4px 2px; }
+  .ln { white-space:pre-wrap; }
   .ag { display:inline-block; color:#3a2c1e; }
   .ag.r1 { transform:scaleX(-1); } .ag.r2 { transform:rotate(90deg); } .ag.r3 { transform:scale(-1,-1); } .ag.r4 { transform:rotate(-90deg) scaleX(-1); }
-  #margin, .lzm { position:absolute; right:4px; top:10px; bottom:10px; width:20px; writing-mode:vertical-rl;
-    font-size:12px; color:#3b2f22; opacity:.28; letter-spacing:6px; transform:rotate(1.5deg); pointer-events:none; }
-  #book { perspective:1800px; }
-  .page, .face { background-color:var(--paper); }
-  #leaf { position:absolute; top:0; bottom:0; left:50%; width:50%; transform-style:preserve-3d; pointer-events:none; display:none; z-index:3; }
-  .strip { position:absolute; top:0; height:100%; transform-style:preserve-3d; transform-origin:left center; }
-  .sface { position:absolute; top:0; bottom:0; left:-0.5px; right:-0.5px; overflow:hidden; backface-visibility:hidden; -webkit-backface-visibility:hidden; background-color:var(--paper); }
-  .sface.back { transform:rotateY(180deg); }
-  .pc { position:absolute; top:0; height:100%; padding:12px 14px 12px 16px; font-size:13.5px; line-height:1.68; background-color:var(--paper); }
-  .sh { position:absolute; inset:0; pointer-events:none; background:#4a3418; opacity:0; }
-  .page::before, .pc::before { content:''; position:absolute; inset:0; pointer-events:none; opacity:.55;
-    background:repeating-linear-gradient(83deg, #0000 0 3px, #6a5a3a0d 3px 4px), repeating-linear-gradient(-9deg, #0000 0 7px, #ffffff1c 7px 8px); }
-  #leaf.turn { display:block; animation:turn .85s cubic-bezier(.45,.05,.25,1) forwards; }
-  #leaf.turn.slow, #leaf.turn.slow .face::after { animation-duration:1.9s; }
-  #ear { position:absolute; right:0; bottom:0; width:30px; height:30px; z-index:4; pointer-events:none; opacity:.1; transition:opacity .3s;
-    background:linear-gradient(135deg, transparent 50%, #b3a27c 50%); box-shadow:-2px -2px 5px #0002; }
+  .nw { animation:ink 1.8s ease-out; }
+  @keyframes ink { from { color:#000; text-shadow:0 0 6px #7a4a1a99; } to { color:inherit; text-shadow:none; } }
+  .mg { position:absolute; top:10px; height:calc(var(--pt) - 22px); right:22px; left:22px; writing-mode:vertical-rl; font-size:11px; line-height:1.5;
+    color:#3b2f22; opacity:.28; overflow:hidden; transform:rotate(-1deg); pointer-events:none; }
+  .mg.seen { opacity:.62; color:#5a2414; }
+  .tiny { font-size:4.5px; line-height:1; color:#3a1a10; margin-inline-start:6px; }
+  #ear { position:absolute; left:0; bottom:0; width:30px; height:30px; z-index:2; pointer-events:none; opacity:.12; transition:opacity .3s;
+    background:linear-gradient(225deg, transparent 50%, #b3a27c 50%); box-shadow:2px -2px 5px #0002; }
   #ear.ready { opacity:1; }
-  @keyframes turn { from { transform:rotateY(0deg); } to { transform:rotateY(-180deg); } }
-  .face { position:absolute; inset:0; padding:12px 14px 12px 16px; font-size:13.5px; line-height:1.68; overflow:hidden;
-    backface-visibility:hidden; -webkit-backface-visibility:hidden; }
-  .face.front { box-shadow:inset 8px 0 18px -10px #0006; }
-  .face.back { transform:rotateY(180deg); box-shadow:inset -8px 0 18px -10px #0006; }
-  #leaf.turn .face::after { content:''; position:absolute; inset:0; pointer-events:none; animation:shade .85s forwards; }
-  @keyframes shade { 0%{background:#0000} 50%{background:#00000038} 100%{background:#0000} }
   #bookShade { position:absolute; inset:0; pointer-events:none; z-index:5; transition:opacity 2.5s;
     background:radial-gradient(ellipse at 50% 40%, #0d0a0799 0%, #0d0a07f0 85%); opacity:1; }
-  #book.lit #bookShade { opacity:.12; animation:flick 3.3s infinite; }
-  @keyframes flick { 0%,100%{opacity:.12} 37%{opacity:.18} 41%{opacity:.08} 70%{opacity:.15} }
-  .nw { animation:ink 1.6s ease-out; }
-  @keyframes ink { from { color:#000; text-shadow:0 0 6px #7a4a1a99; } to { color:inherit; text-shadow:none; } }
-  #margin.seen, .lzm.seen { opacity:.62; color:#5a2414; }
-  .tiny { font-size:4.5px; letter-spacing:0; margin-top:10px; opacity:.95; color:#3a1a10; }
+  #book.lit #bookShade { opacity:.1; animation:flick 3.3s infinite; }
+  @keyframes flick { 0%,100%{opacity:.1} 37%{opacity:.17} 41%{opacity:.06} 70%{opacity:.13} }
+  #bookBar { margin-top:14px; display:flex; gap:12px; }
+  .sbtn { background:none; border:1px solid #6d635099; color:#bfb293; padding:7px 14px; font:inherit; font-size:13px; letter-spacing:2px; cursor:pointer; }
+
+  /* 넘기는 낱장(가는 띠를 이어 붙인 한지) */
+  #leaf { position:absolute; top:0; transform-style:preserve-3d; pointer-events:none; display:none; z-index:3; }
+  .strip { position:absolute; top:0; height:100%; transform-style:preserve-3d; transform-origin:right center; }
+  .sface { position:absolute; top:0; bottom:0; left:-0.5px; right:-0.5px; overflow:hidden; backface-visibility:hidden; -webkit-backface-visibility:hidden; background-color:var(--paper); }
+  .sface.back { transform:rotateY(180deg); }
+  .pc { position:absolute; top:0; height:100%; background-color:var(--paper); color:var(--ink); }
+  .sh { position:absolute; inset:0; pointer-events:none; background:#4a3418; opacity:0; }
+
+  /* 표지(오침안정법) */
+  #cover { position:absolute; z-index:6; cursor:pointer; transform-origin:right center;
+    background-color:#8a6a34; box-shadow:0 10px 40px #000c, inset 0 0 30px #3a2a1066;
+    background-image:repeating-linear-gradient(45deg, #0000 0 10px, #ffffff0d 10px 11px), repeating-linear-gradient(-45deg, #0000 0 10px, #0000000d 10px 11px); }
+  #cover .slip { position:absolute; left:12%; top:6%; width:16%; height:50%; background:#e2d6b8; box-shadow:0 0 0 1px #00000033;
+    writing-mode:vertical-rl; display:flex; align-items:center; justify-content:center; font-size:16px; letter-spacing:8px; color:#5a4a36; }
+  #cover .bind { position:absolute; right:0; top:0; bottom:0; width:10%; border-left:1px solid #00000033; }
+  #cover .hole { position:absolute; left:30%; width:5px; height:5px; border-radius:50%; background:#2a1a0a; transform:translateY(-50%); }
+  #cover .thr { position:absolute; left:34%; right:0; height:2px; background:#e8e0cc; transform:translateY(-50%); }
+  #cover .thrv { position:absolute; left:34%; top:0; bottom:0; width:2px; background:#e8e0cc; }
+  #cover.opening { animation:coverOpen .95s cubic-bezier(.4,.1,.4,1) forwards; }
+  #cover.closing { animation:coverOpen .8s cubic-bezier(.4,.1,.4,1) reverse forwards; }
+  @keyframes coverOpen { from { transform:rotateY(0deg); opacity:1; } 70% { opacity:1; } to { transform:rotateY(170deg); opacity:0; } }
+
+  /* 돋보기 */
   #loupe { position:absolute; width:150px; height:150px; border-radius:50%; overflow:hidden; display:none; z-index:6; pointer-events:none;
     background:var(--paper); border:4px solid #8a7a4a; box-shadow:0 0 0 2px #0009, 0 10px 24px #000a, inset 0 0 18px #0004; }
-  #loupe .lz { position:absolute; left:0; top:0; transform-origin:0 0; display:flex; color:var(--ink); }
+  #lz { position:absolute; left:0; top:0; transform-origin:0 0; display:flex; }
   #book.loupe { cursor:none; touch-action:none; }
-  #pageno { position:absolute; bottom:4px; left:50%; transform:translateX(-50%); font-size:11px; opacity:.35; }
-  #fear { position:fixed; inset:0; pointer-events:none; opacity:0; transition:opacity 1.2s;
-    background:radial-gradient(ellipse at center, transparent 45%, #000000ee 100%); }
+
+  /* 시작·족보·가훈 */
   .screen { position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; background:var(--bg); z-index:20; }
-  .hidden { display:none !important; }
   #title { font-size:30px; letter-spacing:10px; color:#8d8168; margin-bottom:60px; }
   .btn { background:none; border:1px solid #6d6350; color:#cfc3a8; padding:10px 26px; font:inherit; font-size:16px; letter-spacing:4px; cursor:pointer; }
-  .btn:hover { border-color:#a99a7a; }
   .hanji { background:var(--paper); color:var(--ink); padding:28px 30px; width:min(92vw,420px); box-shadow:0 10px 40px #000; }
   .hanji h2 { text-align:center; letter-spacing:14px; margin:0 0 20px; font-weight:700; }
   .row { display:flex; align-items:center; gap:10px; margin:12px 0; font-size:15px; }
@@ -77,31 +98,45 @@
   #gahunWrap { display:flex; gap:28px; }
   .scroll { background:var(--paper); color:var(--ink); writing-mode:vertical-rl; font-size:22px; letter-spacing:8px;
     padding:26px 18px; min-height:300px; border-top:10px solid #3a2a1c; border-bottom:10px solid #3a2a1c; cursor:pointer; box-shadow:0 8px 30px #000; }
-  .scroll:hover { filter:brightness(1.06); }
+
+  /* 기록 창 */
   #overlay { position:fixed; inset:0; background:#000c; display:flex; align-items:center; justify-content:center; z-index:30; }
   #overlay .hanji { max-height:84vh; overflow:auto; font-size:15px; line-height:1.9; }
   #overlay .hanji h3 { margin:0 0 12px; letter-spacing:6px; font-size:16px; }
+  .rec { padding:8px 0; border-bottom:1px solid #00000022; cursor:pointer; }
+  .close { margin-top:18px; text-align:center; font-size:13px; opacity:.6; }
   .side { cursor:pointer; min-height:220px; display:flex; flex-direction:column; justify-content:center; text-align:center; }
   .side .hj { font-size:26px; letter-spacing:6px; margin:10px 0 18px; }
   .side .kr { font-size:15px; min-height:1.9em; }
   .side .note { font-size:14px; color:#6a2a16; font-style:italic; transform:rotate(-1.2deg); padding:0 6px; }
   .side .pg { font-size:11px; opacity:.5; margin-top:22px; }
   .spine { display:flex; justify-content:space-between; }
-  .rec { padding:8px 0; border-bottom:1px solid #00000022; cursor:pointer; }
-  .close { margin-top:18px; text-align:center; font-size:13px; opacity:.6; }
-  #endnote { position:absolute; left:0; right:0; bottom:6px; text-align:center; font-size:12px; color:#8d8168; opacity:0; transition:opacity 3s; pointer-events:none; }
-  #reset { position:fixed; right:10px; top:8px; font-size:13px; color:#a99a7a; opacity:.75; cursor:pointer; z-index:40; padding:4px 8px; border:1px solid #6d635088; }
+  .opt { display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #00000022; padding:10px 0; }
+  .opt .ch { display:flex; gap:6px; }
+  .opt .ch span { padding:3px 10px; border:1px solid #00000033; cursor:pointer; font-size:14px; }
+  .opt .ch span.on { background:#3a2a1c; color:var(--paper); }
 </style>
 </head>
 <body>
-<div id="app">
-  <div id="room"><canvas id="cv"></canvas><div id="counter">쪽 <span id="cnt">0</span></div><div id="endnote">— 체험판은 여기까지입니다 —</div></div>
-  <div id="book"><div class="page left" id="pL"></div><div class="page right" id="pR"></div><div id="margin"></div><div id="leaf"></div><div id="ear" class="ready"></div><div id="pageno"></div><div id="loupe"><div class="lz" id="lz"></div></div><div id="bookShade"></div></div>
-</div>
+<div id="room"><canvas id="cv"></canvas><div id="endnote">— 체험판은 여기까지입니다 —</div></div>
+<div id="counter">쪽 <span id="cnt">0</span></div>
+<div id="setBtn">설정</div>
 <div id="fear"></div>
 
-<div class="screen" id="sStart"><div id="title">□□ — □□□□□</div><button class="btn" id="bOpen">궤짝을 연다</button></div>
+<div id="bookView" class="hidden">
+  <div id="stage">
+    <div id="book">
+      <div id="faces"></div>
+      <div id="leaf"></div>
+      <div id="loupe"><div id="lz"></div></div>
+      <div id="bookShade"></div>
+    </div>
+    <div id="cover"><div class="slip">□□</div><div class="bind"></div></div>
+  </div>
+  <div id="bookBar"><button class="sbtn" id="bGlass">돋보기</button><button class="sbtn" id="bClose">책을 덮는다</button></div>
+</div>
 
+<div class="screen" id="sStart"><div id="title">□□ — □□□□□</div><button class="btn" id="bOpen">궤짝을 연다</button></div>
 <div class="screen hidden" id="sJokbo">
   <div class="hanji">
     <h2>族譜</h2>
@@ -114,29 +149,26 @@
     <div style="text-align:center;margin-top:22px"><button class="btn" id="bWrite" style="color:var(--ink);border-color:#00000066">적는다</button></div>
   </div>
 </div>
-
 <div class="screen hidden" id="sGahun">
-  <div id="gahunWrap">
-    <div class="scroll" data-g="0">읽되 믿지 마라</div>
-    <div class="scroll" data-g="1">모르는 것은 덮어라</div>
-  </div>
+  <div id="gahunWrap"><div class="scroll" data-g="0">읽되 믿지 마라</div><div class="scroll" data-g="1">모르는 것은 덮어라</div></div>
 </div>
-
 <div id="overlay" class="hidden"><div class="hanji" id="ovBody"></div></div>
-<div id="reset" title="처음부터">처음부터</div>
 
 <script>
 (() => {
 'use strict';
 // ───────── 상태 ─────────
 const SAVE = 'yeobaek_trial_v1';
+if (/[?&]new\b/.test(location.search)) { localStorage.removeItem(SAVE); history.replaceState(null, '', location.pathname); }
 const S = Object.assign({
   stage:'start', sur:'', bon:'', name:'', gahun:-1,
-  pages:0, earned:0, D:0, owned:{}, fear:0,
-  letterRead:false, chair:false, glitchDone:false, lastBrew:-1e9
+  pages:0, earned:0, D:0, owned:{}, fear:0, opened:false,
+  letterRead:false, chair:false, glitchDone:false, sideRead:{}, opt:{ horiz:false, mute:false }
 }, JSON.parse(localStorage.getItem(SAVE) || '{}'));
+S.opt = Object.assign({ horiz:false, mute:false }, S.opt); S.sideRead = S.sideRead || {}; S.owned = S.owned || {};
 let resetting = false;
 const save = () => { if (!resetting) localStorage.setItem(SAVE, JSON.stringify(S)); };
+const esc = s => String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 
 // ───────── 성씨 한자 ─────────
 const HJ = {김:'金',이:'李',박:'朴',최:'崔',정:'鄭',강:'姜',조:'趙',윤:'尹',장:'張',임:'林',한:'韓',오:'吳',서:'徐',신:'申',권:'權',황:'黃',안:'安',송:'宋',류:'柳',유:'柳',전:'全',홍:'洪',고:'高',문:'文',양:'梁',손:'孫',배:'裵',백:'白',허:'許',남:'南',심:'沈',노:'盧',하:'河',곽:'郭',성:'成',차:'車',주:'朱',우:'禹',구:'具',민:'閔',진:'陳',나:'羅',지:'池',엄:'嚴',채:'蔡',원:'元',천:'千',방:'方',공:'孔',현:'玄',함:'咸',변:'卞',염:'廉',여:'呂',추:'秋',도:'都',소:'蘇',석:'石',선:'宣',설:'薛',마:'馬',길:'吉',연:'延',위:'魏',표:'表',명:'明',기:'奇',반:'潘',왕:'王',금:'琴',옥:'玉',육:'陸',인:'印',맹:'孟',제:'諸',탁:'卓',국:'鞠',어:'魚',은:'殷',편:'片',용:'龍',예:'芮',경:'景',봉:'奉',사:'史',부:'夫',모:'牟',태:'太',호:'胡',피:'皮',빈:'賓',라:'羅',갈:'葛',궁:'宮',보:'甫',독:'獨'};
@@ -145,10 +177,11 @@ const hanjaOf = s => TWO[s] || Array.from(s).map(c => HJ[c] || c).join('');
 
 // ───────── 낯선 문자 ─────────
 function rng(seed){ let x = seed*9301+49297; return () => (x = (x*9301+49297)%233280)/233280; }
-function glyphs(model, seed){
-  const r = rng(seed); return Array.from(model).map(c => /\s/.test(c) ? c : String.fromCharCode(0x2F00 + Math.floor(r()*214))).join('');
-}
+function glyphs(model, seed){ const r = rng(seed); return Array.from(model).map(c => /\s/.test(c) ? c : String.fromCharCode(0x2F00 + Math.floor(r()*214))).join(''); }
 const hash = (a,b) => { let h = (a*374761393 + b*668265263) >>> 0; h = (h^(h>>>13))*1274126177 >>> 0; return (h % 1000)/1000; };
+const isAlien = ch => { const c = ch.codePointAt(0); return c >= 0x2F00 && c <= 0x2FD5; };
+const agSpan = (ch,k) => `<span class="ag r${(ch.codePointAt(0)+k)%5}">${ch}</span>`;
+const alienHtml = str => Array.from(str).map((ch,k) => isAlien(ch) ? agSpan(ch,k) : esc(ch)).join('');
 
 // ───────── 첫 책 문장 ─────────
 function buildLines(){
@@ -167,112 +200,134 @@ function buildLines(){
     { idu:'手是 戰慄爲去等 覆爲乎事', old:'손이 ᄯᅥᆯ리거든 더플 것.', mod:'손이 떨리거든 덮을 것.' },
   ];
   return L.map((l,i) => {
-    const g = glyphs(l.mod, i+7);
-    const v = [g];
-    if (i === 0) v.push(h + Array.from(g).slice(Array.from(h).length).join('')); // 처음 풀리는 글자 = 성씨
+    const g = glyphs(l.mod, i+7), v = [g];
+    if (i === 0) v.push(h + Array.from(g).slice(Array.from(h).length).join(''));   // 처음 풀리는 글자 = 성씨
     v.push(l.idu, l.old, l.mod);
     return v;
   });
 }
 let LINES = buildLines();
-const PER = 60;                                   // 단계 하나 넘어가는 데 드는 해독
+const PER = 60;
 const lineStart = i => i < 8 ? i*70 : 780 + (i-8)*70;
 const lineDone  = i => lineStart(i) + (LINES[i].length-1)*PER;
-const T = { door: lineDone(7), fearOn: lineDone(8), tea: lineDone(9), glitch: 1150, letter: 1300, rightPage: 700 };
-
-function mix(a, b, f, seed){
-  const A = Array.from(a), B = Array.from(b), n = Math.max(A.length, B.length); let out = '';
-  for (let k=0;k<n;k++) out += hash(seed,k) < f ? (B[k]||'') : (A[k]||'');
-  return out;
-}
+const T = { door: lineDone(7), fearOn: lineDone(8), tea: lineDone(9), glitch: 1150, letter: 1300, fearPage: 700 };
+function mix(a, b, f, seed){ const A = Array.from(a), B = Array.from(b), n = Math.max(A.length, B.length); let o = ''; for (let k=0;k<n;k++) o += hash(seed,k) < f ? (B[k]||'') : (A[k]||''); return o; }
 function lineText(i, Dv){
-  const D = Dv === undefined ? S.D : Dv;
-  const v = LINES[i], p = Math.max(0, Math.min(v.length-1, (D - lineStart(i))/PER));
+  const D = Dv === undefined ? S.D : Dv, v = LINES[i], p = Math.max(0, Math.min(v.length-1, (D - lineStart(i))/PER));
   const s = Math.floor(p); if (s >= v.length-1) return v[v.length-1];
   return mix(v[s], v[s+1], p - s, i*131);
 }
+// 띄어쓰기는 해독이 끝난 줄에만 생김(옛 글은 붙여 씀)
+function showText(i, Dv){ const D = Dv === undefined ? S.D : Dv; const t = lineText(i, D); return D >= lineDone(i) ? t : t.replace(/\s+/g, ''); }
 
-// ───────── 책 패널 ─────────
-const pL = document.getElementById('pL'), pR = document.getElementById('pR');
-const isAlien = ch => { const c = ch.codePointAt(0); return c >= 0x2F00 && c <= 0x2FD5; };
-function alienHtml(str){
-  return Array.from(str).map((ch,k) => isAlien(ch) ? `<span class="ag r${(ch.codePointAt(0)+k)%5}">${ch}</span>` : ch.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))).join('');
+// ───────── 소리 ─────────
+let AC = null;
+function ac(){ if (!AC) { try { AC = new (window.AudioContext||window.webkitAudioContext)(); } catch(e){} } return AC; }
+function noise(dur, freq, gain, type='bandpass'){
+  if (S.opt.mute) return; const a = ac(); if (!a) return;
+  const len = Math.floor(a.sampleRate*dur), buf = a.createBuffer(1, len, a.sampleRate), d = buf.getChannelData(0);
+  for (let k=0;k<len;k++) d[k] = (Math.random()*2-1) * Math.pow(1-k/len, 2);
+  const src = a.createBufferSource(); src.buffer = buf;
+  const f = a.createBiquadFilter(); f.type = type; f.frequency.value = freq;
+  const g = a.createGain(); g.gain.value = gain;
+  src.connect(f).connect(g).connect(a.destination); src.start();
 }
+const sFlip = () => noise(0.16, 2200 + Math.random()*600, 0.1);
+const sBoil = () => noise(2.6, 380, 0.09, 'lowpass');
+const sPlace = () => noise(0.14, 140, 0.35, 'lowpass');
+
+// ───────── 기록 창 ─────────
+const ov = document.getElementById('overlay'), ovBody = document.getElementById('ovBody');
+function openOv(html, onClose){ ovBody.innerHTML = html + '<div class="close">닫기</div>'; ov.classList.remove('hidden'); ov._onClose = onClose; ov._t = performance.now(); }
+ov.addEventListener('click', e => {
+  if (performance.now() - (ov._t||0) < 450) return;      // 터치 직후 따라오는 클릭이 방금 연 창을 닫지 않게
+  if (e.target.closest('.rec')) return;
+  ov.classList.add('hidden'); const f = ov._onClose; ov._onClose = null; if (f) f();
+});
+
+// ───────── 책: 크기·면 구성 ─────────
+const bookView = document.getElementById('bookView'), book = document.getElementById('book'), facesEl = document.getElementById('faces');
+const cover = document.getElementById('cover'), leaf = document.getElementById('leaf'), stage = document.getElementById('stage');
+(() => {   // 표지 오른쪽 끝: 다섯 구멍 실 매기
+  const b = cover.querySelector('.bind'); let h = '<div class="thrv"></div>';
+  for (const y of [7, 27, 50, 73, 93]) h += `<div class="thr" style="top:${y}%"></div><div class="hole" style="top:${y}%"></div>`;
+  b.innerHTML = h;
+})();
+let single = true, FW = 300, FH = 440, bookOpen = false;
+let faces = [];                 // 한 면이면 [all], 두 면이면 [왼쪽=fear, 오른쪽=ledger]
+function layoutBook(){
+  single = innerWidth < 700 || innerWidth < innerHeight*1.1;
+  FH = Math.floor(Math.min(innerHeight*0.78, single ? innerWidth*0.92/0.66 : innerWidth*0.46/0.66)); FW = Math.floor(FH*0.66);
+  const BW = single ? FW : FW*2;
+  stage.style.width = BW + 'px'; stage.style.height = FH + 'px';
+  book.style.width = BW + 'px'; book.style.height = FH + 'px';
+  const fs = Math.max(13, Math.min(19, FH/40));
+  book.style.setProperty('--fs', fs + 'px'); book.style.setProperty('--lh', Math.round(fs*1.8) + 'px'); book.style.setProperty('--pt', Math.round(FH*0.15) + 'px');
+  cover.style.width = FW + 'px'; cover.style.height = FH + 'px'; cover.style.left = (BW - FW) + 'px'; cover.style.top = '0px';
+  facesEl.innerHTML = ''; faces = [];
+  for (const k of (single ? ['all'] : ['fear', 'ledger'])){ const f = document.createElement('div'); f.className = 'face'; f.dataset.kind = k; f.style.width = FW + 'px'; f.style.height = FH + 'px'; facesEl.appendChild(f); faces.push(f); }
+  facesEl.classList.toggle('horiz', !!S.opt.horiz);
+  renderFaces();
+}
+const turnFace = () => faces[0];          // 넘어가는 면: 한 면이면 그 면, 두 면이면 왼쪽 면(오른쪽을 묶은 옛 책)
 let prevTxt = [];
-function lineHtml(i, mark){
-  const now = Array.from(lineText(i)), old = Array.from(prevTxt[i] || '');
-  return now.map((ch,k) => {
-    if (isAlien(ch)) return `<span class="ag r${(ch.codePointAt(0)+k)%5}">${ch}</span>`;
-    const e = ch.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
-    return (mark && old[k] !== ch && ch.trim()) ? `<span class="nw">${e}</span>` : e;
-  }).join('');
+function linesHtml(from, to, Dv, mark){
+  let h = '';
+  for (let i=from;i<to;i++){
+    const now = Array.from(showText(i, Dv)), old = Array.from(prevTxt[i] || '');
+    h += '<div class="ln">' + now.map((ch,k) => isAlien(ch) ? agSpan(ch,k) : ((mark && old[k] !== ch && ch.trim()) ? `<span class="nw">${esc(ch)}</span>` : esc(ch))).join('') + '</div>';
+  }
+  return h;
 }
+function marginHtml(){ const nm = (hanjaOf(S.sur||'') + '氏 十七世 ' + (S.name||'')).replace(/[&<>]/g,''); return alienHtml(glyphs('토끼 아래 두고왔다', 99)) + `<span class="tiny">${nm}</span>`; }
+function faceInner(kind, Dv, mark){
+  const D = Dv === undefined ? S.D : Dv;
+  let lines = '';
+  if (kind === 'all')    lines = linesHtml(0, D >= T.fearPage ? 11 : 8, D, mark);
+  if (kind === 'ledger') lines = linesHtml(0, 8, D, mark);
+  if (kind === 'fear')   lines = D >= T.fearPage ? linesHtml(8, 11, D, mark) : '';
+  const mg = kind !== 'fear' ? `<div class="mg${S.owned.glass ? ' seen' : ''}">${marginHtml()}</div>` : '';
+  return `<div class="rule"></div>${mg}<div class="txt">${lines}</div>`;
+}
+const EAR = '<div id="ear" class="ready"></div>';
 function stain(n){ const a = hash(n,1), b = hash(n,2), c = hash(n,3);
   return `radial-gradient(circle at ${10+a*80}% ${10+b*80}%, #8a6a3a${c>.5?'22':'14'} 0, #0000 ${8+c*14}%), radial-gradient(circle at ${90-b*70}% ${85-a*60}%, #5a3a1a12 0, #0000 ${5+a*9}%)`; }
-function pageHtml(from, to, mark){ let h = ''; for (let i=from;i<to;i++) h += `<div class="ln">${lineHtml(i, mark)}</div>`; return h; }
-function leftHtml(mark){ return pageHtml(0, 8, mark); }
-function rightHtml(mark){ return S.D >= T.rightPage ? pageHtml(8, 11, mark) : ''; }
-function snapshot(){ prevTxt = LINES.map((_,i) => lineText(i)); }
-function marginHtml(){
-  const nm = (hanjaOf(S.sur||'') + '氏 十七世 ' + (S.name||'')).replace(/[&<>]/g,'');
-  return alienHtml(glyphs('토끼 아래 두고왔다', 99).replace(/ /g,'　')) + `<div class="tiny">${nm}</div>`;
+function snapshot(){ prevTxt = LINES.map((_,i) => showText(i)); }
+function renderFaces(){
+  faces.forEach((f,i) => { f.innerHTML = faceInner(f.dataset.kind, S.D, false) + (i === 0 ? EAR : ''); f.style.backgroundImage = stain(S.earned*2 + i); });
+  snapshot();
+  book.classList.toggle('lit', !!S.owned.lamp);
+  document.getElementById('bGlass').classList.toggle('hidden', !S.owned.glass);
+  if (loupeOn) buildLoupe();
 }
-function renderBook(){
-  document.getElementById('margin').innerHTML = marginHtml();
-  pL.innerHTML = leftHtml(false); pR.innerHTML = rightHtml(false); snapshot();
-  pL.style.backgroundImage = stain(S.earned*2); pR.style.backgroundImage = stain(S.earned*2+1);
-  document.getElementById('pageno').textContent = S.earned ? `${S.earned}` : '';
-  document.getElementById('book').classList.toggle('lit', !!S.owned.lamp);
-  document.getElementById('margin').classList.toggle('seen', !!S.owned.glass);
-}
-const book = document.getElementById('book'), loupe = document.getElementById('loupe'), lz = document.getElementById('lz');
-let loupeOn = false, loupeX = 0, loupeY = 0;
-const LR = 75, LZ = 2.2;
-function pageHtmlAt(from, to, Dv){ let h = ''; for (let i=from;i<to;i++) h += `<div class="ln">${alienHtml(lineText(i, Dv))}</div>`; return h; }
-function buildLoupe(){
-  const Dp = S.D + PER*0.8;   // 크게 보면 아직 안 풀린 글자도 조금 읽힘
-  lz.style.width = book.clientWidth + 'px'; lz.style.height = book.clientHeight + 'px';
-  lz.innerHTML = `<div class="page left" style="background-image:${pL.style.backgroundImage}">${pageHtmlAt(0,8,Dp)}</div>`
-    + `<div class="page right" style="background-image:${pR.style.backgroundImage}">${S.D >= T.rightPage ? pageHtmlAt(8,11,Dp) : ''}</div>`
-    + `<div class="lzm${S.owned.glass ? ' seen' : ''}">${marginHtml()}</div>`;
-  placeLoupe();
-}
-function placeLoupe(){
-  loupe.style.left = (loupeX - LR) + 'px'; loupe.style.top = (loupeY - LR) + 'px';
-  lz.style.transform = `translate(${LR - loupeX*LZ}px, ${LR - loupeY*LZ}px) scale(${LZ})`;
-}
-function toggleLoupe(){
-  loupeOn = !loupeOn; book.classList.toggle('loupe', loupeOn); loupe.style.display = loupeOn ? 'block' : 'none'; sPlace();
-  if (loupeOn){ loupeX = book.clientWidth*0.3; loupeY = book.clientHeight*0.35; buildLoupe(); }
-}
-book.addEventListener('pointermove', e => { if (!loupeOn) return; const r = book.getBoundingClientRect(); loupeX = e.clientX - r.left; loupeY = e.clientY - r.top; placeLoupe(); });
-book.addEventListener('pointerdown', e => { if (!loupeOn) return; const r = book.getBoundingClientRect(); loupeX = e.clientX - r.left; loupeY = e.clientY - r.top; placeLoupe(); });
-const leaf = document.getElementById('leaf');
-const NS = 14;              // 낱장을 나눈 띠 수
-let strips = [], shades = [], anim = null;
-function buildLeaf(frontHtml, frontBg, backHtml, backBg){
+
+// ───────── 넘기는 낱장: 왼쪽 끝이 먼저 들려 오른쪽(묶인 쪽)으로 휘어 넘어감 ─────────
+const NS = 14;
+let strips = [], shades = [], anim = null, pending = null;
+function buildLeaf(face, frontHtml, frontBg, backHtml, backBg){
   leaf.innerHTML = ''; strips = []; shades = [];
-  const Wl = book.clientWidth / 2, w = Wl / NS;
+  const W = face.offsetWidth, H = face.offsetHeight, w = W / NS, hz = S.opt.horiz ? ' horiz' : '';
+  leaf.style.left = face.offsetLeft + 'px'; leaf.style.width = W + 'px'; leaf.style.height = H + 'px';
   let parent = leaf;
   for (let i=0; i<NS; i++){
     const st = document.createElement('div'); st.className = 'strip';
-    st.style.left = (i ? w : 0) + 'px'; st.style.width = w + 'px';
-    st.innerHTML = `<div class="sface"><div class="pc" style="left:${-i*w}px;width:${Wl}px;background-image:${frontBg}">${frontHtml}</div><div class="sh"></div></div>`
-      + `<div class="sface back"><div class="pc" style="left:${-(Wl-(i+1)*w)}px;width:${Wl}px;background-image:${backBg}">${backHtml}</div><div class="sh"></div></div>`;
+    st.style.left = (i ? -w : W - w) + 'px'; st.style.width = w + 'px';
+    const fx = -(W - (i+1)*w), bx = -(i*w);
+    st.innerHTML = `<div class="sface"><div class="pc${hz}" style="left:${fx}px;width:${W}px;background-image:${frontBg}">${frontHtml}</div><div class="sh"></div></div>`
+      + `<div class="sface back"><div class="pc${hz}" style="left:${bx}px;width:${W}px;background-image:${backBg}">${backHtml}</div><div class="sh"></div></div>`;
     parent.appendChild(st); parent = st; strips.push(st); shades.push(st.querySelectorAll(':scope > .sface > .sh'));
   }
 }
-// 끝(바깥쪽)이 먼저 들리고, 종이가 휘었다가 펴지며 내려앉음
 function animateLeaf(dur, done){
   const t0 = performance.now(); leaf.style.display = 'block';
   const step = now => {
-    const t = Math.min(1, (now - t0) / dur);
+    const t = Math.max(0, Math.min(1, (now - t0) / dur));
     const e = t < .5 ? 2*t*t : 1 - Math.pow(-2*t + 2, 2) / 2;
-    const base = -180 * Math.pow(e, 1.12);
+    const base = 180 * Math.pow(e, 1.12);
     const bend = 85 * Math.sin(Math.PI * Math.min(1, t*1.15)) * (1 - t*0.85);
     let cum = 0;
     for (let i=0; i<NS; i++){
-      const d = i === 0 ? base : -bend * (2*i) / (NS*(NS-1));
+      const d = i === 0 ? base : bend * (2*i) / (NS*(NS-1));
       cum += d; strips[i].style.transform = `rotateY(${d}deg)`;
       const op = (0.03 + 0.2 * Math.abs(Math.sin(cum * Math.PI / 180))).toFixed(3);
       shades[i].forEach(x => x.style.opacity = op);
@@ -281,34 +336,86 @@ function animateLeaf(dur, done){
   };
   anim = requestAnimationFrame(step);
 }
-let pendingLeft = null, turnTimer = null;
-function finishTurn(){ if (pendingLeft === null) return; clearTimeout(turnTimer); if (anim) { cancelAnimationFrame(anim); anim = null; } leaf.style.display = 'none'; pL.innerHTML = pendingLeft.html; pL.style.backgroundImage = pendingLeft.bg; pendingLeft = null; leaf.classList.remove('turn'); clearTimeout(turnTimer); }
+function finishTurn(){
+  if (anim) { cancelAnimationFrame(anim); anim = null; }
+  leaf.style.display = 'none'; leaf.innerHTML = '';
+  if (pending) { pending.el.innerHTML = pending.html; pending.el.style.backgroundImage = pending.bg; pending = null; }
+  if (loupeOn) buildLoupe();
+}
 function turnPage(slow){
   finishTurn();
-  const oldR = pR.innerHTML, oldBg = pR.style.backgroundImage;
-  const nl = leftHtml(true), nr = rightHtml(true), n = S.earned*2;
-  buildLeaf(oldR, oldBg, nl, stain(n));
-  pR.innerHTML = nr; pR.style.backgroundImage = stain(n+1);
-  pendingLeft = { html: nl, bg: stain(n) }; snapshot();
-  animateLeaf(slow ? 2000 : 950, () => { finishTurn(); if (loupeOn) buildLoupe(); });
-  document.getElementById('pageno').textContent = `${S.earned}`;
+  if (!bookOpen) { renderFaces(); return; }
+  const n = S.earned*2, f = turnFace(), earWasReady = performance.now() - lastFlip >= CD;
+  const oldHtml = f.innerHTML.replace(/<div id="ear"[^>]*><\/div>/, ''), oldBg = f.style.backgroundImage;
+  const fresh = faces.map(x => faceInner(x.dataset.kind, S.D, true));
+  if (single){
+    buildLeaf(f, oldHtml, oldBg, '', stain(n+7));                 // 뒷면은 빈 한지, 아래에서 조금 더 풀린 새 장이 드러남
+  } else {
+    buildLeaf(f, oldHtml, oldBg, fresh[1], stain(n+1));           // 왼쪽 낱장이 넘어가 새 오른쪽 면이 됨
+    pending = { el: faces[1], html: fresh[1], bg: stain(n+1) };
+  }
+  f.innerHTML = fresh[0] + EAR; f.style.backgroundImage = stain(n);
+  document.getElementById('ear').classList.toggle('ready', earWasReady);
+  snapshot();
+  animateLeaf(slow ? 2000 : 950, finishTurn);
 }
 
-// ───────── 소리 ─────────
-let AC = null;
-function ac(){ if (!AC) { try { AC = new (window.AudioContext||window.webkitAudioContext)(); } catch(e){} } return AC; }
-function noise(dur, freq, gain, type='bandpass'){
-  const a = ac(); if (!a) return;
-  const len = Math.floor(a.sampleRate*dur), buf = a.createBuffer(1, len, a.sampleRate), d = buf.getChannelData(0);
-  for (let k=0;k<len;k++) d[k] = (Math.random()*2-1) * Math.pow(1-k/len, 2);
-  const src = a.createBufferSource(); src.buffer = buf;
-  const f = a.createBiquadFilter(); f.type = type; f.frequency.value = freq;
-  const g = a.createGain(); g.gain.value = gain;
-  src.connect(f).connect(g).connect(a.destination); src.start();
+// ───────── 책 열고 덮기 ─────────
+function openBook(){
+  bookView.classList.remove('hidden'); layoutBook(); book.style.visibility = 'hidden';
+  cover.classList.remove('opening', 'closing'); cover.style.visibility = 'visible';
+  const go = () => {
+    cover.onclick = null; noise(0.35, 700, 0.12, 'lowpass');
+    cover.classList.add('opening'); book.style.visibility = 'visible'; bookOpen = true;
+    setTimeout(() => { cover.style.visibility = 'hidden'; cover.classList.remove('opening'); }, 950);
+    if (!S.opened){ S.opened = true; save(); }
+  };
+  if (!S.opened) cover.onclick = go; else setTimeout(go, 250);
 }
-const sFlip = () => noise(0.09, 2400 + Math.random()*800, 0.12);
-const sBoil = () => noise(2.6, 380, 0.09, 'lowpass');
-const sPlace = () => noise(0.14, 140, 0.35, 'lowpass');
+function closeBook(){
+  if (loupeOn) toggleLoupe();
+  finishTurn(); bookOpen = false;
+  cover.style.visibility = 'visible'; cover.classList.add('closing'); noise(0.3, 500, 0.12, 'lowpass');
+  setTimeout(() => { book.style.visibility = 'hidden'; }, 350);
+  setTimeout(() => { bookView.classList.add('hidden'); cover.classList.remove('closing'); }, 820);
+}
+document.getElementById('bClose').addEventListener('click', e => { e.stopPropagation(); closeBook(); });
+window.addEventListener('resize', () => { if (!bookView.classList.contains('hidden')) layoutBook(); });
+
+// ───────── 돋보기 ─────────
+const loupe = document.getElementById('loupe'), lz = document.getElementById('lz');
+let loupeOn = false, loupeX = 0, loupeY = 0;
+const LR = 75, LZ = 2.2;
+function buildLoupe(){
+  const Dp = S.D + PER*0.8;   // 크게 보면 아직 안 풀린 글자도 조금 읽힘
+  lz.style.width = book.clientWidth + 'px'; lz.style.height = book.clientHeight + 'px';
+  lz.className = S.opt.horiz ? 'horiz' : '';
+  lz.innerHTML = faces.map(f => `<div class="face" style="width:${FW}px;height:${FH}px;background-image:${f.style.backgroundImage}">${faceInner(f.dataset.kind, Dp, false)}</div>`).join('');
+  placeLoupe();
+}
+function placeLoupe(){ loupe.style.left = (loupeX - LR) + 'px'; loupe.style.top = (loupeY - LR) + 'px'; lz.style.transform = `translate(${LR - loupeX*LZ}px, ${LR - loupeY*LZ}px) scale(${LZ})`; }
+function toggleLoupe(){
+  loupeOn = !loupeOn; book.classList.toggle('loupe', loupeOn); loupe.style.display = loupeOn ? 'block' : 'none'; sPlace();
+  document.getElementById('bGlass').textContent = loupeOn ? '돋보기를 내려놓는다' : '돋보기';
+  if (loupeOn){ loupeX = book.clientWidth*0.6; loupeY = book.clientHeight*0.3; buildLoupe(); }
+}
+document.getElementById('bGlass').addEventListener('click', e => { e.stopPropagation(); toggleLoupe(); });
+const moveLoupe = e => { if (!loupeOn) return; const r = book.getBoundingClientRect(); loupeX = e.clientX - r.left; loupeY = e.clientY - r.top; placeLoupe(); };
+book.addEventListener('pointermove', moveLoupe); book.addEventListener('pointerdown', moveLoupe);
+
+// ───────── 넘기기 ─────────
+const CD = 1200;     // 손으로 넘기는 간격(읽는 시간)
+let lastFlip = -1e9;
+function perClick(){ return 1 + (S.owned.lamp?1:0) + (S.owned.desk?1:0); }
+function mult(){ return (1 + (S.owned.brush?0.5:0) + (S.owned.glass?1:0)) * (S.fear > 0.45 ? 0.6 : 1); }
+function flip(auto){
+  const now = performance.now();
+  if (!auto){ if (now - lastFlip < CD) return; lastFlip = now; setTimeout(() => { const e = document.getElementById('ear'); if (e) e.classList.add('ready'); }, CD); }
+  const p = auto ? 1 : perClick(); S.pages += p; S.earned += p; S.D += p*mult();
+  if (bookOpen) { if (auto) noise(0.5, 900, 0.035, 'lowpass'); else sFlip(); }
+  turnPage(!!auto);
+}
+book.addEventListener('click', () => { if (bookOpen && !loupeOn) flip(false); });
 
 // ───────── 서고(스프라이트 스태킹) ─────────
 const cv = document.getElementById('cv'), cx = cv.getContext('2d');
@@ -334,7 +441,7 @@ const M = {
     if (x===0||x===19||z===0||z===25||z===12) return WOOD;
     if (y===0) return DARK;
     const row = z<12 ? 0 : 1, zz = row ? z-13 : z-1, bi = Math.floor((x-1)/3);
-    if (bi>5 || (x-1)%3===2 && false) return null;
+    if (bi>5) return null;
     const hgt = 8 + ((bi*7+row*3)%4);
     if (y<=4 && zz < hgt && (x-1)%3 !== 2) return BOOKC[(bi+row*2)%6];
     return null;
@@ -355,18 +462,17 @@ const M = {
   letter: model(8,6,1,(x,y)=> (x===0||y===0||x===7||y===5) ? '#bfb393' : '#e2d6b8'),
   chair: model(7,7,11,(x,y,z)=>{ if (z===4) return '#4a2f1e'; if (z<4) return ((x===0||x===6)&&(y===0||y===6)) ? DARK : null; if (y===0) return (x===0||x===6||z===10||z===7) ? DARK : null; return null; }),
 };
-// 서고 물건 배치 (x, y는 서고 바닥 위 좌표)
 const OBJ = [
   { id:'shelf', x:-24, y:-17, rot:0, click:()=>showShelf() },
-  { id:'scroll', x:-6, y:-24, rot:0, z:6, show:()=>S.gahun>=0, click:showGahun },
-  { id:'chest', x:0, y:2, rot:0.05, click:flip },
+  { id:'scroll', x:-6, y:-24, rot:0, z:6, show:()=>S.gahun>=0, click:()=>showGahun() },
+  { id:'chest', x:0, y:2, rot:0.05, click:()=>openBook(), glow:()=>!S.opened },
   { id:'lamp', x:11, y:-1, buy:{ cost:15, name:'등잔' } },
   { id:'brush', x:-17, y:13, buy:{ cost:50, name:'붓걸이' } },
   { id:'desk', x:15, y:13, buy:{ cost:120, name:'서안' } },
-  { id:'glass', x:25, y:5, buy:{ cost:260, name:'돋보기' }, show:()=>!loupeOn, click:()=>toggleLoupe() },
-  { id:'teapot', x:-9, y:-11, show:()=>S.D>=T.tea, click:brew },
-  { id:'door', x:27, y:-20, show:()=>S.D>=T.door, click:showLibrary },
-  { id:'letter', x:24, y:-11, show:()=>S.D>=T.letter && !S.letterRead, click:readLetter, glow:true },
+  { id:'glass', x:25, y:5, buy:{ cost:260, name:'돋보기' } },
+  { id:'teapot', x:-9, y:-11, show:()=>S.D>=T.tea, click:()=>brew() },
+  { id:'door', x:27, y:-20, show:()=>S.D>=T.door, click:()=>showLibrary() },
+  { id:'letter', x:24, y:-11, show:()=>S.D>=T.letter && !S.letterRead, click:()=>readLetter(), glow:()=>true },
   { id:'chair', x:5, y:16, rot:-0.2, show:()=>S.chair },
 ];
 let W=0, H=0, DPR=1, SC=4, ang=-0.35, drag=0, t0=performance.now(), steamUntil=0, glitchUntil=0;
@@ -374,64 +480,55 @@ function resize(){ const r = cv.getBoundingClientRect(); DPR = Math.min(2, windo
   W = cv.width = Math.floor(r.width*DPR); H = cv.height = Math.floor(r.height*DPR);
   SC = Math.max(2, Math.floor(Math.min(W/92, H/62))); }
 window.addEventListener('resize', resize);
-
 function drawModel(m, sx, sy, a, alpha, z0=0){
-  const step = SC*0.85;
-  cx.globalAlpha = alpha;
+  const step = SC*0.85; cx.globalAlpha = alpha;
   for (let z=0; z<m.h; z++){ const L = m.layers[z]; if (!L) continue;
-    for (let k=0; k<Math.ceil(step); k++){
-      cx.save(); cx.translate(sx, sy - (z+z0)*step - k); cx.scale(SC, SC*0.6); cx.rotate(a); cx.drawImage(L, -m.w/2, -m.d/2); cx.restore();
-    }
+    for (let k=0; k<Math.ceil(step); k++){ cx.save(); cx.translate(sx, sy - (z+z0)*step - k); cx.scale(SC, SC*0.6); cx.rotate(a); cx.drawImage(L, -m.w/2, -m.d/2); cx.restore(); }
   }
   cx.globalAlpha = 1;
 }
 function frame(now){
-  const t = (now - t0)/1000;
-  const a = ang + Math.sin(t*0.12)*0.1 + drag;
-  const c = Math.cos(a), s = Math.sin(a), ox = W/2, oy = H*0.52;
-  cx.fillStyle = '#0b0907'; cx.fillRect(0,0,W,H); cx.imageSmoothingEnabled = false;
-  drawModel(M.floor, ox, oy, a, 1, -1);
-  const list = [];
-  for (const o of OBJ){
-    const owned = !o.buy || S.owned[o.id];
-    if (o.show && !o.show()) { o.hit=null; continue; }
-    const ghost = o.buy && !owned;
-    if (ghost && S.earned < o.buy.cost*0.5) { o.hit=null; continue; }
-    const rx = o.x*c - o.y*s, ry = o.x*s + o.y*c;
-    list.push({ o, ghost, sx: ox + rx*SC, sy: oy + ry*SC*0.6, ry });
+  const t = (now - t0)/1000, a = ang + Math.sin(t*0.12)*0.1 + drag, c = Math.cos(a), s = Math.sin(a), ox = W/2, oy = H*0.5;
+  if (bookView.classList.contains('hidden')){
+    cx.fillStyle = '#0b0907'; cx.fillRect(0,0,W,H); cx.imageSmoothingEnabled = false;
+    drawModel(M.floor, ox, oy, a, 1, -1);
+    const list = [];
+    for (const o of OBJ){
+      const owned = !o.buy || S.owned[o.id];
+      if (o.show && !o.show()) { o.hit=null; continue; }
+      const ghost = o.buy && !owned;
+      if (ghost && S.earned < o.buy.cost*0.5) { o.hit=null; continue; }
+      const rx = o.x*c - o.y*s, ry = o.x*s + o.y*c;
+      list.push({ o, ghost, sx: ox + rx*SC, sy: oy + ry*SC*0.6, ry });
+    }
+    list.sort((p,q)=>p.ry-q.ry);
+    for (const it of list){
+      const m = M[it.o.id];
+      let alpha = it.ghost ? (S.pages >= it.o.buy.cost ? 0.42 : 0.18) : 1;
+      if (it.o.glow && it.o.glow()) alpha = 0.72 + 0.28*Math.sin(t*3);
+      drawModel(m, it.sx, it.sy, a + (it.o.rot||0), alpha, it.o.z||0);
+      it.o.hit = { x: it.sx, y0: it.sy - (it.o.z||0)*SC*0.85, y1: it.sy - (m.h + (it.o.z||0) + (it.ghost ? 8 : 0))*SC*0.85, r: Math.max(Math.max(m.w, m.d)*SC*0.5, 28*DPR), ghost: it.ghost };
+      if (it.ghost){ cx.font = `${12*DPR}px serif`; cx.fillStyle = S.pages >= it.o.buy.cost ? '#cfc3a8' : '#6d6350'; cx.textAlign='center'; cx.fillText(`${it.o.buy.name} ${it.o.buy.cost}쪽`, it.sx, it.sy - (m.h+4)*SC*0.85); }
+      if (it.o.id==='lamp' && !it.ghost){ const fy = it.sy - 7*SC*0.85, fl = 0.6+0.4*Math.sin(t*11)*Math.sin(t*7.3);
+        const g = cx.createRadialGradient(it.sx, fy, 0, it.sx, fy, 30*DPR); g.addColorStop(0,`rgba(255,190,90,${0.35*fl})`); g.addColorStop(1,'rgba(255,190,90,0)');
+        cx.fillStyle=g; cx.fillRect(it.sx-30*DPR, fy-30*DPR, 60*DPR, 60*DPR); }
+      if (it.o.id==='teapot' && now < steamUntil){ cx.fillStyle='rgba(220,215,200,0.5)';
+        for (let k=0;k<6;k++){ const ph=(t*1.5+k/6)%1; cx.fillRect(it.sx + Math.sin(t*3+k)*4*DPR, it.sy - 6*SC*0.85 - ph*40*DPR, SC*0.8, SC*0.8); } }
+    }
+    const lit = S.owned.lamp ? 1 : 0;
+    const g = cx.createRadialGradient(ox, oy-20*DPR, Math.min(W,H)*(0.18+0.12*lit), ox, oy, Math.max(W,H)*0.62);
+    g.addColorStop(0,'rgba(8,6,4,0)'); g.addColorStop(1,'rgba(8,6,4,0.92)'); cx.fillStyle = g; cx.fillRect(0,0,W,H);
   }
-  list.sort((p,q)=>p.ry-q.ry);
-  for (const it of list){
-    const m = M[it.o.id];
-    let alpha = it.ghost ? (S.pages >= it.o.buy.cost ? 0.42 : 0.18) : 1;
-    if (it.o.glow) alpha = 0.75 + 0.25*Math.sin(t*3);
-    drawModel(m, it.sx, it.sy, a + (it.o.rot||0), alpha, it.o.z||0);
-    it.o.hit = { x: it.sx, y0: it.sy - (it.o.z||0)*SC*0.85, y1: it.sy - (m.h + (it.o.z||0) + (it.ghost ? 8 : 0))*SC*0.85,
-      r: Math.max(Math.max(m.w, m.d)*SC*0.5, 28*DPR), ghost: it.ghost };
-    if (it.ghost){ cx.font = `${12*DPR}px serif`; cx.fillStyle = S.pages >= it.o.buy.cost ? '#cfc3a8' : '#6d6350'; cx.textAlign='center';
-      cx.fillText(`${it.o.buy.name} ${it.o.buy.cost}쪽`, it.sx, it.sy - (m.h+4)*SC*0.85); }
-    if (it.o.id==='lamp' && !it.ghost){ const fy = it.sy - 7*SC*0.85, fl = 0.6+0.4*Math.sin(t*11)*Math.sin(t*7.3);
-      const g = cx.createRadialGradient(it.sx, fy, 0, it.sx, fy, 30*DPR); g.addColorStop(0,`rgba(255,190,90,${0.35*fl})`); g.addColorStop(1,'rgba(255,190,90,0)');
-      cx.fillStyle=g; cx.fillRect(it.sx-30*DPR, fy-30*DPR, 60*DPR, 60*DPR); }
-    if (it.o.id==='teapot' && now < steamUntil){ cx.fillStyle='rgba(220,215,200,0.5)';
-      for (let k=0;k<6;k++){ const ph=(t*1.5+k/6)%1; cx.fillRect(it.sx + Math.sin(t*3+k)*4*DPR, it.sy - 6*SC*0.85 - ph*40*DPR, SC*0.8, SC*0.8); } }
-  }
-  // 어둠: 등잔을 들이면 밝아짐
-  const lit = S.owned.lamp ? 1 : 0;
-  const g = cx.createRadialGradient(ox, oy-20*DPR, Math.min(W,H)*(0.18+0.12*lit), ox, oy, Math.max(W,H)*0.62);
-  g.addColorStop(0,'rgba(8,6,4,0)'); g.addColorStop(1,'rgba(8,6,4,0.92)'); cx.fillStyle = g; cx.fillRect(0,0,W,H);
   tick(now); requestAnimationFrame(frame);
 }
 
 // ───────── 진행 ─────────
 const cnt = document.getElementById('cnt');
 let lastTick = performance.now(), lastAuto = performance.now();
-function perClick(){ return 1 + (S.owned.lamp?1:0) + (S.owned.desk?1:0); }
-function mult(){ return (1 + (S.owned.brush?0.5:0) + (S.owned.glass?1:0)) * (S.fear > 0.45 ? 0.6 : 1); }
 function tick(now){
   const dt = Math.min(0.5, (now - lastTick)/1000); lastTick = now;
   if (S.stage !== 'room') return;
-  if (S.D >= T.fearOn && now > steamUntil) S.fear = Math.min(0.8, S.fear + dt*0.025*(S.sideRead && S.sideRead.dongui ? 0.6 : 1));
+  if (S.D >= T.fearOn && now > steamUntil) S.fear = Math.min(0.8, S.fear + dt*0.025*(S.sideRead.dongui ? 0.6 : 1));
   document.getElementById('fear').style.opacity = S.fear.toFixed(2);
   let txt = String(S.pages);
   if (!S.glitchDone && S.D >= T.glitch){ S.glitchDone = true; glitchUntil = now + 200; save(); }
@@ -439,43 +536,20 @@ function tick(now){
   cnt.textContent = txt;
   if (S.owned.desk && S.D < T.letter && now - lastAuto > 9000 && now - lastFlip > 4000 && ov.classList.contains('hidden')){ lastAuto = now; flip(true); }
 }
-let lastFlip = 0;
-const CD = 1200;   // 손으로 넘기는 간격(읽는 시간)
-const ear = document.getElementById('ear');
-function flip(auto){
-  const now = performance.now();
-  if (!auto){
-    if (now - lastFlip < CD) return;
-    lastFlip = now; ear.classList.remove('ready'); setTimeout(() => ear.classList.add('ready'), CD);
-  }
-  const p = auto ? 1 : perClick(); S.pages += p; S.earned += p; S.D += p*mult();
-  if (auto) noise(0.5, 900, 0.035, 'lowpass'); else sFlip();
-  turnPage(!!auto);
-}
-function brew(){
-  const now = performance.now(); if (now < steamUntil) return;
-  steamUntil = now + 2600; sBoil();
-  setTimeout(()=>{ S.fear = 0; save(); }, 2600);
-}
+function brew(){ const now = performance.now(); if (now < steamUntil) return; steamUntil = now + 2600; sBoil(); setTimeout(()=>{ S.fear = 0; save(); }, 2600); }
 const ITEM = {
   lamp:  ['등잔', '불을 켜면 글자가 보인다.<br>한 번에 두 장씩 넘길 수 있다.<br><br>기름은 줄지 않는다.'],
   brush: ['붓걸이', '푼 글자를 받아 적는다. 해독이 빨라진다.<br>받아 적은 것은 도서관에 남는다.<br><br>붓이 넷. 하나는 쓴 적이 없는데 먹이 묻어 있다.'],
-  desk:  ['서안', '책을 펼쳐 두면 손대지 않아도 넘어간다.<br>한 번에 넘기는 장수도 늘어난다.<br><br>창은 닫혀 있다.'],
-  glass: ['돋보기', '해독이 훨씬 빨라진다.<br>집어 들어 책에 대면 글자가 크게 보인다.<br>크게 보면 아직 풀리지 않은 글자도 조금 읽힌다.<br>내려놓으려면 서고 바닥을 누른다.<br><br>여백에 다른 손으로 쓴 글씨가 있다. 아주 작다.'],
+  desk:  ['서안', '책을 펼쳐 두면 손대지 않아도 넘어간다.<br>책을 덮어 두어도 넘어간다.<br>한 번에 넘기는 장수도 늘어난다.<br><br>창은 닫혀 있다.'],
+  glass: ['돋보기', '해독이 훨씬 빨라진다.<br>책을 펼치면 곁에 놓인다. 집어 들어 대면 글자가 크게 보인다.<br>크게 보면 아직 풀리지 않은 글자도 조금 읽힌다.<br><br>여백에 다른 손으로 쓴 글씨가 있다. 아주 작다.'],
 };
 function showItem(id){ openOv(`<h3>${ITEM[id][0]}</h3>${ITEM[id][1]}`); }
-function buy(o){ if (S.pages < o.buy.cost) return; S.pages -= o.buy.cost; S.owned[o.id] = true; sPlace(); save(); renderBook(); showItem(o.id); }
+function buy(o){ if (S.pages < o.buy.cost) return; S.pages -= o.buy.cost; S.owned[o.id] = true; sPlace(); save(); showItem(o.id); }
 
 // ───────── 기록 ─────────
-const ov = document.getElementById('overlay'), ovBody = document.getElementById('ovBody');
-function openOv(html, onClose){ ovBody.innerHTML = html + '<div class="close">닫기</div>'; ov.classList.remove('hidden'); ov._onClose = onClose; ov._t = performance.now(); }
-ov.addEventListener('click', e => { if (performance.now() - (ov._t||0) < 450) return; // 터치 직후 따라오는 클릭이 방금 연 창을 닫지 않게
-  if (e.target.closest('.rec')) return; ov.classList.add('hidden'); const f = ov._onClose; ov._onClose = null; if (f) f(); });
-const esc = s => s.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 function showGahun(){ openOv(`<h3>家訓</h3><div style="font-size:20px;letter-spacing:6px;text-align:center;padding:20px 0">${['읽되 믿지 마라','모르는 것은 덮어라'][S.gahun]}</div>`); }
-function recJokbo(){ const g = glyphs('물가에서', 41), g2 = glyphs('문을 잠그고 나오지 않다', 42);
-  return `<h3>族譜 — 첫 장</h3>一世. <span style="letter-spacing:-2px;opacity:.6">▒▒▒</span> — ${alienHtml(glyphs('이 서고를 세우다',40))}<br>…<br>十七世. ${esc(S.sur+S.name)} — 궤짝을 열다.<br>十八世. 　　 — ${alienHtml(g)}<br>十九世. 　　 — ${alienHtml(g2)}`; }
-function recLedger(){ let h = '<h3>서고 장부</h3>'; for (let i=0;i<8;i++) h += alienHtml(lineText(i)) + '<br>'; return h; }
+function recJokbo(){ return `<h3>族譜 — 첫 장</h3>一世. <span style="letter-spacing:-2px;opacity:.6">▒▒▒</span> — ${alienHtml(glyphs('이 서고를 세우다',40))}<br>…<br>十七世. ${esc(S.sur+S.name)} — 궤짝을 열다.<br>十八世. 　　 — ${alienHtml(glyphs('물가에서', 41))}<br>十九世. 　　 — ${alienHtml(glyphs('문을 잠그고 나오지 않다', 42))}`; }
+function recLedger(){ let h = '<h3>서고 장부</h3>'; for (let i=0;i<8;i++) h += alienHtml(showText(i)) + '<br>'; return h; }
 function recNotes(){ const done = []; for (let i=0;i<11;i++) if (S.D >= lineDone(i)) done.push(esc(LINES[i][LINES[i].length-1]));
   return `<h3>해독 노트</h3><div style="font-style:italic">${done.length ? done.join('<br>') : '아직 받아 적은 줄이 없다.'}</div><div style="margin-top:10px;font-size:12px;opacity:.6">받아 적은 줄 ${done.length} / ${LINES.length}</div>`; }
 const DONGUI = [
@@ -492,49 +566,60 @@ function showShelf(){
     ['소학', 0], [alienHtml(glyphs('이름모를책', 51)), 0], ['농가집성 一', 0], ['동의보감 一', 0], [alienHtml(glyphs('이름모를', 52)), 0], ['동의보감 二', 0],
     ['농가집성 二', 0], ['동의보감 三', 1], [alienHtml(glyphs('모를책', 53)), 0], ['시조 묶음', 0], [alienHtml(glyphs('이름모를책', 54)), 0], [alienHtml(glyphs('모를', 55)), 0],
   ];
-  const read = S.sideRead && S.sideRead.dongui;
-  openOv('<h3>책장 — 열두 권</h3>' + books.map((b,i) => `<div class="rec spine" data-i="${i}"><span>${b[0]}</span><span style="opacity:.45;font-size:12px">${b[1] ? (read ? '읽음' : '손때') : ''}</span></div>`).join(''));
+  openOv('<h3>책장 — 열두 권</h3>' + books.map((b,i) => `<div class="rec spine" data-i="${i}"><span>${b[0]}</span><span style="opacity:.45;font-size:12px">${b[1] ? (S.sideRead.dongui ? '읽음' : '손때') : ''}</span></div>`).join(''));
   ovBody.querySelectorAll('.spine').forEach(el => el.addEventListener('click', ev => {
     ev.stopPropagation();
-    if (books[+el.dataset.i][1]) readDongui();
-    else openOv('<h3>책장</h3>꺼내지지 않는다.<br>옆 책과 붙어 있다.');
+    if (books[+el.dataset.i][1]) readDongui(); else openOv('<h3>책장</h3>꺼내지지 않는다.<br>옆 책과 붙어 있다.');
   }));
 }
 function readDongui(){
   let idx = 0, shown = false;
   const draw = () => {
     const p = DONGUI[idx];
-    openOv(`<h3>동의보감 三 — 잡병편</h3><div class="rec side" id="sideP">`
-      + (p.h ? `<div class="hj">${p.h}</div><div class="kr">${shown ? p.k : ''}</div>` : `<div class="note">${p.note}</div>`)
-      + `<div class="pg">${idx+1} / ${DONGUI.length}</div></div>`);
+    openOv(`<h3>동의보감 三 — 잡병편</h3><div class="rec side" id="sideP">` + (p.h ? `<div class="hj">${p.h}</div><div class="kr">${shown ? p.k : ''}</div>` : `<div class="note">${p.note}</div>`) + `<div class="pg">${idx+1} / ${DONGUI.length}</div></div>`);
     document.getElementById('sideP').addEventListener('click', ev => {
       ev.stopPropagation();
       if (p.h && !shown) { shown = true; noise(0.08, 3000, 0.05); draw(); return; }
       idx++; shown = false; sFlip();
       if (idx < DONGUI.length) { draw(); return; }
-      const first = !(S.sideRead && S.sideRead.dongui);
-      S.sideRead = Object.assign({}, S.sideRead, { dongui: true }); save();
+      const first = !S.sideRead.dongui; S.sideRead.dongui = true; save();
       openOv('<h3>동의보감 三</h3>다 읽었다.<br>간을 다룬 장에만 손때가 많다. 누군가 이 장만 여러 번 펼쳤다.' + (first ? '<br><br>두려움이 조금 더디게 찾아온다.' : ''));
     });
   };
   draw();
 }
-function recDongui(){
-  return '<h3>동의보감 三 — 간 장</h3>' + DONGUI.map(p => p.h ? `${p.h}<br>${p.k}` : `<span style="color:#6a2a16;font-style:italic">${p.note}</span>`).join('<br><br>');
-}
+const recDongui = () => '<h3>동의보감 三 — 간 장</h3>' + DONGUI.map(p => p.h ? `${p.h}<br>${p.k}` : `<span style="color:#6a2a16;font-style:italic">${p.note}</span>`).join('<br><br>');
 function letterHtml(){ return `<h3>편지</h3>${esc(S.sur)}씨 가문 서고에 올립니다.<br><br>저는 글자를 읽는 일을 해 온 사람입니다. 댁의 서고에 읽히지 않는 책이 있다는 말을 들었습니다.<br>누구에게 들었는지는 기억나지 않습니다.<br><br>서고에서 일하게 해 주십시오. 밤에는 일하지 않겠습니다.<br><br><div style="text-align:right">한서진(韓瑞眞) 올림.</div>`; }
 function showLibrary(){
   const recs = [['족보 첫 장', recJokbo], ['서고 장부', recLedger]];
   if (S.owned.brush) recs.push(['해독 노트', recNotes]);
-  if (S.sideRead && S.sideRead.dongui) recs.push(['동의보감 三 — 간 장', recDongui]);
+  if (S.sideRead.dongui) recs.push(['동의보감 三 — 간 장', recDongui]);
   if (S.letterRead) recs.push(['편지 — 한서진', letterHtml]);
   openOv('<h3>도서관</h3>' + recs.map((r,i)=>`<div class="rec" data-i="${i}">${r[0]}</div>`).join(''));
   ovBody.querySelectorAll('.rec').forEach(el => el.addEventListener('click', ev => { ev.stopPropagation(); openOv(recs[+el.dataset.i][1]()); }));
 }
-function readLetter(){ openOv(letterHtml(), () => { S.letterRead = true; S.chair = true; save(); sPlace();
-  setTimeout(()=>document.getElementById('endnote').style.opacity = 1, 2500); }); }
+function readLetter(){ openOv(letterHtml(), () => { S.letterRead = true; S.chair = true; save(); sPlace(); setTimeout(()=>document.getElementById('endnote').style.opacity = 1, 2500); }); }
 
-// ───────── 입력 ─────────
+// ───────── 설정 ─────────
+function showSettings(){
+  const o = S.opt;
+  openOv(`<h3>설정</h3>
+    <div class="opt rec"><span>글 방향</span><span class="ch"><span data-k="horiz" data-v="0" class="${!o.horiz?'on':''}">세로</span><span data-k="horiz" data-v="1" class="${o.horiz?'on':''}">가로</span></span></div>
+    <div class="opt rec"><span>소리</span><span class="ch"><span data-k="mute" data-v="0" class="${!o.mute?'on':''}">켬</span><span data-k="mute" data-v="1" class="${o.mute?'on':''}">끔</span></span></div>
+    <div class="opt rec"><span>처음부터</span><span class="ch"><span id="bReset">기록을 지운다</span></span></div>`);
+  ovBody.querySelectorAll('.ch span[data-k]').forEach(el => el.addEventListener('click', ev => {
+    ev.stopPropagation(); S.opt[el.dataset.k] = el.dataset.v === '1'; save();
+    if (!bookView.classList.contains('hidden')) layoutBook(); showSettings();
+  }));
+  document.getElementById('bReset').addEventListener('click', ev => {
+    ev.stopPropagation();
+    openOv('<h3>처음부터</h3>지금까지의 기록이 모두 지워집니다.<div style="text-align:center;margin-top:18px"><button class="btn rec" id="bReset2" style="color:var(--ink);border-color:#00000066">지우고 처음부터</button></div>');
+    document.getElementById('bReset2').addEventListener('click', e2 => { e2.stopPropagation(); resetting = true; localStorage.removeItem(SAVE); location.reload(); });
+  });
+}
+document.getElementById('setBtn').addEventListener('click', showSettings);
+
+// ───────── 서고 입력 ─────────
 let down = null;
 cv.addEventListener('pointerdown', e => { down = { x:e.clientX, y:e.clientY, a:drag, moved:false, th: e.pointerType === 'mouse' ? 6 : 16 }; try { cv.setPointerCapture(e.pointerId); } catch(_){} });
 cv.addEventListener('pointermove', e => { if (!down) return; const dx = e.clientX - down.x; if (Math.abs(dx) > down.th) down.moved = true; if (down.moved) drag = down.a + dx*0.008; });
@@ -544,20 +629,13 @@ cv.addEventListener('pointerup', e => {
   const r = cv.getBoundingClientRect(), px = (e.clientX - r.left)*DPR, py = (e.clientY - r.top)*DPR;
   let best = null, bd = 1e9;
   for (const o of OBJ){ if (!o.hit) continue; const h = o.hit, cy = Math.max(h.y1, Math.min(h.y0, py)), dd = Math.hypot(px-h.x, py-cy); if (dd < h.r && dd < bd){ bd = dd; best = o; } }
-  if (!best) { if (loupeOn) toggleLoupe(); return; }
+  if (!best) return;
   if (best.hit.ghost) buy(best); else if (best.click) best.click(); else if (ITEM[best.id]) showItem(best.id);
 });
-document.getElementById('book').addEventListener('click', () => { if (S.stage === 'room' && !loupeOn) flip(); });
-document.getElementById('reset').addEventListener('click', () => {
-  openOv('<h3>처음부터</h3>지금까지의 기록이 모두 지워집니다.<div style="text-align:center;margin-top:18px"><button class="btn rec" id="bReset" style="color:var(--ink);border-color:#00000066">지우고 처음부터</button></div>');
-  document.getElementById('bReset').addEventListener('click', ev => { ev.stopPropagation(); localStorage.removeItem(SAVE); resetting = true; location.reload(); });
-});
-// 주소 끝에 ?new 를 붙여 열어도 처음부터
-if (/[?&]new\b/.test(location.search)) { localStorage.removeItem(SAVE); history.replaceState(null, '', location.pathname); location.reload(); }
 
 // ───────── 화면 전환 ─────────
 const scr = id => ['sStart','sJokbo','sGahun'].forEach(k => document.getElementById(k).classList.toggle('hidden', k !== id));
-function enterRoom(){ S.stage = 'room'; save(); scr(null); LINES = buildLines(); renderBook(); }
+function enterRoom(){ S.stage = 'room'; save(); scr(null); LINES = buildLines(); resize(); if (!S.opened) openBook(); }
 document.getElementById('bOpen').onclick = () => { ac(); sFlip(); S.stage = 'jokbo'; scr('sJokbo'); };
 document.getElementById('bWrite').onclick = () => {
   const sur = document.getElementById('iSur').value.trim(), nm = document.getElementById('iName').value.trim();
@@ -566,7 +644,7 @@ document.getElementById('bWrite').onclick = () => {
 };
 document.querySelectorAll('.scroll').forEach(el => el.onclick = () => { S.gahun = +el.dataset.g; sPlace(); enterRoom(); });
 
-window.__yb = { toggleLoupe: () => toggleLoupe(), hits: () => OBJ.filter(o => o.hit).map(o => ({ id:o.id, x:o.hit.x/DPR, y:(o.hit.y0*0.4 + o.hit.y1*0.6)/DPR })) };
+window.__yb = { openBook, closeBook, toggleLoupe, hits: () => OBJ.filter(o => o.hit).map(o => ({ id:o.id, x:o.hit.x/DPR, y:(o.hit.y0*0.4 + o.hit.y1*0.6)/DPR })) };
 resize();
 if (S.stage === 'room') enterRoom(); else if (S.stage === 'gahun') scr('sGahun'); else if (S.stage === 'jokbo') scr('sJokbo'); else scr('sStart');
 setInterval(() => { if (S.stage === 'room') save(); }, 2000);
