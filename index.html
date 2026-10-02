@@ -64,12 +64,13 @@
   #passShadow.go { animation:pass 2.4s ease-in-out; }
   @keyframes pass { 0% { opacity:0; background-position:-80% 0; } 20% { opacity:.9; } 80% { opacity:.9; } 100% { opacity:0; background-position:180% 0; } }
   /* 책을 묶은 실의 끝: 서고에 무슨 일이 생기면 떨림 */
-  #thread { position:absolute; width:2px; height:64px; background:#e8e0cc; transform-origin:top center; z-index:7; pointer-events:none; opacity:.85; }
+  #thread { position:absolute; width:2px; height:40px; background:#e8e0cc; transform-origin:top center; z-index:9; pointer-events:none; opacity:.55; box-shadow:0 0 4px #c8d0e088; }
+  #bookView.lit #thread { opacity:.85; box-shadow:none; }   /* 어두울 땐 달빛에 희미하게 빛나는 실(빛 층 위에 그려 어둠에 묻히지 않게) */
   #thread::after { content:''; position:absolute; left:-3px; bottom:-10px; width:8px; height:12px; border-radius:2px 2px 4px 4px;
     background:repeating-linear-gradient(90deg, #e8e0cc 0 1px, #c8bfa8 1px 2px); }
   #thread.stir { animation:stir 1.6s ease-in-out infinite; }
   @keyframes stir { 0%,100% { transform:rotate(0deg); } 20% { transform:rotate(7deg); } 45% { transform:rotate(-5deg); } 65% { transform:rotate(3deg); } 85% { transform:rotate(-1deg); } }
-  #bookBar { margin-top:14px; display:flex; gap:12px; }
+  #bookBar { margin-top:58px; display:flex; gap:12px; }
   .sbtn { background:none; border:1px solid #6d635099; color:#bfb293; padding:7px 14px; font:inherit; font-size:13px; letter-spacing:2px; cursor:pointer; }
 
   /* 넘기는 낱장(가는 띠를 이어 붙인 한지) */
@@ -281,7 +282,7 @@ function layoutBook(){
   const fs = Math.max(13, Math.min(19, FH/40));
   book.style.setProperty('--fs', fs + 'px'); book.style.setProperty('--lh', Math.round(fs*1.8) + 'px'); book.style.setProperty('--pt', Math.round(FH*0.15) + 'px');
   cover.style.width = FW + 'px'; cover.style.height = FH + 'px'; cover.style.left = '0px'; cover.style.top = '0px';
-  const th = document.getElementById('thread'); th.style.left = (FW - Math.round(FW*0.035)) + 'px';   // 실은 묶은 선(한 면이면 오른쪽 끝, 두 면이면 가운데)에서 늘어짐 th.style.top = (FH - 4) + 'px';
+  const th = document.getElementById('thread'); th.style.left = (FW - Math.round(FW*0.035)) + 'px'; th.style.top = (FH - 4) + 'px';   // 실은 묶은 선(한 면이면 오른쪽 끝, 두 면이면 가운데)에서 늘어짐
   facesEl.innerHTML = ''; faces = [];
   for (const k of (single ? ['all'] : ['fear', 'ledger'])){ const f = document.createElement('div'); f.className = 'face'; f.dataset.kind = k; f.style.width = FW + 'px'; f.style.height = FH + 'px'; facesEl.appendChild(f); faces.push(f); }
   facesEl.classList.toggle('horiz', !!S.opt.horiz);
