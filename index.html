@@ -364,7 +364,8 @@ function frame(now){
     let alpha = it.ghost ? (S.pages >= it.o.buy.cost ? 0.42 : 0.18) : 1;
     if (it.o.glow) alpha = 0.75 + 0.25*Math.sin(t*3);
     drawModel(m, it.sx, it.sy, a + (it.o.rot||0), alpha, it.o.z||0);
-    it.o.hit = { x: it.sx, y: it.sy - (m.h/2 + (it.o.z||0))*SC*0.85, r: Math.max(m.w, m.d)*SC*0.55 + 10*DPR, ghost: it.ghost };
+    it.o.hit = { x: it.sx, y0: it.sy - (it.o.z||0)*SC*0.85, y1: it.sy - (m.h + (it.o.z||0) + (it.ghost ? 8 : 0))*SC*0.85,
+      r: Math.max(Math.max(m.w, m.d)*SC*0.5, 28*DPR), ghost: it.ghost };
     if (it.ghost){ cx.font = `${12*DPR}px serif`; cx.fillStyle = S.pages >= it.o.buy.cost ? '#cfc3a8' : '#6d6350'; cx.textAlign='center';
       cx.fillText(`${it.o.buy.name} ${it.o.buy.cost}쪽`, it.sx, it.sy - (m.h+4)*SC*0.85); }
     if (it.o.id==='lamp' && !it.ghost){ const fy = it.sy - 7*SC*0.85, fl = 0.6+0.4*Math.sin(t*11)*Math.sin(t*7.3);
@@ -419,8 +420,9 @@ function buy(o){ if (S.pages < o.buy.cost) return; S.pages -= o.buy.cost; S.owne
 
 // ───────── 기록 ─────────
 const ov = document.getElementById('overlay'), ovBody = document.getElementById('ovBody');
-function openOv(html, onClose){ ovBody.innerHTML = html + '<div class="close">닫기</div>'; ov.classList.remove('hidden'); ov._onClose = onClose; }
-ov.addEventListener('click', e => { if (e.target.closest('.rec')) return; ov.classList.add('hidden'); const f = ov._onClose; ov._onClose = null; if (f) f(); });
+function openOv(html, onClose){ ovBody.innerHTML = html + '<div class="close">닫기</div>'; ov.classList.remove('hidden'); ov._onClose = onClose; ov._t = performance.now(); }
+ov.addEventListener('click', e => { if (performance.now() - (ov._t||0) < 450) return; // 터치 직후 따라오는 클릭이 방금 연 창을 닫지 않게
+  if (e.target.closest('.rec')) return; ov.classList.add('hidden'); const f = ov._onClose; ov._onClose = null; if (f) f(); });
 const esc = s => s.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 function showGahun(){ openOv(`<h3>家訓</h3><div style="font-size:20px;letter-spacing:6px;text-align:center;padding:20px 0">${['읽되 믿지 마라','모르는 것은 덮어라'][S.gahun]}</div>`); }
 function recJokbo(){ const g = glyphs('물가에서', 41), g2 = glyphs('문을 잠그고 나오지 않다', 42);
@@ -486,13 +488,14 @@ function readLetter(){ openOv(letterHtml(), () => { S.letterRead = true; S.chair
 
 // ───────── 입력 ─────────
 let down = null;
-cv.addEventListener('pointerdown', e => { down = { x:e.clientX, y:e.clientY, a:drag, moved:false }; cv.setPointerCapture(e.pointerId); });
-cv.addEventListener('pointermove', e => { if (!down) return; const dx = e.clientX - down.x; if (Math.abs(dx) > 6) down.moved = true; if (down.moved) drag = down.a + dx*0.008; });
+cv.addEventListener('pointerdown', e => { down = { x:e.clientX, y:e.clientY, a:drag, moved:false, th: e.pointerType === 'mouse' ? 6 : 16 }; try { cv.setPointerCapture(e.pointerId); } catch(_){} });
+cv.addEventListener('pointermove', e => { if (!down) return; const dx = e.clientX - down.x; if (Math.abs(dx) > down.th) down.moved = true; if (down.moved) drag = down.a + dx*0.008; });
+cv.addEventListener('pointercancel', () => { down = null; });
 cv.addEventListener('pointerup', e => {
   const d = down; down = null; if (!d || d.moved || S.stage !== 'room') return;
   const r = cv.getBoundingClientRect(), px = (e.clientX - r.left)*DPR, py = (e.clientY - r.top)*DPR;
   let best = null, bd = 1e9;
-  for (const o of OBJ){ if (!o.hit) continue; const dd = Math.hypot(px-o.hit.x, py-o.hit.y); if (dd < o.hit.r && dd < bd){ bd = dd; best = o; } }
+  for (const o of OBJ){ if (!o.hit) continue; const h = o.hit, cy = Math.max(h.y1, Math.min(h.y0, py)), dd = Math.hypot(px-h.x, py-cy); if (dd < h.r && dd < bd){ bd = dd; best = o; } }
   if (!best) { if (loupeOn) toggleLoupe(); return; }
   if (best.hit.ghost) buy(best); else if (best.click) best.click(); else if (ITEM[best.id]) showItem(best.id);
 });
@@ -515,7 +518,7 @@ document.getElementById('bWrite').onclick = () => {
 };
 document.querySelectorAll('.scroll').forEach(el => el.onclick = () => { S.gahun = +el.dataset.g; sPlace(); enterRoom(); });
 
-window.__yb = { toggleLoupe: () => toggleLoupe() };
+window.__yb = { toggleLoupe: () => toggleLoupe(), hits: () => OBJ.filter(o => o.hit).map(o => ({ id:o.id, x:o.hit.x/DPR, y:(o.hit.y0*0.4 + o.hit.y1*0.6)/DPR })) };
 resize();
 if (S.stage === 'room') enterRoom(); else if (S.stage === 'gahun') scr('sGahun'); else if (S.stage === 'jokbo') scr('sJokbo'); else scr('sStart');
 setInterval(() => { if (S.stage === 'room') save(); }, 2000);
