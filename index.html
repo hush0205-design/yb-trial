@@ -48,10 +48,22 @@
   #ear { position:absolute; left:0; bottom:0; width:30px; height:30px; z-index:2; pointer-events:none; opacity:.12; transition:opacity .3s;
     background:linear-gradient(225deg, transparent 50%, #b3a27c 50%); box-shadow:2px -2px 5px #0002; }
   #ear.ready { opacity:1; }
-  #bookShade { position:absolute; inset:0; pointer-events:none; z-index:5; transition:opacity 2.5s;
-    background:radial-gradient(ellipse at 50% 40%, #0d0a0799 0%, #0d0a07f0 85%); opacity:1; }
-  #book.lit #bookShade { opacity:.1; animation:flick 3.3s infinite; }
-  @keyframes flick { 0%,100%{opacity:.1} 37%{opacity:.17} 41%{opacity:.06} 70%{opacity:.13} }
+  .lightL { position:absolute; inset:-1px; pointer-events:none; z-index:5; mix-blend-mode:multiply; transition:opacity 2.5s; }
+  #dimL { opacity:1; background:radial-gradient(ellipse 75% 55% at 74% 20%, rgb(158,162,182) 0%, rgb(92,94,110) 32%, rgb(30,30,38) 68%, rgb(14,14,18) 100%); }
+  #warmL { opacity:0; background:radial-gradient(ellipse 95% 80% at 50% 105%, rgb(255,247,230) 0%, rgb(244,226,192) 45%, rgb(176,146,108) 100%); }
+  #book.lit #dimL { opacity:0; }
+  #book.lit #warmL { opacity:1; animation:flick 3.3s infinite; }
+  @keyframes flick { 0%,100%{opacity:1} 37%{opacity:.9} 41%{opacity:1} 70%{opacity:.94} }
+  #passShadow { position:absolute; inset:0; pointer-events:none; z-index:5; opacity:0;
+    background:linear-gradient(90deg, transparent 0%, #000000aa 45%, #000000aa 55%, transparent 100%); background-size:60% 100%; background-repeat:no-repeat; }
+  #passShadow.go { animation:pass 2.4s ease-in-out; }
+  @keyframes pass { 0% { opacity:0; background-position:-80% 0; } 20% { opacity:.9; } 80% { opacity:.9; } 100% { opacity:0; background-position:180% 0; } }
+  /* 책을 묶은 실의 끝: 서고에 무슨 일이 생기면 떨림 */
+  #thread { position:absolute; width:2px; height:64px; background:#e8e0cc; transform-origin:top center; z-index:7; pointer-events:none; opacity:.85; }
+  #thread::after { content:''; position:absolute; left:-3px; bottom:-10px; width:8px; height:12px; border-radius:2px 2px 4px 4px;
+    background:repeating-linear-gradient(90deg, #e8e0cc 0 1px, #c8bfa8 1px 2px); }
+  #thread.stir { animation:stir 1.6s ease-in-out infinite; }
+  @keyframes stir { 0%,100% { transform:rotate(0deg); } 20% { transform:rotate(7deg); } 45% { transform:rotate(-5deg); } 65% { transform:rotate(3deg); } 85% { transform:rotate(-1deg); } }
   #bookBar { margin-top:14px; display:flex; gap:12px; }
   .sbtn { background:none; border:1px solid #6d635099; color:#bfb293; padding:7px 14px; font:inherit; font-size:13px; letter-spacing:2px; cursor:pointer; }
 
@@ -129,9 +141,10 @@
       <div id="faces"></div>
       <div id="leaf"></div>
       <div id="loupe"><div id="lz"></div></div>
-      <div id="bookShade"></div>
+      <div id="dimL" class="lightL"></div><div id="warmL" class="lightL"></div><div id="passShadow"></div>
     </div>
     <div id="cover"><div class="slip">□□</div><div class="bind"></div></div>
+    <div id="thread"></div>
   </div>
   <div id="bookBar"><button class="sbtn" id="bGlass">돋보기</button><button class="sbtn" id="bClose">책을 덮는다</button></div>
 </div>
@@ -264,6 +277,7 @@ function layoutBook(){
   const fs = Math.max(13, Math.min(19, FH/40));
   book.style.setProperty('--fs', fs + 'px'); book.style.setProperty('--lh', Math.round(fs*1.8) + 'px'); book.style.setProperty('--pt', Math.round(FH*0.15) + 'px');
   cover.style.width = FW + 'px'; cover.style.height = FH + 'px'; cover.style.left = (BW - FW) + 'px'; cover.style.top = '0px';
+  const th = document.getElementById('thread'); th.style.left = (BW - Math.round(FW*0.035)) + 'px'; th.style.top = (FH - 4) + 'px';
   facesEl.innerHTML = ''; faces = [];
   for (const k of (single ? ['all'] : ['fear', 'ledger'])){ const f = document.createElement('div'); f.className = 'face'; f.dataset.kind = k; f.style.width = FW + 'px'; f.style.height = FH + 'px'; facesEl.appendChild(f); faces.push(f); }
   facesEl.classList.toggle('horiz', !!S.opt.horiz);
@@ -374,6 +388,7 @@ function openBook(){
 }
 function closeBook(){
   if (loupeOn) toggleLoupe();
+  S.ack = roomNews(); save();
   finishTurn(); bookOpen = false;
   cover.style.visibility = 'visible'; cover.classList.add('closing'); noise(0.3, 500, 0.12, 'lowpass');
   setTimeout(() => { book.style.visibility = 'hidden'; }, 350);
@@ -534,7 +549,29 @@ function tick(now){
   if (!S.glitchDone && S.D >= T.glitch){ S.glitchDone = true; glitchUntil = now + 200; save(); }
   if (now < glitchUntil && txt.length){ const k = txt.length-1; txt = txt.slice(0,k) + ((+txt[k]+3)%10); }
   cnt.textContent = txt;
+  updateThread(now);
   if (S.owned.desk && S.D < T.letter && now - lastAuto > 9000 && now - lastFlip > 4000 && ov.classList.contains('hidden')){ lastAuto = now; flip(true); }
+}
+function roomNews(){
+  const n = [];
+  for (const o of OBJ) if (o.buy && !S.owned[o.id] && S.pages >= o.buy.cost) n.push('buy:' + o.id);
+  if (S.D >= T.door) n.push('door');
+  if (S.D >= T.tea) n.push('teapot');
+  if (S.D >= T.letter && !S.letterRead) n.push('letter');
+  return n;
+}
+let lastNewsCheck = 0;
+function updateThread(now){
+  if (now - lastNewsCheck < 500) return; lastNewsCheck = now;
+  const ack = S.ack || [];
+  const fresh = roomNews().filter(k => !ack.includes(k));
+  const urgent = S.D >= T.tea && S.fear > 0.4;            // 손이 떨릴 만큼 무서우면 실도 떨림
+  document.getElementById('thread').classList.toggle('stir', bookOpen && (fresh.length > 0 || urgent));
+  if (bookOpen && S.D >= T.letter && !S.letterShadow){   // 편지가 놓일 때: 문 앞을 지나가는 그림자 하나
+    S.letterShadow = true; save();
+    const ps = document.getElementById('passShadow'); ps.classList.remove('go'); void ps.offsetWidth; ps.classList.add('go');
+    setTimeout(() => { noise(0.12, 110, 0.4, 'lowpass'); setTimeout(() => noise(0.12, 110, 0.35, 'lowpass'), 260); }, 1500);
+  }
 }
 function brew(){ const now = performance.now(); if (now < steamUntil) return; steamUntil = now + 2600; sBoil(); setTimeout(()=>{ S.fear = 0; save(); }, 2600); }
 const ITEM = {
