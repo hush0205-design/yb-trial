@@ -630,9 +630,10 @@ const M = {
     }
     return (x===0||x===5||y===0||y===11) ? '#bfb393' : '#e6dcc2';
   }),
-  rdesk: model(12,7,7,(x,y,z)=>{                                          // 연구원 책상: 종이 묶음과 벼루
-    if (z===6){ if (x>=2 && x<=5 && y>=1 && y<=4) return '#e2d6b8'; if (x>=8 && x<=9 && y>=2 && y<=4) return y===2 ? '#2a2a2e' : '#141416'; return null; }
-    if (z===5) return '#55361f';
+  rdesk: model(12,7,12,(x,y,z)=>{                                         // 연구원 책상(의자에 앉아 쓰는 높이): 종이 묶음과 벼루
+    if (z===11){ if (x>=2 && x<=5 && y>=1 && y<=4) return '#e2d6b8'; if (x>=8 && x<=9 && y>=2 && y<=4) return y===2 ? '#2a2a2e' : '#141416'; return null; }
+    if (z===10) return '#55361f';
+    if (z===9 && (y===0 || y===6)) return '#3a2414';
     if ((x<=1||x>=10) && (y<=1||y>=5)) return '#3a2414';
     return null;
   }),
@@ -650,7 +651,7 @@ const OBJ = [
   { id:'shelf', x:-24, y:-17, rot:0, click:()=>showShelf() },
   { id:'scroll', x:-6, y:-24, rot:0, z:6, show:()=>S.gahun>=0, click:()=>showGahun() },
   { id:'chest', get x(){ return S.owned.desk ? -30 : 0; }, get y(){ return S.owned.desk ? 19 : 2; }, get rot(){ return S.owned.desk ? 0.35 : 0.05; }, m:()=> S.owned.desk ? 'chestClosed' : 'chest', click:()=> S.owned.desk ? showEmptyChest() : openBook(), glow:()=>!S.opened && !S.owned.desk },
-  { id:'lamp', get x(){ return S.owned.lamp && S.owned.desk ? 18 : 11; }, get y(){ return S.owned.lamp && S.owned.desk ? -1 : -2; }, click:()=>lampClick(), buy:{ cost:15, name:'등잔' } },
+  { id:'lamp', get x(){ return S.owned.lamp && S.owned.desk ? -18 : -12; }, get y(){ return S.owned.lamp && S.owned.desk ? 0 : -3; }, click:()=>lampClick(), buy:{ cost:15, name:'등잔' } },
   { id:'brush', x:9, y:-20, buy:{ cost:50, name:'붓걸이' } },
   { id:'desk', get x(){ return S.owned.desk ? 0 : 0; }, get y(){ return S.owned.desk ? 3 : 15; }, m:()=> S.owned.desk ? 'seoanBook' : 'seoan', buy:{ cost:120, name:'서안' }, click:()=>openBook() },
   { id:'glass', get x(){ return S.owned.glass && S.owned.desk ? -10 : -24; }, get y(){ return S.owned.glass && S.owned.desk ? 3 : 8; }, get z(){ return S.owned.glass && S.owned.desk ? 8 : 0; }, buy:{ cost:260, name:'수정 문진' } },
@@ -693,10 +694,13 @@ function frame(now){
     for (const it of list){
       if (it.o.doll){
         const f = Math.max(0.05, Math.abs(Math.cos(a - ang)));       // 방을 돌리면 얇아짐
-        const dh = 17*SC*0.85, dw = 12*SC*f*0.85;
-        cx.drawImage(DOLL, it.sx - dw/2, it.sy - dh, dw, dh);
-        if (f < 0.2){ cx.fillStyle = '#1a1410'; cx.fillRect(it.sx - SC*0.2, it.sy - dh, SC*0.4, dh); }
-        it.o.hit = { x: it.sx, y0: it.sy, y1: it.sy - dh, r: 22*DPR, ghost:false };
+        const ph = sjPhase(), walking = ph < 1;
+        const img = walking ? (Math.floor(ph*WALK_MS/280) % 2 ? DOLL_A : DOLL_B) : DOLL_SIT;
+        const u = SC*0.85, dh = img.height*u, dw = 14*u*f;
+        const lift = walking ? Math.abs(Math.sin(ph*WALK_MS/280*Math.PI))*u*0.6 : 4*u;   // 걸음의 들썩임 / 의자 높이
+        cx.drawImage(img, it.sx - dw/2, it.sy - lift - dh, dw, dh);
+        if (f < 0.2){ cx.fillStyle = '#1a1410'; cx.fillRect(it.sx - SC*0.2, it.sy - lift - dh, SC*0.4, dh); }
+        it.o.hit = { x: it.sx, y0: it.sy - lift, y1: it.sy - lift - dh, r: 22*DPR, ghost:false };
         continue;
       }
       const m = M[it.o.m ? it.o.m() : it.o.id];
@@ -737,7 +741,8 @@ function researcherTick(dt){
   if (S.letterRead && !S.rArrived && S.rDue && Date.now() >= S.rDue){
     S.rArrived = Date.now(); S.rWork = 0; S.rPages = 0; save();
     noise(0.12, 110, 0.4, 'lowpass'); setTimeout(() => noise(0.12, 110, 0.35, 'lowpass'), 260);          // 문 두드리는 소리
-    [900, 1350, 1800, 2250].forEach(t => setTimeout(() => noise(0.08, 220, 0.18, 'lowpass'), t));           // 발소리
+    for (let t = 300; t < WALK_MS; t += 560) setTimeout(() => noise(0.08, 220, 0.16, 'lowpass'), t);       // 발소리
+    setTimeout(() => noise(0.2, 160, 0.25, 'lowpass'), WALK_MS + 100);                                      // 의자에 앉는 소리
     setTimeout(() => document.getElementById('endnote').style.opacity = 1, 6000);
   }
   if (!S.rArrived || isNight()) return;
@@ -760,18 +765,23 @@ function showResearcher(){
   openOv(`<h3>연구원 — 한서진(韓瑞眞)</h3>직업: 해독가<br>상태: ${st}<br>넘긴 장: ${S.rPages||0}장<br><div style="font-size:12px;opacity:.6">밤에는 일하지 않는다.</div><br><b>일지</b><br>` + (n ? DIARY.slice(0, n).map(d => `<div style="margin:6px 0">${d[1]}</div>`).join('') : '아직 쓴 것이 없다.'));
 }
 const recDiary = () => '<h3>한서진의 일지</h3>' + DIARY.slice(0, diaryCount()).map(d => `<div style="margin:8px 0">${d[1]}</div>`).join('');
-// 종이 인형(연구원): 늘 화면을 향하지만, 방을 돌리면 옆으로 돌아 얇은 선이 됨
-const DOLL = (() => {
-  const rows = [
-    '....HHHH....', '...HHHHHH...', '...HHHHHH...', '...HSSSSH...', '...SSSSSS...', '...SESSES...', '...SSSSSS...', '....SSSS....',
-    '...CWWWWC...', '..WWCWWCWW..', '..WWWCCWWW..', '.WWWWRRWWWW.', '.WWWWRWWWWW.', '.WWWWWWWWWW.', '.SWWWWWWWWS.', '..WWWWWWWW..',
-    '..WWWWWWWW..', '..WWWWWWWW..', '..WWW..WWW..', '..DD....DD..'];
-  const col = { H:'#1a1410', S:'#e2c29a', E:'#1a1410', C:'#3a4a5a', W:'#d9d2c2', R:'#8a2a2a', D:'#2a2018' };
-  const c = document.createElement('canvas'); c.width = 12; c.height = rows.length; const g = c.getContext('2d');
-  rows.forEach((r,y) => [...r].forEach((ch,x) => { if (col[ch]) { g.fillStyle = col[ch]; g.fillRect(x,y,1,1); } }));
+// 종이 인형(연구원): 갓 쓰고 흰 도포에 청색 세조대를 맨 선비. 늘 화면을 향하지만 방을 돌리면 옆으로 돌아 얇은 선이 됨
+const DCOL = { K:'#141210', k:'#2a2622', H:'#1a1410', S:'#e0bf96', E:'#1a1410', L:'#3a3020', W:'#e8e2d2', w:'#c9c1ae', V:'#f4f0e6', B:'#3e5288', D:'#2a2018', s:'#cfae86' };
+function makeDoll(rows){
+  const c = document.createElement('canvas'); c.width = 14; c.height = rows.length; const g = c.getContext('2d');
+  rows.forEach((r,y) => [...r].forEach((ch,x) => { if (DCOL[ch]) { g.fillStyle = DCOL[ch]; g.fillRect(x,y,1,1); } }));
   return c;
-})();
-const SJ = { id:'sj', x:27, y:15.5, doll:true, show:()=>reveal('sj', S.rArrived) && !isNight(), click:()=>showResearcher() };
+}
+const DOLL_TOP = [
+  '.....kKKk.....', '.....KKKK.....', '..kKKKKKKKKk..', '.....HHHH.....', '....LSSSSL....', '....LESSEL....', '....LSSSSL....', '.....LSsL.....',
+  '....WWVVWW....', '...WWWVVWWW...', '..WWWWVVWWWW..', '..WWWBBBBWWW..', '.WWWWwBBwWWWW.', '.WWWWWwwWWWWW.', 'WWWWWWWWWWWWWW', 'WWSSWWwwWWSSWW'];
+const DOLL_A = makeDoll(DOLL_TOP.concat(['.WWWWWwwWWWWW.', '.WWWWWwwWWWWW.', '.WWWWWwwWWWWW.', '.WWWWWwwWWWWW.', '..WWWWwwWWWW..', '..WWWW..WWWW..', '..WWW....WWW..', '..DDD.....DD..']));
+const DOLL_B = makeDoll(DOLL_TOP.concat(['.WWWWWwwWWWWW.', '.WWWWWwwWWWWW.', '.WWWWWwwWWWWW.', '.WWWWWwwWWWWW.', '..WWWWwwWWWW..', '..WWWW..WWWW..', '..WWW....WWW..', '..DD.....DDD..']));
+const DOLL_SIT = makeDoll(DOLL_TOP.concat(['WWWWWWwwWWWWWW', 'WWWWWWWWWWWWWW', '.WWWWWWWWWWWW.']));
+const WALK_MS = 4800;   // 문에서 자리까지 걸어오는 시간
+const DOOR_POS = [27, -17], SEAT_POS = [27, 13];
+const sjPhase = () => { const e = Date.now() - (S.rArrived || 0); return e < WALK_MS ? e / WALK_MS : 1; };
+const SJ = { id:'sj', get x(){ const p = sjPhase(); return DOOR_POS[0] + (SEAT_POS[0]-DOOR_POS[0])*p; }, get y(){ const p = sjPhase(); return DOOR_POS[1] + (SEAT_POS[1]-DOOR_POS[1])*p; }, doll:true, show:()=>reveal('sj', S.rArrived) && !isNight(), click:()=>showResearcher() };
 let lastTick = performance.now(), lastAuto = performance.now();
 function tick(now){
   const dt = Math.min(0.5, (now - lastTick)/1000); lastTick = now;
@@ -920,7 +930,7 @@ function jumpTo(i){
   resetting = true;
   if (!JUMPS[i][1]) { localStorage.setItem(SAVE, JSON.stringify({ stage:'start', opt:S.opt })); location.reload(); return; }   // 처음부터: 설정만 남김
   const fresh = Object.assign({ stage:'room', pages:0, earned:0, D:0, owned:{}, fear:0, opened:false, letterRead:false, chair:false, glitchDone:false, sideRead:{}, ack:[], teaArrived:false, letterShadow:false }, keep, JSON.parse(JSON.stringify(JUMPS[i][1])));
-  if (fresh.rArrived === -1) fresh.rArrived = Date.now();
+  if (fresh.rArrived === -1) fresh.rArrived = Date.now() - WALK_MS - 1000;
   fresh.revealed = ['door', 'teapot', 'sj'];
   if (fresh.letterRead && !fresh.rArrived) fresh.rDue = Date.now() + 12000;
   fresh.lastSeen = Date.now();
