@@ -100,7 +100,8 @@
   #lz { position:absolute; left:0; top:0; transform-origin:0 0; display:flex; }
   #book.loupe { cursor:none; touch-action:none; }
   #bookView.tremble #stage { animation:tremble .19s steps(2) infinite; }
-  @keyframes tremble { 0% { transform:translate(0.6px, -0.4px) rotate(0.06deg); } 50% { transform:translate(-0.5px, 0.5px) rotate(-0.05deg); } 100% { transform:translate(0.3px, 0.2px); } }
+  @keyframes tremble { 0% { transform:translate(calc(var(--tr,1px)*0.6), calc(var(--tr,1px)*-0.4)) rotate(calc(var(--tr,1px)*0.06deg/1px)); }
+    50% { transform:translate(calc(var(--tr,1px)*-0.5), calc(var(--tr,1px)*0.5)) rotate(calc(var(--tr,1px)*-0.05deg/1px)); } 100% { transform:translate(calc(var(--tr,1px)*0.3), calc(var(--tr,1px)*0.2)); } }
   #deskGlass { position:absolute; z-index:1; width:170px; height:60px; cursor:pointer; transform:rotate(86deg) scale(.78); }
   #deskGlass .spot { opacity:0; transition:opacity .3s; }
   #deskGlass.held .obj { opacity:0; }
@@ -250,7 +251,7 @@ function buildLines(){
     { idu:'都合 十三卷', old:'모도 열세 권.', mod:'모두 열세 권.' },
     { idu:'夜良中 此冊乙 越爲在 者隱', old:'밤의 이 ᄎᆡᆨ을 넘기ᄂᆞᆫ 이ᄂᆞᆫ', mod:'밤에 이 책을 넘기는 이는' },
     { idu:'先只 茶乙 煎爲乎事', old:'몬져 차ᄅᆞᆯ 글힐 것.', mod:'먼저 차를 끓일 것.' },
-    { idu:'手是 戰慄爲去等 覆爲乎事', old:'손이 ᄯᅥᆯ리거든 더플 것.', mod:'손이 떨리거든 덮을 것.' },
+    { idu:'手是 戰慄爲去等 冊乙 覆爲乎事', old:'손이 ᄯᅥᆯ리거든 ᄎᆡᆨ을 더플 것.', mod:'손이 떨리거든 책을 덮을 것.' },
   ];
   return L.map((l,i) => {
     const g = glyphs(l.mod, i+7), v = [g];
@@ -351,10 +352,11 @@ const EAR = '<div id="ear" class="ready"></div>';
 function stain(n){ const a = hash(n,1), b = hash(n,2), c = hash(n,3);
   return `radial-gradient(circle at ${10+a*80}% ${10+b*80}%, #8a6a3a${c>.5?'22':'14'} 0, #0000 ${8+c*14}%), radial-gradient(circle at ${90-b*70}% ${85-a*60}%, #5a3a1a12 0, #0000 ${5+a*9}%)`; }
 function snapshot(){ prevTxt = LINES.map((_,i) => showText(i)); }
+function applyLight(){ const on = !!S.owned.lamp && !S.lampOut; book.classList.toggle('lit', on); bookView.classList.toggle('lit', on); }
 function renderFaces(){
   faces.forEach((f,i) => { f.innerHTML = faceInner(f.dataset.kind, S.D, false) + (i === 0 ? EAR : ''); f.style.backgroundImage = stain(S.earned*2 + i); });
   snapshot();
-  book.classList.toggle('lit', !!S.owned.lamp); bookView.classList.toggle('lit', !!S.owned.lamp); bookView.classList.toggle('chest', !S.owned.desk);
+  applyLight(); bookView.classList.toggle('chest', !S.owned.desk);
   document.getElementById('deskGlass').classList.toggle('hidden', !S.owned.glass);
   if (loupeOn) buildLoupe();
 }
@@ -425,6 +427,7 @@ const INNER_BG = 'linear-gradient(#e6dcc4, #e6dcc4)';              // 표지 안
 function coverSpot(){ return { offsetLeft: 0, offsetWidth: FW, offsetHeight: FH }; }
 let coverBusy = false;
 function openBook(){
+  S.ack = roomNews(); S.blown = (S.blown || []).concat(S.ack);   // 책을 펴기 전에 서고에서 본 것은 '본 것'
   bookView.classList.remove('hidden'); layoutBook(); book.style.visibility = 'visible'; cover.style.visibility = 'visible';
   facesEl.style.visibility = 'hidden';                      // 덮여 있을 땐 표지만
   const go = () => {
@@ -574,9 +577,12 @@ const M = {
     if (y===0 && x>=0 && x<=15 && z<=14) return (x<=1||x>=14) && z>=12 ? BR : (z===14 || x===0 || x===15 ? DARK : WOOD);   // 뒤로 젖혀진 뚜껑
     return null;
   }),
-  lamp: model(5,5,8,(x,y,z)=>{ const r=Math.hypot(x-2,y-2);
-    if (z<2) return r<=2.2 ? '#4a3a2a' : null; if (z<5) return r<0.8 ? '#4a3a2a' : null; if (z===5) return r<=2.1 ? '#6a5236' : null;
-    if (z===6) return r<0.8 ? '#e8a040' : null; if (z===7) return r<0.5 ? '#ffd27a' : null; return null; }),
+  lamp: model(7,7,25,(x,y,z)=>{ const r=Math.hypot(x-3,y-3);          // 등잔대: 넓은 받침, 긴 대, 위에 기름 접시
+    if (z<=1) return r<=3.2 ? (z===0 ? '#2e1d12' : '#4a3020') : null;
+    if (z<=21) return r<0.8 ? (z%7===0 ? '#6a4a2a' : '#4a3020') : null;
+    if (z===22) return r<=2.2 ? '#6a5236' : null;
+    if (z===23) return r<=2.2 && r>1.3 ? '#7a6040' : null;
+    return null; }),
   brush: model(9,3,7,(x,y,z)=>{ if (z===0||z===6) return y===1 ? WOOD : null; if ((x===0||x===8)&&y===1) return WOOD; if (x%2===0 && x>0 && x<8 && y===1 && z>1 && z<6) return z<3 ? '#111' : '#b8a27a'; return null; }),
   chestEmpty: model(16,11,15,(x,y,z)=>{
     const BR = '#9a7a3a';
@@ -636,15 +642,15 @@ const OBJ = [
   { id:'shelf', x:-24, y:-17, rot:0, click:()=>showShelf() },
   { id:'scroll', x:-6, y:-24, rot:0, z:6, show:()=>S.gahun>=0, click:()=>showGahun() },
   { id:'chest', get x(){ return S.owned.desk ? -30 : 0; }, get y(){ return S.owned.desk ? 19 : 2; }, get rot(){ return S.owned.desk ? 0.35 : 0.05; }, m:()=> S.owned.desk ? 'chestClosed' : 'chest', click:()=> S.owned.desk ? showEmptyChest() : openBook(), glow:()=>!S.opened && !S.owned.desk },
-  { id:'lamp', get x(){ return S.owned.lamp && S.owned.desk ? 11 : 11; }, get y(){ return S.owned.lamp && S.owned.desk ? 0 : -1; }, get z(){ return S.owned.lamp && S.owned.desk ? 8 : 0; }, buy:{ cost:15, name:'등잔' } },
+  { id:'lamp', get x(){ return S.owned.lamp && S.owned.desk ? 18 : 11; }, get y(){ return S.owned.lamp && S.owned.desk ? -1 : -2; }, click:()=>lampClick(), buy:{ cost:15, name:'등잔' } },
   { id:'brush', x:9, y:-20, buy:{ cost:50, name:'붓걸이' } },
   { id:'desk', get x(){ return S.owned.desk ? 0 : 0; }, get y(){ return S.owned.desk ? 3 : 15; }, m:()=> S.owned.desk ? 'seoanBook' : 'seoan', buy:{ cost:120, name:'서안' }, click:()=>openBook() },
   { id:'glass', get x(){ return S.owned.glass && S.owned.desk ? -10 : -24; }, get y(){ return S.owned.glass && S.owned.desk ? 3 : 8; }, get z(){ return S.owned.glass && S.owned.desk ? 8 : 0; }, buy:{ cost:260, name:'수정 문진' } },
   { id:'teapot', x:-31, y:-5, show:()=>S.teaArrived, click:()=>brew() },
   { id:'door', x:27, y:-20, show:()=>S.D>=T.door, click:()=>showLibrary() },
   { id:'letter', x:24, y:-11, show:()=>S.D>=T.letter && !S.letterRead, click:()=>readLetter(), glow:()=>true },
-  { id:'rdesk', x:27, y:19, rot:0, show:()=>S.chair, click:()=>openOv('<h3>연구원의 자리</h3>작은 책상과 의자. 종이 묶음과 벼루가 놓여 있다.<br><br>아직 아무도 앉지 않았다.') },
-  { id:'chair', x:27, y:12, rot:Math.PI, show:()=>S.chair },
+  { id:'rdesk', x:27, y:19, rot:0, show:()=>S.chair, click:()=> S.rArrived ? showResearcher() : openOv('<h3>연구원의 자리</h3>작은 책상과 의자. 종이 묶음과 벼루가 놓여 있다.<br><br>아직 아무도 앉지 않았다.') },
+  { id:'chair', x:27, y:12, rot:0, show:()=>S.chair },
 ];
 let W=0, H=0, DPR=1, SC=4, ang=-0.35, drag=0, t0=performance.now(), steamUntil=0, glitchUntil=0;
 function resize(){ const r = cv.getBoundingClientRect(); DPR = Math.min(2, window.devicePixelRatio||1);
@@ -672,21 +678,34 @@ function frame(now){
       const rx = o.x*c - o.y*s, ry = o.x*s + o.y*c;
       list.push({ o, ghost, sx: ox + rx*SC, sy: oy + ry*SC*0.6, ry: ry + (o.z||0)*0.8 });
     }
+    if (SJ.show()){ const rx = SJ.x*c - SJ.y*s, ry = SJ.x*s + SJ.y*c; list.push({ o:SJ, ghost:false, sx: ox + rx*SC, sy: oy + ry*SC*0.6, ry }); } else SJ.hit = null;
+    const deskIt = list.find(it => it.o.id === 'desk' && !it.ghost);
+    if (deskIt) for (const it of list) if (it.o.id === 'glass' && !it.ghost && S.owned.desk) it.ry = deskIt.ry + 0.01;   // 서안 위 물건
     list.sort((p,q)=>p.ry-q.ry);
     for (const it of list){
+      if (it.o.doll){
+        const f = Math.max(0.05, Math.abs(Math.cos(a - ang)));       // 방을 돌리면 얇아짐
+        const dh = 17*SC*0.85, dw = 12*SC*f*0.85;
+        cx.drawImage(DOLL, it.sx - dw/2, it.sy - dh, dw, dh);
+        if (f < 0.2){ cx.fillStyle = '#1a1410'; cx.fillRect(it.sx - SC*0.2, it.sy - dh, SC*0.4, dh); }
+        it.o.hit = { x: it.sx, y0: it.sy, y1: it.sy - dh, r: 22*DPR, ghost:false };
+        continue;
+      }
       const m = M[it.o.m ? it.o.m() : it.o.id];
       let alpha = it.ghost ? (S.pages >= it.o.buy.cost ? 0.42 : 0.18) : 1;
       if (it.o.glow && it.o.glow()) alpha = 0.72 + 0.28*Math.sin(t*3);
       drawModel(m, it.sx, it.sy, a + (it.o.rot||0), alpha, it.o.z||0);
       it.o.hit = { x: it.sx, y0: it.sy - (it.o.z||0)*SC*0.85, y1: it.sy - (m.h + (it.o.z||0) + (it.ghost ? 8 : 0))*SC*0.85, r: Math.max(Math.max(m.w, m.d)*SC*0.5, 28*DPR), ghost: it.ghost };
       if (it.ghost){ cx.font = `${12*DPR}px serif`; cx.fillStyle = S.pages >= it.o.buy.cost ? '#cfc3a8' : '#6d6350'; cx.textAlign='center'; cx.fillText(`${it.o.buy.name} ${it.o.buy.cost}쪽`, it.sx, it.sy - (m.h+4)*SC*0.85); }
-      if (it.o.id==='lamp' && !it.ghost){ const fy = it.sy - 7*SC*0.85, fl = 0.6+0.4*Math.sin(t*11)*Math.sin(t*7.3);
+      if (it.o.id==='lamp' && !it.ghost && S.lampOut){ cx.fillStyle = 'rgba(120,110,100,.35)'; for (let k=0;k<3;k++){ const ph=(t*0.6+k/3)%1; cx.fillRect(it.sx + Math.sin(t*2+k)*3*DPR, it.sy - 24*SC*0.85 - ph*30*DPR, SC*0.6, SC*0.6); } }   // 꺼진 심지의 연기
+      if (it.o.id==='lamp' && !it.ghost && !S.lampOut){ const fy = it.sy - 24*SC*0.85, fl = 0.6+0.4*Math.sin(t*11)*Math.sin(t*7.3);
+        cx.fillStyle = '#ffd27a'; cx.fillRect(it.sx - SC*0.5, fy - SC*1.6, SC, SC*1.6); cx.fillStyle = '#e8a040'; cx.fillRect(it.sx - SC*0.5, fy - SC*0.6, SC, SC*0.6);
         const g = cx.createRadialGradient(it.sx, fy, 0, it.sx, fy, 30*DPR); g.addColorStop(0,`rgba(255,190,90,${0.35*fl})`); g.addColorStop(1,'rgba(255,190,90,0)');
         cx.fillStyle=g; cx.fillRect(it.sx-30*DPR, fy-30*DPR, 60*DPR, 60*DPR); }
       if (it.o.id==='teapot' && now < steamUntil){ cx.fillStyle='rgba(220,215,200,0.5)';
         for (let k=0;k<6;k++){ const ph=(t*1.5+k/6)%1; cx.fillRect(it.sx + Math.sin(t*3+k)*4*DPR, it.sy - 6*SC*0.85 - ph*40*DPR, SC*0.8, SC*0.8); } }
     }
-    const lit = S.owned.lamp ? 1 : 0;
+    const lit = S.owned.lamp && !S.lampOut ? 1 : 0;
     const g = cx.createRadialGradient(ox, oy-20*DPR, Math.min(W,H)*(0.18+0.12*lit), ox, oy, Math.max(W,H)*0.62);
     g.addColorStop(0,'rgba(8,6,4,0)'); g.addColorStop(1,'rgba(8,6,4,0.92)'); cx.fillStyle = g; cx.fillRect(0,0,W,H);
   }
@@ -695,20 +714,71 @@ function frame(now){
 
 // ───────── 진행 ─────────
 const cnt = document.getElementById('cnt');
+// ───────── 연구원 한서진 ─────────
+const isNight = (d = new Date()) => { const h = d.getHours(); return h >= 22 || h < 6; };   // 밤에는 일하지 않겠습니다
+const R_SEC = 4;   // 4초에 한 장
+const DIARY = [
+  [60,  '맑음. 가주께서 푸신 장부를 다시 읽었다. 첫 글자가 이 댁의 성(姓)이었다. 책이 이 댁을 알고 있는 것 같다. 우연이겠지.'],
+  [240, '흐림. 밤에 넘기지 말라는 구절을 보았다. 우스운 말이지만 오늘은 해 지기 전에 덮었다.'],
+  [600, '비. 차가 따뜻해 좋았다. 손이 덜 떨린다.'],
+];
+const diaryCount = () => DIARY.filter(d => (S.rWork||0) >= d[0]).length;
+function researcherTick(dt){
+  if (S.letterRead && !S.rArrived && S.rDue && Date.now() >= S.rDue){
+    S.rArrived = Date.now(); S.rWork = 0; S.rPages = 0; save();
+    noise(0.12, 110, 0.4, 'lowpass'); setTimeout(() => noise(0.12, 110, 0.35, 'lowpass'), 260);          // 문 두드리는 소리
+    [900, 1350, 1800, 2250].forEach(t => setTimeout(() => noise(0.08, 220, 0.18, 'lowpass'), t));           // 발소리
+    setTimeout(() => document.getElementById('endnote').style.opacity = 1, 6000);
+  }
+  if (!S.rArrived || isNight()) return;
+  S.rWork = (S.rWork||0) + dt; S.rAcc = (S.rAcc||0) + dt;
+  while (S.rAcc >= R_SEC){ S.rAcc -= R_SEC; S.pages += 1; S.earned += 1; S.D += mult(); S.rPages = (S.rPages||0) + 1; }
+}
+// 자리를 비운 동안: 낮 시간만 세어(최대 8시간) 넘김
+function offlineWork(){
+  if (!S.rArrived || !S.lastSeen) return 0;
+  const now = Date.now(), from = Math.max(S.lastSeen, now - 8*3600e3);
+  let daySec = 0;
+  for (let t = from; t < now; t += 60e3){ if (!isNight(new Date(t))) daySec += Math.min(60, (now - t)/1000); }
+  const n = Math.floor(daySec / R_SEC);
+  S.rWork = (S.rWork||0) + daySec; S.pages += n; S.earned += n; S.D += n*mult(); S.rPages = (S.rPages||0) + n;
+  return (now - S.lastSeen) > 180e3 ? n : 0;
+}
+function showResearcher(){
+  if (isNight()) { openOv('<h3>연구원의 자리</h3>밤이다. 한서진은 돌아갔다.<br>해가 뜨면 온다.'); return; }
+  const n = diaryCount(), st = S.fear >= 0.35 ? '간이 콩알만 해짐' : '평온함';
+  openOv(`<h3>연구원 — 한서진(韓瑞眞)</h3>직업: 해독가<br>상태: ${st}<br>넘긴 장: ${S.rPages||0}장<br><div style="font-size:12px;opacity:.6">밤에는 일하지 않는다.</div><br><b>일지</b><br>` + (n ? DIARY.slice(0, n).map(d => `<div style="margin:6px 0">${d[1]}</div>`).join('') : '아직 쓴 것이 없다.'));
+}
+const recDiary = () => '<h3>한서진의 일지</h3>' + DIARY.slice(0, diaryCount()).map(d => `<div style="margin:8px 0">${d[1]}</div>`).join('');
+// 종이 인형(연구원): 늘 화면을 향하지만, 방을 돌리면 옆으로 돌아 얇은 선이 됨
+const DOLL = (() => {
+  const rows = [
+    '....HHHH....', '...HHHHHH...', '...HHHHHH...', '...HSSSSH...', '...SSSSSS...', '...SESSES...', '...SSSSSS...', '....SSSS....',
+    '...CWWWWC...', '..WWCWWCWW..', '..WWWCCWWW..', '.WWWWRRWWWW.', '.WWWWRWWWWW.', '.WWWWWWWWWW.', '.SWWWWWWWWS.', '..WWWWWWWW..',
+    '..WWWWWWWW..', '..WWWWWWWW..', '..WWW..WWW..', '..DD....DD..'];
+  const col = { H:'#1a1410', S:'#e2c29a', E:'#1a1410', C:'#3a4a5a', W:'#d9d2c2', R:'#8a2a2a', D:'#2a2018' };
+  const c = document.createElement('canvas'); c.width = 12; c.height = rows.length; const g = c.getContext('2d');
+  rows.forEach((r,y) => [...r].forEach((ch,x) => { if (col[ch]) { g.fillStyle = col[ch]; g.fillRect(x,y,1,1); } }));
+  return c;
+})();
+const SJ = { id:'sj', x:27, y:15.5, doll:true, show:()=>S.rArrived && !isNight(), click:()=>showResearcher() };
 let lastTick = performance.now(), lastAuto = performance.now();
 function tick(now){
   const dt = Math.min(0.5, (now - lastTick)/1000); lastTick = now;
   if (S.stage !== 'room') return;
-  if (S.D >= T.fearOn && now > steamUntil) S.fear = Math.min(0.8, S.fear + dt*0.025*(S.sideRead.dongui ? 0.6 : 1));
+  if (now < steamUntil) S.fear = Math.max(0, S.fear - dt*0.2);                 // 차를 마시는 동안 서서히 가라앉음
+  else if (S.D >= T.fearOn) S.fear = Math.min(0.8, S.fear + dt*0.025*(S.sideRead.dongui ? 0.6 : 1)*(now < calmUntil ? 0.35 : 1));
   document.getElementById('fear').style.opacity = S.fear.toFixed(2);
   const shaking = S.fear >= 0.35;
-  bookView.classList.toggle('tremble', shaking);
+  bookView.classList.toggle('tremble', S.fear >= 0.22);
+  bookView.style.setProperty('--tr', Math.min(1.6, Math.max(0.15, (S.fear - 0.22) * 4)).toFixed(2) + 'px');   // 공포만큼 세게
   if (shaking && !S.teaArrived && S.D >= T.tea){ S.teaArrived = true; save(); }
   let txt = String(S.pages);
   if (!S.glitchDone && S.D >= T.glitch){ S.glitchDone = true; glitchUntil = now + 200; save(); }
   if (now < glitchUntil && txt.length){ const k = txt.length-1; txt = txt.slice(0,k) + ((+txt[k]+3)%10); }
   cnt.textContent = txt;
   updateThread(now);
+  researcherTick(dt);
   if (bookOpen && !bookView.classList.contains('hidden')) { threadPh += threadStir ? dt*5.5 : 0; drawThread(threadStir ? 5 : 0); }
   if (S.owned.desk && S.D < T.letter && now - lastAuto > 9000 && now - lastFlip > 4000 && ov.classList.contains('hidden')){ lastAuto = now; flip(true); }
 }
@@ -718,6 +788,7 @@ function roomNews(){
   if (S.D >= T.door) n.push('door');
   if (S.teaArrived) n.push('teapot');
   if (S.D >= T.letter && !S.letterRead) n.push('letter');
+  if (S.rArrived) n.push('researcher', 'diary:' + diaryCount());
   return n;
 }
 let lastNewsCheck = 0, threadStir = false, threadPh = 0;
@@ -736,15 +807,26 @@ function updateThread(now){
   const fresh = roomNews().filter(k => !ack.includes(k));
   const urgent = S.teaArrived && S.fear > 0.4;            // 손이 떨릴 만큼 무서우면 실도 떨림
   threadStir = bookOpen && (fresh.length > 0 || urgent);
+  const blown = S.blown || [];
+  const newly = fresh.filter(k => !blown.includes(k));
+  if (bookOpen && S.owned.lamp && !S.lampOut && newly.length){   // 책을 읽는 동안 생긴 일에만
+    S.lampOut = true; S.blown = blown.concat(newly); save(); applyLight();
+    noise(0.6, 600, 0.12, 'lowpass');                                  // 훅 — 불이 꺼지는 바람 소리
+  }
   if (bookOpen && S.D >= T.letter && !S.letterShadow){   // 편지가 놓일 때: 문 앞을 지나가는 그림자 하나
     S.letterShadow = true; save();
     const ps = document.getElementById('passShadow'); ps.classList.remove('go'); void ps.offsetWidth; ps.classList.add('go');
     setTimeout(() => { noise(0.12, 110, 0.4, 'lowpass'); setTimeout(() => noise(0.12, 110, 0.35, 'lowpass'), 260); }, 1500);
   }
 }
-function brew(){ const now = performance.now(); if (now < steamUntil) return; steamUntil = now + 2600; sBoil(); setTimeout(()=>{ S.fear = 0; save(); }, 2600); }
+let calmUntil = 0;
+function lampClick(){
+  if (S.lampOut){ S.lampOut = false; save(); applyLight(); noise(0.25, 2600, 0.08); setTimeout(() => noise(0.4, 500, 0.05, 'lowpass'), 120); }   // 치익 — 다시 붙인 불
+  else showItem('lamp');
+}
+function brew(){ const now = performance.now(); if (now < steamUntil) return; steamUntil = now + 2600; calmUntil = now + 2600 + 25000; sBoil(); setTimeout(()=>save(), 2700); }
 const ITEM = {
-  lamp:  ['등잔', '불을 켜면 글자가 보인다.<br>한 번에 두 장씩 넘길 수 있다.<br><br>기름은 줄지 않는다.'],
+  lamp:  ['등잔', '불을 켜면 글자가 보인다.<br>한 번에 두 장씩 넘길 수 있다.<br>서고에 무슨 일이 생기면 바람도 없이 불이 꺼진다. 등잔을 누르면 다시 붙인다.<br><br>기름은 줄지 않는다.'],
   brush: ['붓걸이', '푼 글자를 받아 적는다. 해독이 빨라진다.<br>받아 적은 것은 도서관에 남는다.<br><br>붓이 넷. 하나는 쓴 적이 없는데 먹이 묻어 있다.'],
   desk:  ['서안', '궤짝에서 책을 꺼내 서안에 올렸다. 궤짝은 구석으로 치웠다.<br>등잔도 서안 위로 올렸다. 서안을 누르면 책을 펼친다.<br><br>책을 펼쳐 두면 손대지 않아도 넘어간다.<br>책을 덮어 두어도 넘어간다.<br>한 번에 넘기는 장수도 늘어난다.<br><br>창은 닫혀 있다.'],
   glass: ['수정 문진(水晶文鎭)', '종이를 눌러 두는 문진. 가운데 박힌 수정으로 글자를 크게 볼 수 있다. 해독이 훨씬 빨라진다.<br>책을 펼치면 책 곁에 놓여 있다. 집어 들어 대면 글자가 크게 보인다.<br>크게 보면 아직 풀리지 않은 글자도 조금 읽힌다.<br>내려놓으려면 놓였던 자리를 누른다.<br><br>여백에 다른 손으로 쓴 글씨가 있다. 아주 작다.'],
@@ -802,10 +884,11 @@ function showLibrary(){
   if (S.owned.brush) recs.push(['해독 노트', recNotes]);
   if (S.sideRead.dongui) recs.push(['동의보감 三 — 간 장', recDongui]);
   if (S.letterRead) recs.push(['편지 — 한서진', letterHtml]);
+  if (S.rArrived && diaryCount()) recs.push(['한서진의 일지', recDiary]);
   openOv('<h3>도서관</h3>' + recs.map((r,i)=>`<div class="rec" data-i="${i}">${r[0]}</div>`).join(''));
   ovBody.querySelectorAll('.rec').forEach(el => el.addEventListener('click', ev => { ev.stopPropagation(); openOv(recs[+el.dataset.i][1]()); }));
 }
-function readLetter(){ openOv(letterHtml(), () => { S.letterRead = true; S.chair = true; save(); sPlace(); setTimeout(()=>document.getElementById('endnote').style.opacity = 1, 2500); }); }
+function readLetter(){ openOv(letterHtml(), () => { S.letterRead = true; S.chair = true; S.rDue = Date.now() + 12000; save(); sPlace(); }); }
 
 // ───────── 설정 ─────────
 // 시험용: 구간으로 바로 가기(이름·가훈·설정은 그대로)
@@ -819,12 +902,16 @@ const JUMPS = [
   ['7. 서안·수정 문진까지 들인 뒤', { opened:true, pages:40, earned:800, D:1100, owned:{ lamp:true, brush:true, desk:true, glass:true }, teaArrived:true }],
   ['8. 편지가 오기 직전', { opened:true, pages:60, earned:900, D:1290, owned:{ lamp:true, brush:true, desk:true, glass:true }, teaArrived:true, glitchDone:true }],
   ['9. 편지를 읽은 뒤 (연구원 자리)', { opened:true, pages:60, earned:950, D:1320, owned:{ lamp:true, brush:true, desk:true, glass:true }, teaArrived:true, glitchDone:true, letterShadow:true, letterRead:true, chair:true }],
+  ['10. 연구원이 온 뒤 (일지 1편)', { opened:true, pages:60, earned:980, D:1330, owned:{ lamp:true, brush:true, desk:true, glass:true }, teaArrived:true, glitchDone:true, letterShadow:true, letterRead:true, chair:true, rArrived:-1, rWork:70, rPages:8 }],
 ];
 function jumpTo(i){
   const keep = { sur:S.sur || '윤', bon:S.bon, name:S.name || '서하', gahun:S.gahun >= 0 ? S.gahun : 0, opt:S.opt };
   resetting = true;
   if (!JUMPS[i][1]) { localStorage.setItem(SAVE, JSON.stringify({ stage:'start', opt:S.opt })); location.reload(); return; }   // 처음부터: 설정만 남김
   const fresh = Object.assign({ stage:'room', pages:0, earned:0, D:0, owned:{}, fear:0, opened:false, letterRead:false, chair:false, glitchDone:false, sideRead:{}, ack:[], teaArrived:false, letterShadow:false }, keep, JSON.parse(JSON.stringify(JUMPS[i][1])));
+  if (fresh.rArrived === -1) fresh.rArrived = Date.now();
+  if (fresh.letterRead && !fresh.rArrived) fresh.rDue = Date.now() + 12000;
+  fresh.lastSeen = Date.now();
   localStorage.setItem(SAVE, JSON.stringify(fresh)); location.reload();
 }
 function showJumps(){
@@ -861,7 +948,7 @@ cv.addEventListener('pointerup', e => {
   const d = down; down = null; if (!d || d.moved || S.stage !== 'room') return;
   const r = cv.getBoundingClientRect(), px = (e.clientX - r.left)*DPR, py = (e.clientY - r.top)*DPR;
   let best = null, bd = 1e9;
-  for (const o of OBJ){ if (!o.hit) continue; const h = o.hit, cy = Math.max(h.y1, Math.min(h.y0, py)), dd = Math.hypot(px-h.x, py-cy); if (dd < h.r && dd < bd){ bd = dd; best = o; } }
+  for (const o of [...OBJ, SJ]){ if (!o.hit) continue; const h = o.hit, cy = Math.max(h.y1, Math.min(h.y0, py)), dd = Math.hypot(px-h.x, py-cy); if (dd < h.r && dd < bd){ bd = dd; best = o; } }
   if (!best) return;
   if (best.hit.ghost) buy(best); else if (best.click) best.click(); else if (ITEM[best.id]) showItem(best.id);
 });
@@ -884,8 +971,11 @@ document.querySelectorAll('.scroll').forEach(el => el.onclick = () => { S.gahun 
 
 window.__yb = { openBook, closeBook, toggleLoupe, hits: () => OBJ.filter(o => o.hit).map(o => ({ id:o.id, x:o.hit.x/DPR, y:(o.hit.y0*0.4 + o.hit.y1*0.6)/DPR })) };
 resize();
+const away = S.stage === 'room' ? offlineWork() : 0;
+if (away) setTimeout(() => openOv(`<h3>쪽지</h3><div class="vletter rec" style="height:min(46vh,320px)">가주께.<br>안 계신 동안 ${away}장을 넘겼습니다.<br>밤에는 일하지 않았습니다.<div class="sign">한서진 올림.</div></div>`), 900);
+S.lastSeen = Date.now();
 if (S.stage === 'room') enterRoom(); else if (S.stage === 'gahun') scr('sGahun'); else if (S.stage === 'jokbo') scr('sJokbo'); else scr('sStart');
-setInterval(() => { if (S.stage === 'room') save(); }, 2000);
+setInterval(() => { if (S.stage === 'room') { S.lastSeen = Date.now(); save(); } }, 2000);
 requestAnimationFrame(frame);
 })();
 </script>
