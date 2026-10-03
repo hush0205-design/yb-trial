@@ -245,7 +245,7 @@ const alienHtml = str => Array.from(str).map((ch,k) => isAlien(ch) ? agSpan(ch,k
 
 // ───────── 첫 책 문장 ─────────
 function buildLines(){
-  const s = S.sur || '윤', h = hanjaOf(s);
+  const s = S.sur || '윤', h = hanjaOf(s), bon = S.bon || '파평', nm = S.name || '서하';
   const L = [
     { idu:`${h}氏 家門 書庫良中 藏置爲乎 冊 數爻乙 後錄爲白齊`, old:`${s}시 가문 셔고애 갈ᄆᆞ 둔 ᄎᆡᆨ 수ᄅᆞᆯ 뒤헤 젹ᄂᆞ니라`, mod:`${s}씨 가문 서고에 갈무리해 둔 책의 수를 뒤에 적는다.` },
     { idu:'小學 一卷 前張是 落去爲齊', old:'쇼ᄒᆞᆨ ᄒᆞᆫ 권. 앏 쟝이 ᄠᅥ러뎌 나감.', mod:'소학 한 권. 앞 장이 떨어져 나감.' },
@@ -258,6 +258,16 @@ function buildLines(){
     { idu:'夜良中 此冊乙 越爲在 者隱', old:'밤의 이 ᄎᆡᆨ을 넘기ᄂᆞᆫ 이ᄂᆞᆫ', mod:'밤에 이 책을 넘기는 이는' },
     { idu:'先只 茶乙 煎爲乎事', old:'몬져 차ᄅᆞᆯ 글힐 것.', mod:'먼저 차를 끓일 것.' },
     { idu:'手是 戰慄爲去等 冊乙 覆爲乎事', old:'손이 ᄯᅥᆯ리거든 ᄎᆡᆨ을 더플 것.', mod:'손이 떨리거든 책을 덮을 것.' },
+    // ── 족보 ──
+    { idu:`${h}氏 世系`, old:`${bon} ${s}시 셰계`, mod:`${bon} ${s}씨 세계(世系)` },
+    { idu:'一世 ▒▒▒ 此書庫乙 創建爲齊', old:'一世 ▒▒▒ 이 셔고ᄅᆞᆯ 셰오다', mod:'1세. ▒▒▒ — 이 서고를 세우다.' },
+    { idu:`二世 ${h}文學 讀書爲齊`, old:`二世 ${s}문학 글을 닑다`, mod:`2세. ${s}문학 — 글을 읽다.` },
+    { idu:`三世 ${h}瑞道 讀書爲齊`, old:`三世 ${s}셔도 글을 닑다`, mod:`3세. ${s}서도 — 글을 읽다.` },
+    { idu:'自四世 至十六世 皆 讀書爲齊', old:'四世브터 十六世ᄭᆞ지 다 글을 닑다', mod:'4세부터 16세까지, 모두 글을 읽다.' },
+    { idu:`十七世 ${h}${nm} 櫃乙 開爲齊`, old:`十七世 ${s}${nm} 궤ᄶᆞᆨ을 열다`, mod:`17세. ${s}${nm} — 궤짝을 열다.` },
+    { idu:'十八世 　　 水邊良中', old:'十八世 　　 믈ᄀᆞ애셔', mod:'18세. 　　 — 물가에서.' },
+    { idu:'十九世 　　 門乙 鎖爲遣 不出爲齊', old:'十九世 　　 門을 ᄌᆞᆷ고고 나디 아니ᄒᆞ다', mod:'19세. 　　 — 문을 잠그고 나오지 않다.' },
+    { idu:'二十世', old:'二十世', mod:'20세. 　　 —' },
   ];
   return L.map((l,i) => {
     const g = glyphs(l.mod, i+7), v = [g];
@@ -281,13 +291,14 @@ const DLINES = (() => { const L = []; DONGUI_SRC.forEach((p,i) => {
   else { const t = p.note.replace(/<br>/g, ' '); L.push(['', glyphs(t, 320+i), t]); }
 }); return L; })();
 const PER = 60;
-const BF = { id:'first',  L:()=>LINES,  start:i => i < 8 ? i*70 : 780 + (i-8)*70, per:60, D:()=>S.D };
+const BF = { id:'first',  L:()=>LINES,  start:i => lineStart(i), per:60, D:()=>S.D };
 const BD = { id:'dongui', L:()=>DLINES, start:i => i*15, per:25, D:()=>S.dD||0 };
 const curB = () => S.curBook === 'dongui' ? BD : BF;
 const bDone = (b, i) => b.start(i) + (b.L()[i].length-1)*b.per;
-const lineStart = i => i < 8 ? i*70 : 780 + (i-8)*70;
+const J0 = 1400;
+const lineStart = i => i < 8 ? i*70 : i < 11 ? 780 + (i-8)*70 : J0 + (i-11)*140;
 const lineDone  = i => lineStart(i) + (LINES[i].length-1)*PER;
-const T = { door: lineDone(7), fearOn: lineDone(8), tea: lineDone(9), glitch: 1150, letter: 1300, fearPage: 700 };
+const T = { door: lineDone(7), fearOn: lineDone(8), tea: lineDone(9), glitch: 1150, letter: 1300, fearPage: 700, jEnd: lineDone(19) };
 function mix(a, b, f, seed){ const A = Array.from(a), B = Array.from(b), n = Math.max(A.length, B.length); let o = ''; for (let k=0;k<n;k++) o += hash(seed,k) < f ? (B[k]||'') : (A[k]||''); return o; }
 function lineText(i, Dv, b = BF){
   const D = Dv === undefined ? b.D() : Dv, v = b.L()[i], p = Math.max(0, Math.min(v.length-1, (D - b.start(i))/b.per));
@@ -385,6 +396,11 @@ function faceInner(kind, Dv, mark){
     return `<div class="rule"></div><div class="txt">${lines}</div>`;
   }
   let lines = '';
+  if (D >= J0){                                                     // 족보 장
+    const lines = kind === 'all' ? linesHtml(11, 20, D, mark) : kind === 'ledger' ? linesHtml(11, 16, D, mark) : linesHtml(16, 20, D, mark);
+    const mg = kind !== 'fear' ? `<div class="mg${S.owned.glass ? ' seen' : ''}">${marginHtml()}</div>` : '';
+    return `<div class="rule"></div>${mg}<div class="txt">${lines}</div>`;
+  }
   if (kind === 'all')    lines = linesHtml(0, D >= T.fearPage ? 11 : 8, D, mark);
   if (kind === 'ledger') lines = linesHtml(0, 8, D, mark);
   if (kind === 'fear')   lines = D >= T.fearPage ? linesHtml(8, 11, D, mark) : '';
@@ -937,8 +953,10 @@ function tick(now){
   cnt.textContent = txt;
   updateThread(now);
   researcherTick(dt);
+  if (!S.jokboDone && S.D >= T.jEnd){ S.jokboDone = true; save();
+    setTimeout(() => openOv(`<h3>족보</h3>다 풀었다.<br><br>${esc((S.bon||'') + ' ' + S.sur)}씨 17세손 ${esc(S.sur + S.name)}.<br>18세와 19세는 이름 칸이 비어 있다. 끝난 자리만 적혀 있다.<br>20세 아래로는 아무것도 없다.`), 1200); }
   if (bookOpen && !bookView.classList.contains('hidden')) { threadPh += threadStir ? dt*5.5 : 0; drawThread(threadStir ? 5 : 0); }
-  if (S.owned.desk && S.D < T.letter && now - lastAuto > 9000 && now - lastFlip > 4000 && ov.classList.contains('hidden')){ lastAuto = now; flip(true); }
+  if (S.owned.desk && S.D < T.jEnd && now - lastAuto > 9000 && now - lastFlip > 4000 && ov.classList.contains('hidden')){ lastAuto = now; flip(true); }
 }
 function roomNews(){
   const n = [];
@@ -1001,7 +1019,8 @@ function buy(o){ if (S.pages < o.buy.cost) return; S.pages -= o.buy.cost; S.owne
 // ───────── 기록 ─────────
 function showEmptyChest(){ openOv('<h3>궤짝</h3>책을 꺼내고 구석으로 치웠다. 뚜껑을 열어 보면 비어 있다.<br><br>바닥에 무언가를 오래 눌러 둔 자국이 있다. 책보다 조금 크다.'); }
 function showGahun(){ openOv(`<h3>家訓</h3><div style="font-size:20px;letter-spacing:6px;text-align:center;padding:20px 0">${['읽되 믿지 마라','모르는 것은 덮어라'][S.gahun]}</div>`); }
-function recJokbo(){ return `<h3>族譜 — 첫 장</h3>一世. <span style="letter-spacing:-2px;opacity:.6">▒▒▒</span> — ${alienHtml(glyphs('이 서고를 세우다',40))}<br>…<br>十七世. ${esc(S.sur+S.name)} — 궤짝을 열다.<br>十八世. 　　 — ${alienHtml(glyphs('물가에서', 41))}<br>十九世. 　　 — ${alienHtml(glyphs('문을 잠그고 나오지 않다', 42))}`; }
+function recJokbo(){ if (S.D >= J0){ let h = `<h3>족보 — ${esc((S.bon||'') + ' ' + S.sur)}씨 17세손 ${esc(S.sur + S.name)}</h3>`; for (let i=11;i<20;i++) h += alienHtml(showText(i)) + '<br>'; return h; }
+  return `<h3>族譜 — 첫 장</h3>一世. <span style="letter-spacing:-2px;opacity:.6">▒▒▒</span> — ${alienHtml(glyphs('이 서고를 세우다',40))}<br>…<br>十七世. ${esc(S.sur+S.name)} — 궤짝을 열다.<br>十八世. 　　 — ${alienHtml(glyphs('물가에서', 41))}<br>十九世. 　　 — ${alienHtml(glyphs('문을 잠그고 나오지 않다', 42))}`; }
 function recLedger(){ let h = '<h3>서고 장부</h3>'; for (let i=0;i<8;i++) h += alienHtml(showText(i)) + '<br>'; return h; }
 function recNotes(){ const done = []; for (let i=0;i<11;i++) if (S.D >= lineDone(i)) done.push(esc(LINES[i][LINES[i].length-1]));
   return `<h3>해독 노트</h3><div style="font-style:italic">${done.length ? done.join('<br>') : '아직 받아 적은 줄이 없다.'}</div><div style="margin-top:10px;font-size:12px;opacity:.6">받아 적은 줄 ${done.length} / ${LINES.length}</div>`; }
@@ -1090,6 +1109,7 @@ const JUMPS = [
   ['8. 편지가 오기 직전', { opened:true, pages:60, earned:900, D:1290, owned:{ lamp:true, brush:true, desk:true, glass:true }, teaArrived:true, glitchDone:true }],
   ['9. 편지를 읽은 뒤 (답장 전)', { opened:true, pages:60, earned:950, D:1320, owned:{ lamp:true, brush:true, desk:true, glass:true }, teaArrived:true, glitchDone:true, letterShadow:true, letterRead:true, revealed:['letter'] }],
   ['10. 연구원이 온 뒤 (일지 1편)', { opened:true, pages:60, earned:980, D:1330, owned:{ lamp:true, brush:true, desk:true, glass:true }, teaArrived:true, glitchDone:true, letterShadow:true, letterRead:true, replied:true, chair:true, rArrived:-1, rWork:70, rPages:8 }],
+  ['11. 족보 장을 펼친 무렵 (연구원과 함께)', { opened:true, pages:60, earned:1100, D:1420, owned:{ lamp:true, brush:true, desk:true, glass:true }, teaArrived:true, glitchDone:true, letterShadow:true, letterRead:true, replied:true, chair:true, rArrived:-1, rWork:300, rPages:40 }],
 ];
 function jumpTo(i){
   const keep = { sur:S.sur || '윤', bon:S.bon, name:S.name || '서하', gahun:S.gahun >= 0 ? S.gahun : 0, opt:S.opt };
