@@ -489,6 +489,27 @@ function model(w,d,h,fn){
   return { w, d, h, layers };
 }
 const WOOD='#5b3c25', DARK='#2c1c11', PAPER='#cfc2a3', BOOKC=['#6b2d22','#2f4a3a','#5d4a1e','#3b3550','#7a5a2e','#40302a'];
+// 서안(書案): 상판 양 끝이 두루마리처럼 말려 오름, 상판 아래 서랍 두 칸(놋쇠 고리), 다리 대신 옆판(판족)에 구름 모양 구멍(풍혈)
+function seoanModel(withBook){
+  const TOP = '#5e3a22', EDGE = '#3c2414', SIDE = '#43281a', BR = '#a8873e';
+  return model(28,12,10,(x,y,z)=>{
+    if (withBook && z===8 && x>=9 && x<=18 && y>=3 && y<=8) return x===13||x===14 ? '#8a7d62' : (y===3||y===8 ? '#bfb393' : PAPER);
+    if (z===7 && x>=1 && x<=26 && y>=2 && y<=9) return (y===2||y===9) ? EDGE : TOP;                       // 상판
+    if ((x<=1 || x>=26) && y>=2 && y<=9 && (z===8 || (z===9 && (x===0 || x===27)))) return EDGE;            // 말려 오른 끝
+    if ((x===0 || x===27) && y>=2 && y<=9 && z===8) return EDGE;
+    if ((z===5 || z===6) && x>=4 && x<=23 && (y===9 || y===2)){                                              // 앞뒤 턱·서랍
+      if (y===9 && (x===13 || x===14)) return EDGE;
+      if (y===9 && z===5 && (x===8 || x===19)) return BR;
+      return y===9 ? '#4a2d19' : EDGE;
+    }
+    if ((x===3 || x===24) && y>=2 && y<=9 && z<=6){                                                          // 옆판(판족)
+      if (z>=1 && z<=4 && y>=4 && y<=7 && !(z===4 && (y===4 || y===7))) return null;                          // 풍혈
+      return SIDE;
+    }
+    if (z===0 && (x===3 || x===24) && (y===1 || y===10)) return EDGE;                                        // 발
+    return null;
+  });
+}
 const M = {
   floor: model(76,54,1,(x,y)=> ((x+Math.floor(y/6)*7)%19===0 || y%6===0) ? '#2a1d13' : (y%12<6 ? '#3a281a' : '#36251a')),
   shelf: model(20,6,26,(x,y,z)=>{
@@ -534,6 +555,20 @@ const M = {
     if (y===0 && x>=0 && x<=15 && z<=14) return (x<=1||x>=14) && z>=12 ? BR : (z===14 || x===0 || x===15 ? DARK : WOOD);
     return null;
   }),
+  seoan: seoanModel(false),
+  seoanBook: seoanModel(true),
+  chestClosed: model(16,11,9,(x,y,z)=>{
+    const BR = '#9a7a3a';
+    const edge = x===0||x===15||y===1||y===10;
+    if (z===8) return (x<=1||x>=14) && (y<=2||y>=9) ? BR : (y===0 ? null : (x===0||x===15||y===1||y===10 ? DARK : '#563823'));   // 닫은 뚜껑
+    if (y===0) return null;
+    if (z<8 && (edge || z===0)){
+      if ((x<=1||x>=14) && (y<=2||y>=9)) return BR;
+      if (y===10 && x>=6 && x<=9 && z>=4 && z<=6) return z===5 && (x===7||x===8) ? '#3a2a10' : BR;
+      return z===7 ? DARK : WOOD;
+    }
+    return null;
+  }),
   deskBook: model(16,8,7,(x,y,z)=>{
     if (z===6) return (x>=3 && x<=12 && y>=2 && y<=5) ? (x===7||x===8 ? '#8a7d62' : (y===2||y===5 ? '#bfb393' : PAPER)) : null;   // 서안 위에 펼친 책
     if (z===5) return '#4e3220'; if ((x<2||x>13)&&(y<2||y>5)) return DARK; if (z===4 && (x<2||x>13)) return DARK; return null; }),
@@ -548,11 +583,11 @@ const M = {
 const OBJ = [
   { id:'shelf', x:-24, y:-17, rot:0, click:()=>showShelf() },
   { id:'scroll', x:-6, y:-24, rot:0, z:6, show:()=>S.gahun>=0, click:()=>showGahun() },
-  { id:'chest', x:0, y:2, rot:0.05, m:()=> S.owned.desk ? 'chestEmpty' : 'chest', click:()=> S.owned.desk ? showEmptyChest() : openBook(), glow:()=>!S.opened && !S.owned.desk },
-  { id:'lamp', get x(){ return S.owned.lamp && S.owned.desk ? 20 : 11; }, get y(){ return S.owned.lamp && S.owned.desk ? 12 : -1; }, get z(){ return S.owned.lamp && S.owned.desk ? 6 : 0; }, buy:{ cost:15, name:'등잔' } },
-  { id:'brush', x:-17, y:13, buy:{ cost:50, name:'붓걸이' } },
-  { id:'desk', x:15, y:13, m:()=> S.owned.desk ? 'deskBook' : 'desk', buy:{ cost:120, name:'서안' }, click:()=>openBook() },
-  { id:'glass', x:25, y:5, buy:{ cost:260, name:'돋보기' } },
+  { id:'chest', get x(){ return S.owned.desk ? -30 : 0; }, get y(){ return S.owned.desk ? 19 : 2; }, get rot(){ return S.owned.desk ? 0.35 : 0.05; }, m:()=> S.owned.desk ? 'chestClosed' : 'chest', click:()=> S.owned.desk ? showEmptyChest() : openBook(), glow:()=>!S.opened && !S.owned.desk },
+  { id:'lamp', get x(){ return S.owned.lamp && S.owned.desk ? 11 : 11; }, get y(){ return S.owned.lamp && S.owned.desk ? 0 : -1; }, get z(){ return S.owned.lamp && S.owned.desk ? 8 : 0; }, buy:{ cost:15, name:'등잔' } },
+  { id:'brush', x:9, y:-20, buy:{ cost:50, name:'붓걸이' } },
+  { id:'desk', get x(){ return S.owned.desk ? 0 : 20; }, get y(){ return S.owned.desk ? 3 : 16; }, m:()=> S.owned.desk ? 'seoanBook' : 'seoan', buy:{ cost:120, name:'서안' }, click:()=>openBook() },
+  { id:'glass', get x(){ return S.owned.glass && S.owned.desk ? -9 : 25; }, get y(){ return S.owned.glass && S.owned.desk ? 5 : 5; }, get z(){ return S.owned.glass && S.owned.desk ? 8 : 0; }, buy:{ cost:260, name:'돋보기' } },
   { id:'teapot', x:-9, y:-11, show:()=>S.D>=T.tea, click:()=>brew() },
   { id:'door', x:27, y:-20, show:()=>S.D>=T.door, click:()=>showLibrary() },
   { id:'letter', x:24, y:-11, show:()=>S.D>=T.letter && !S.letterRead, click:()=>readLetter(), glow:()=>true },
@@ -582,7 +617,7 @@ function frame(now){
       const ghost = o.buy && !owned;
       if (ghost && S.earned < o.buy.cost*0.5) { o.hit=null; continue; }
       const rx = o.x*c - o.y*s, ry = o.x*s + o.y*c;
-      list.push({ o, ghost, sx: ox + rx*SC, sy: oy + ry*SC*0.6, ry });
+      list.push({ o, ghost, sx: ox + rx*SC, sy: oy + ry*SC*0.6, ry: ry + (o.z||0)*0.8 });
     }
     list.sort((p,q)=>p.ry-q.ry);
     for (const it of list){
@@ -655,14 +690,14 @@ function brew(){ const now = performance.now(); if (now < steamUntil) return; st
 const ITEM = {
   lamp:  ['등잔', '불을 켜면 글자가 보인다.<br>한 번에 두 장씩 넘길 수 있다.<br><br>기름은 줄지 않는다.'],
   brush: ['붓걸이', '푼 글자를 받아 적는다. 해독이 빨라진다.<br>받아 적은 것은 도서관에 남는다.<br><br>붓이 넷. 하나는 쓴 적이 없는데 먹이 묻어 있다.'],
-  desk:  ['서안', '궤짝의 책을 서안으로 옮겼다. 서안을 누르면 책을 펼친다.<br>등잔도 서안 위로 올렸다.<br><br>책을 펼쳐 두면 손대지 않아도 넘어간다.<br>책을 덮어 두어도 넘어간다.<br>한 번에 넘기는 장수도 늘어난다.<br><br>창은 닫혀 있다.'],
+  desk:  ['서안', '궤짝에서 책을 꺼내 서안에 올렸다. 궤짝은 구석으로 치웠다.<br>등잔도 서안 위로 올렸다. 서안을 누르면 책을 펼친다.<br><br>책을 펼쳐 두면 손대지 않아도 넘어간다.<br>책을 덮어 두어도 넘어간다.<br>한 번에 넘기는 장수도 늘어난다.<br><br>창은 닫혀 있다.'],
   glass: ['돋보기', '해독이 훨씬 빨라진다.<br>책을 펼치면 곁에 놓인다. 집어 들어 대면 글자가 크게 보인다.<br>크게 보면 아직 풀리지 않은 글자도 조금 읽힌다.<br><br>여백에 다른 손으로 쓴 글씨가 있다. 아주 작다.'],
 };
 function showItem(id){ openOv(`<h3>${ITEM[id][0]}</h3>${ITEM[id][1]}`); }
 function buy(o){ if (S.pages < o.buy.cost) return; S.pages -= o.buy.cost; S.owned[o.id] = true; sPlace(); save(); showItem(o.id); }
 
 // ───────── 기록 ─────────
-function showEmptyChest(){ openOv('<h3>궤짝</h3>비어 있다. 책은 서안으로 옮겼다.<br><br>바닥에 무언가를 오래 눌러 둔 자국이 있다. 책보다 조금 크다.'); }
+function showEmptyChest(){ openOv('<h3>궤짝</h3>책을 꺼내고 구석으로 치웠다. 뚜껑을 열어 보면 비어 있다.<br><br>바닥에 무언가를 오래 눌러 둔 자국이 있다. 책보다 조금 크다.'); }
 function showGahun(){ openOv(`<h3>家訓</h3><div style="font-size:20px;letter-spacing:6px;text-align:center;padding:20px 0">${['읽되 믿지 마라','모르는 것은 덮어라'][S.gahun]}</div>`); }
 function recJokbo(){ return `<h3>族譜 — 첫 장</h3>一世. <span style="letter-spacing:-2px;opacity:.6">▒▒▒</span> — ${alienHtml(glyphs('이 서고를 세우다',40))}<br>…<br>十七世. ${esc(S.sur+S.name)} — 궤짝을 열다.<br>十八世. 　　 — ${alienHtml(glyphs('물가에서', 41))}<br>十九世. 　　 — ${alienHtml(glyphs('문을 잠그고 나오지 않다', 42))}`; }
 function recLedger(){ let h = '<h3>서고 장부</h3>'; for (let i=0;i<8;i++) h += alienHtml(showText(i)) + '<br>'; return h; }
