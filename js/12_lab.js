@@ -282,10 +282,10 @@ function showStaff(k){
   openOv(`<h3>${isGen(k) ? '연구원' : '반장'} — ${P.name}(${P.hj})</h3>직업: ${P.job}<br>상태: ${st}<br>읽는 빠르기: ${speed}<br>넘긴 것: ${fmtP(s.pages||0)}<br><div style="font-size:12px;opacity:.6">${P.note}</div>${tea}`
     + (S.teaArrived ? `<div style="text-align:center;margin:8px 0"><button class="btn rec" id="bSTea" style="color:var(--ink);border-color:#00000066">차를 한 잔 내준다</button></div>` : '')
     + `<div class="opt rec"><span>읽을 사본</span><span class="ch">${o('first', '제목 없는 책')}${o('dongui', '동의보감 三')}${S.mapFound ? o('map', '지도') : ''}</span></div>`
-    + '<div style="font-size:12px;opacity:.6">서고의 책을 베껴 둔 사본이라, 같은 책을 여럿이 읽을 수 있다.</div>'
+    + `<div style="font-size:12px;opacity:.6">서고의 책을 베껴 둔 사본이라, 같은 책을 여럿이 읽을 수 있다.${s.auto && !s.manual ? ' 지금 것은 한서진이 나누어 준 것이다.' : ''}</div>`
     + (isGen(k) ? '' : `<br><b>일지</b>` + (dl.length ? dl.map((d, i) => `<div class="rec dlist" data-d="${i}"><span>일지 ${i+1} — ${esc(d.split('.')[0])}</span><span style="opacity:.45;font-size:12px">읽기</span></div>`).join('') : '<br>아직 쓴 것이 없다.')));
   const bt = document.getElementById('bSTea'); if (bt) bt.addEventListener('click', ev => { ev.stopPropagation(); ov.classList.add('hidden'); s.steam = Date.now() + 3000; s.calm = Date.now() + 243000; save(); sBoil(); });
-  ovBody.querySelectorAll('[data-cp]').forEach(el => el.addEventListener('click', ev => { ev.stopPropagation(); s.item = el.dataset.cp; save(); sPlace(); showStaff(k); }));
+  ovBody.querySelectorAll('[data-cp]').forEach(el => el.addEventListener('click', ev => { ev.stopPropagation(); s.item = el.dataset.cp; s.manual = true; s.auto = false; save(); sPlace(); showStaff(k); }));
   ovBody.querySelectorAll('.dlist').forEach(el => el.addEventListener('click', ev => { ev.stopPropagation(); const i = +el.dataset.d;
     openOv(`<h3>${P.name}의 일지 ${i+1}</h3>${staffDiary(k)[i]}<div class="rec" id="bBackS" style="margin-top:14px;text-align:center">← 목록으로</div>`);
     document.getElementById('bBackS').addEventListener('click', e2 => { e2.stopPropagation(); showStaff(k); }); }));
@@ -359,6 +359,7 @@ function labTick(dt){
     if (gave){ save(); if (S.scene === 'lab') sBoil(); }
   }
   if (S.rArrived && !isNight() && (S.rFear||0) > 0.35) S.sweatSec = (S.sweatSec||0) + dt;
+  if (now - lastAssign > 10000){ lastAssign = now; autoAssign(); }
   if (!S.goNote && ojr.arr && now - ojr.arr > 180000){ S.goNote = true; save(); }
 }
 // 자리를 비운 동안: 서명우는 밤 시간, 밤일 하는 이는 낮밤 모두, 나머지는 낮 시간만 (한서진과 같이 30%)
@@ -382,4 +383,37 @@ function labOffline(){
   }
   if (gen) out.push('<h3>쪽지</h3>' + vlet(['가주께.', `별채 사람들이 ${fmtP(gen)}을 넘겼습니다.`, '모두 무사합니다.'], '한서진 적음.', 'min(36vh,240px)'));
   return out;
+}
+
+// ───────── 반장이 맡는 일 (기획서 14-3) ─────────
+// 오정림이 오면 찻주전자는 별채로 옮겨지고(서고엔 물 자국만), 낮마다 서안에 가주 몫 한 잔.
+// 한서진이 자리를 잡으면 별채 사람들이 읽을 사본을 나눠 둠(가주가 직접 고른 사람은 그대로).
+const dayKey = () => S.opt.gameTime ? Math.floor(Date.now()/1000/300/24) : Math.floor((Date.now() + 9*3600e3) / 86400e3);
+M.teaRing = model(7,6,1,(x,y)=>{ const r = Math.hypot(x-3, y-2.5); return r <= 2.9 && r >= 1.9 ? '#2a1c12' : null; });   // 찻주전자가 있던 둥근 물 자국
+{ const tp = OBJ.find(o => o.id === 'teapot'), tpShow = tp.show; tp.show = () => tpShow() && !arrived('ojr'); }
+OBJ.push(
+  { id:'teaRing', x:-31, y:-5, m:()=>'teaRing', show:()=> !!S.teaArrived && arrived('ojr'),
+    click:()=>openOv('<h3>물 자국</h3>찻주전자가 있던 자리에 둥근 물 자국만 남았다.<br>오정림이 별채로 가져갔다. 별채에서 차 끓는 냄새가 난다.') },
+  { id:'myCup', x:-6, y:5, z:8, rot:0, m:()=>'cup', on:()=>'desk', onOrder:0.02,
+    show:()=> !!S.owned.desk && arrived('ojr') && !isNight() && S.cupDay !== dayKey(),
+    click:()=>{ S.cupDay = dayKey(); save(); brew();
+      openOv('<h3>찻잔</h3>오정림이 가주 몫이라며 아침마다 서안에 놓고 간다.<br>아직 따뜻하다. 마시니 떨림이 가라앉는다.'); } },
+);
+LAB_OBJ.push({ id:'labTeapot', x:30, y:-14, m:()=>'teapot', show:()=> arrived('ojr'), click:()=>showTea() });
+let lastAssign = 0;
+function autoAssign(){
+  if (!S.rArrived || diaryCount() < 1) return;                 // 한서진이 자리를 잡은 뒤부터
+  const ks = allKeys().filter(k => arrived(k) && !S.st[k].manual && !S.st[k].gone);
+  ks.sort((a, b) => (isGen(b) - isGen(a)) || ((DEF(a).sec||4) - (DEF(b).sec||4)));   // 일반 연구원·손 빠른 사람부터
+  if (!ks.length) return;
+  const want = [];
+  if (!S.sideRead.dongui) want.push('dongui');                 // 아직 못 푼 곁책에 한 사람
+  if (S.mapFound && (S.mapStudy||0) < MAP_NEED + 60) want.push('map');   // 지도의 글자에 한 사람
+  let changed = false;
+  ks.forEach((k, i) => { const it = want[i] || 'first'; if (S.st[k].item !== it){ S.st[k].item = it; S.st[k].auto = true; changed = true; } });
+  if (changed && !S.autoNoteDone){
+    S.autoNoteDone = true;
+    S.pendingNotes = (S.pendingNotes || []).concat(['<h3>쪽지</h3>' + vlet(['가주께.', '별채 사람들이 읽을 것은', '제가 나누어 두겠습니다.', '바꾸시려면 언제든', '그 사람 책상에서 고르십시오.'], '한서진 올림.', 'min(40vh,280px)')]);
+  }
+  if (changed) save();
 }
