@@ -808,17 +808,42 @@ function showLibrary(){
 function readLetter(){ openOv(letterHtml(), () => { S.letterRead = true; S.chair = true; save(); sPlace(); setTimeout(()=>document.getElementById('endnote').style.opacity = 1, 2500); }); }
 
 // ───────── 설정 ─────────
+// 시험용: 구간으로 바로 가기(이름·가훈·설정은 그대로)
+const JUMPS = [
+  ['1. 처음 — 족보부터', null],
+  ['2. 덮인 첫 책 앞', { opened:false }],
+  ['3. 등잔을 들일 즈음', { opened:true, pages:20, earned:20, D:20 }],
+  ['4. 장부 반쯤 해독 (등잔·붓걸이)', { opened:true, pages:60, earned:220, D:330, owned:{ lamp:true, brush:true } }],
+  ['5. 장부 다 풀림 · 도서관 문', { opened:true, pages:140, earned:420, D:680, owned:{ lamp:true, brush:true } }],
+  ['6. 공포 문장 · 손이 떨리기 직전', { opened:true, pages:160, earned:560, D:1035, fear:0.3, owned:{ lamp:true, brush:true } }],
+  ['7. 서안·수정 문진까지 들인 뒤', { opened:true, pages:40, earned:800, D:1100, owned:{ lamp:true, brush:true, desk:true, glass:true }, teaArrived:true }],
+  ['8. 편지가 오기 직전', { opened:true, pages:60, earned:900, D:1290, owned:{ lamp:true, brush:true, desk:true, glass:true }, teaArrived:true, glitchDone:true }],
+  ['9. 편지를 읽은 뒤 (연구원 자리)', { opened:true, pages:60, earned:950, D:1320, owned:{ lamp:true, brush:true, desk:true, glass:true }, teaArrived:true, glitchDone:true, letterShadow:true, letterRead:true, chair:true }],
+];
+function jumpTo(i){
+  const keep = { sur:S.sur || '윤', bon:S.bon, name:S.name || '서하', gahun:S.gahun >= 0 ? S.gahun : 0, opt:S.opt };
+  resetting = true;
+  if (!JUMPS[i][1]) { localStorage.setItem(SAVE, JSON.stringify({ stage:'start', opt:S.opt })); location.reload(); return; }   // 처음부터: 설정만 남김
+  const fresh = Object.assign({ stage:'room', pages:0, earned:0, D:0, owned:{}, fear:0, opened:false, letterRead:false, chair:false, glitchDone:false, sideRead:{}, ack:[], teaArrived:false, letterShadow:false }, keep, JSON.parse(JSON.stringify(JUMPS[i][1])));
+  localStorage.setItem(SAVE, JSON.stringify(fresh)); location.reload();
+}
+function showJumps(){
+  openOv('<h3>시험용: 구간으로 바로 가기</h3>' + JUMPS.map((j,i) => `<div class="rec jmp" data-i="${i}">${j[0]}</div>`).join(''));
+  ovBody.querySelectorAll('.jmp').forEach(el => el.addEventListener('click', ev => { ev.stopPropagation(); jumpTo(+el.dataset.i); }));
+}
 function showSettings(){
   const o = S.opt;
   openOv(`<h3>설정</h3>
     <div class="opt rec"><span>글 방향</span><span class="ch"><span data-k="horiz" data-v="0" class="${!o.horiz?'on':''}">세로</span><span data-k="horiz" data-v="1" class="${o.horiz?'on':''}">가로</span></span></div>
     <div class="opt rec"><span>소리</span><span class="ch"><span data-k="mute" data-v="0" class="${!o.mute?'on':''}">켬</span><span data-k="mute" data-v="1" class="${o.mute?'on':''}">끔</span></span></div>
     <div class="opt rec"><span>시험용: 누르고 있으면 빨리 넘기기</span><span class="ch"><span data-k="fast" data-v="0" class="${!o.fast?'on':''}">끔</span><span data-k="fast" data-v="1" class="${o.fast?'on':''}">켬</span></span></div>
+    <div class="opt rec"><span>시험용: 구간으로 바로 가기</span><span class="ch"><span id="bJump">고르기</span></span></div>
     <div class="opt rec"><span>처음부터</span><span class="ch"><span id="bReset">기록을 지운다</span></span></div>`);
   ovBody.querySelectorAll('.ch span[data-k]').forEach(el => el.addEventListener('click', ev => {
     ev.stopPropagation(); S.opt[el.dataset.k] = el.dataset.v === '1'; save();
     if (!bookView.classList.contains('hidden')) layoutBook(); showSettings();
   }));
+  document.getElementById('bJump').addEventListener('click', ev => { ev.stopPropagation(); showJumps(); });
   document.getElementById('bReset').addEventListener('click', ev => {
     ev.stopPropagation();
     openOv('<h3>처음부터</h3>지금까지의 기록이 모두 지워집니다.<div style="text-align:center;margin-top:18px"><button class="btn rec" id="bReset2" style="color:var(--ink);border-color:#00000066">지우고 처음부터</button></div>');
