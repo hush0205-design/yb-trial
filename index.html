@@ -638,6 +638,14 @@ const M = {
   }),
   chair: model(7,7,11,(x,y,z)=>{ if (z===4) return '#4a2f1e'; if (z<4) return ((x===0||x===6)&&(y===0||y===6)) ? DARK : null; if (y===0) return (x===0||x===6||z===10||z===7) ? DARK : null; return null; }),
 };
+// 불이 꺼져 있을 때 처음 생긴 것은 등잔을 다시 켜야 비로소 보임(켜는 순간 '아까 없던 것'이 거기 있음)
+function reveal(id, cond){
+  if (!cond) return false;
+  S.revealed = S.revealed || [];
+  if (S.revealed.includes(id)) return true;
+  if (S.owned.lamp && S.lampOut) return false;
+  S.revealed.push(id); return true;
+}
 const OBJ = [
   { id:'shelf', x:-24, y:-17, rot:0, click:()=>showShelf() },
   { id:'scroll', x:-6, y:-24, rot:0, z:6, show:()=>S.gahun>=0, click:()=>showGahun() },
@@ -646,9 +654,9 @@ const OBJ = [
   { id:'brush', x:9, y:-20, buy:{ cost:50, name:'붓걸이' } },
   { id:'desk', get x(){ return S.owned.desk ? 0 : 0; }, get y(){ return S.owned.desk ? 3 : 15; }, m:()=> S.owned.desk ? 'seoanBook' : 'seoan', buy:{ cost:120, name:'서안' }, click:()=>openBook() },
   { id:'glass', get x(){ return S.owned.glass && S.owned.desk ? -10 : -24; }, get y(){ return S.owned.glass && S.owned.desk ? 3 : 8; }, get z(){ return S.owned.glass && S.owned.desk ? 8 : 0; }, buy:{ cost:260, name:'수정 문진' } },
-  { id:'teapot', x:-31, y:-5, show:()=>S.teaArrived, click:()=>brew() },
-  { id:'door', x:27, y:-20, show:()=>S.D>=T.door, click:()=>showLibrary() },
-  { id:'letter', x:24, y:-11, show:()=>S.D>=T.letter && !S.letterRead, click:()=>readLetter(), glow:()=>true },
+  { id:'teapot', x:-31, y:-5, show:()=>reveal('teapot', S.teaArrived), click:()=>brew() },
+  { id:'door', x:27, y:-20, show:()=>reveal('door', S.D>=T.door), click:()=>showLibrary() },
+  { id:'letter', x:24, y:-11, show:()=>reveal('letter', S.D>=T.letter && !S.letterRead), click:()=>readLetter(), glow:()=>true },
   { id:'rdesk', x:27, y:19, rot:0, show:()=>S.chair, click:()=> S.rArrived ? showResearcher() : openOv('<h3>연구원의 자리</h3>작은 책상과 의자. 종이 묶음과 벼루가 놓여 있다.<br><br>아직 아무도 앉지 않았다.') },
   { id:'chair', x:27, y:12, rot:0, show:()=>S.chair },
 ];
@@ -705,9 +713,11 @@ function frame(now){
       if (it.o.id==='teapot' && now < steamUntil){ cx.fillStyle='rgba(220,215,200,0.5)';
         for (let k=0;k<6;k++){ const ph=(t*1.5+k/6)%1; cx.fillRect(it.sx + Math.sin(t*3+k)*4*DPR, it.sy - 6*SC*0.85 - ph*40*DPR, SC*0.8, SC*0.8); } }
     }
-    const lit = S.owned.lamp && !S.lampOut ? 1 : 0;
-    const g = cx.createRadialGradient(ox, oy-20*DPR, Math.min(W,H)*(0.18+0.12*lit), ox, oy, Math.max(W,H)*0.62);
-    g.addColorStop(0,'rgba(8,6,4,0)'); g.addColorStop(1,'rgba(8,6,4,0.92)'); cx.fillStyle = g; cx.fillRect(0,0,W,H);
+    const lit = S.owned.lamp && !S.lampOut ? 1 : 0, out = S.owned.lamp && S.lampOut;
+    const g = cx.createRadialGradient(ox, oy-20*DPR, Math.min(W,H)*(out ? 0.04 : 0.18+0.12*lit), ox, oy, Math.max(W,H)*(out ? 0.38 : 0.62));
+    g.addColorStop(0, out ? 'rgba(8,6,4,0.55)' : 'rgba(8,6,4,0)'); g.addColorStop(1,'rgba(8,6,4,' + (out ? 0.97 : 0.92) + ')'); cx.fillStyle = g; cx.fillRect(0,0,W,H);
+    const since = now - relitAt;
+    if (since < 900){ const k = since < 120 || (since > 260 && since < 380) || (since > 520 && since < 600) ? 0.85 : 0; if (k){ cx.fillStyle = `rgba(8,6,4,${k})`; cx.fillRect(0,0,W,H); } }   // 다시 붙인 불의 깜빡임
   }
   tick(now); requestAnimationFrame(frame);
 }
@@ -761,7 +771,7 @@ const DOLL = (() => {
   rows.forEach((r,y) => [...r].forEach((ch,x) => { if (col[ch]) { g.fillStyle = col[ch]; g.fillRect(x,y,1,1); } }));
   return c;
 })();
-const SJ = { id:'sj', x:27, y:15.5, doll:true, show:()=>S.rArrived && !isNight(), click:()=>showResearcher() };
+const SJ = { id:'sj', x:27, y:15.5, doll:true, show:()=>reveal('sj', S.rArrived) && !isNight(), click:()=>showResearcher() };
 let lastTick = performance.now(), lastAuto = performance.now();
 function tick(now){
   const dt = Math.min(0.5, (now - lastTick)/1000); lastTick = now;
@@ -820,8 +830,9 @@ function updateThread(now){
   }
 }
 let calmUntil = 0;
+let relitAt = -1e9;
 function lampClick(){
-  if (S.lampOut){ S.lampOut = false; save(); applyLight(); noise(0.25, 2600, 0.08); setTimeout(() => noise(0.4, 500, 0.05, 'lowpass'), 120); }   // 치익 — 다시 붙인 불
+  if (S.lampOut){ S.lampOut = false; relitAt = performance.now(); save(); applyLight(); noise(0.25, 2600, 0.08); setTimeout(() => noise(0.4, 500, 0.05, 'lowpass'), 120); }   // 치익 — 다시 붙인 불
   else showItem('lamp');
 }
 function brew(){ const now = performance.now(); if (now < steamUntil) return; steamUntil = now + 2600; calmUntil = now + 2600 + 25000; sBoil(); setTimeout(()=>save(), 2700); }
@@ -910,6 +921,7 @@ function jumpTo(i){
   if (!JUMPS[i][1]) { localStorage.setItem(SAVE, JSON.stringify({ stage:'start', opt:S.opt })); location.reload(); return; }   // 처음부터: 설정만 남김
   const fresh = Object.assign({ stage:'room', pages:0, earned:0, D:0, owned:{}, fear:0, opened:false, letterRead:false, chair:false, glitchDone:false, sideRead:{}, ack:[], teaArrived:false, letterShadow:false }, keep, JSON.parse(JSON.stringify(JUMPS[i][1])));
   if (fresh.rArrived === -1) fresh.rArrived = Date.now();
+  fresh.revealed = ['door', 'teapot', 'sj'];
   if (fresh.letterRead && !fresh.rArrived) fresh.rDue = Date.now() + 12000;
   fresh.lastSeen = Date.now();
   localStorage.setItem(SAVE, JSON.stringify(fresh)); location.reload();
