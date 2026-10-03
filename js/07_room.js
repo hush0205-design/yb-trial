@@ -234,7 +234,8 @@ function frame(now){
   if (bookView.classList.contains('hidden') && mapView.classList.contains('hidden')){   // 지도·책이 덮고 있으면 방은 그리지 않음
     cx.fillStyle = '#0b0907'; cx.fillRect(0,0,W,H); cx.imageSmoothingEnabled = false;
     const lab = S.scene === 'lab';
-    drawModel(lab ? M.labFloor : M.floor, ox, oy, a, 1, -1);
+    const gate = S.scene === 'gate';
+    drawModel(lab ? M.labFloor : gate ? M.yard : M.floor, ox, oy, a, 1, -1);
     const list = [];
     for (const o of curObjs()){
       const owned = !o.buy || S.owned[o.id];
@@ -295,9 +296,9 @@ function frame(now){
       cx.fillStyle = L.c; cx.fillText(L.t, L.x, L.y);
     }
     const dl = daylight();
-    if (dl > 0){ const WX = lab ? 15 : 7, wx = WX*c - (-26)*s, wy = WX*s + (-26)*c, gx = ox + wx*SC, gy = oy + wy*SC*0.6 + 30*DPR;
+    if (dl > 0 && !gate){ const WX = lab ? 15 : 7, wx = WX*c - (-26)*s, wy = WX*s + (-26)*c, gx = ox + wx*SC, gy = oy + wy*SC*0.6 + 30*DPR;
       const wg = cx.createRadialGradient(gx, gy, 0, gx, gy, 140*DPR); wg.addColorStop(0, `rgba(240,225,190,${0.10*dl})`); wg.addColorStop(1, 'rgba(240,225,190,0)'); cx.fillStyle = wg; cx.fillRect(gx-140*DPR, gy-140*DPR, 280*DPR, 280*DPR); }
-    const lit = lab || (S.owned.lamp && !S.lampOut) ? 1 : 0, out = !lab && S.owned.lamp && S.lampOut;
+    const lit = lab || gate || (S.owned.lamp && !S.lampOut) ? 1 : 0, out = !lab && !gate && S.owned.lamp && S.lampOut;
     const g = cx.createRadialGradient(ox, oy-20*DPR, Math.min(W,H)*(out ? 0.04 : 0.18+0.12*lit), ox, oy, Math.max(W,H)*(out ? 0.38 : 0.62));
     g.addColorStop(0, out ? 'rgba(8,6,4,0.55)' : 'rgba(8,6,4,0)'); g.addColorStop(1,'rgba(8,6,4,' + (out ? 0.97 : 0.92) + ')'); cx.fillStyle = g; cx.fillRect(0,0,W,H);
     const since = now - relitAt;

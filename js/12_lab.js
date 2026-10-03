@@ -181,8 +181,8 @@ function dollFor(k){
     show:()=>present(k), click:()=>showStaff(k) });
 }
 const labDolls = () => allKeys().filter(arrived).map(dollFor);
-const ALL_DOLLS = () => [SJ, ...labDolls()];
-const curDolls = () => S.scene === 'lab' ? labDolls() : [SJ];
+const ALL_DOLLS = () => [SJ, ...labDolls(), ...(typeof gateDolls === 'function' ? gateDolls() : [])];
+const curDolls = () => S.scene === 'lab' ? labDolls() : S.scene === 'gate' ? gateDolls() : [SJ];
 
 // 별채의 물건
 const LAB_OBJ = [
@@ -200,7 +200,7 @@ for (const [d, [dx, dy]] of Object.entries(LAB_DESKS)){
   LAB_OBJ.push({ id:'i_' + d, x:dx - 2, y:dy, z:11, rot:0, on:()=>d, m:()=> itemModel(S.st[who()].item), show:()=>{ const k = who(); return !!k && !!S.st[k].item; }, click:()=>showStaff(who()) });
   LAB_OBJ.push({ id:'t_' + d, x:dx + 3.5, y:dy + 1.5, z:11, rot:0, on:()=>d, onOrder:0.02, m:()=>'cup', show:()=>{ const k = who(); return !!k && present(k) && Date.now() < (S.st[k].calm||0); }, alpha:()=> cupAlpha(S.st[who()].calm), click:()=>showStaff(who()) });
 }
-const curObjs = () => S.scene === 'lab' ? LAB_OBJ : OBJ;
+const curObjs = () => S.scene === 'lab' ? LAB_OBJ : S.scene === 'gate' ? GATE_OBJ : OBJ;
 const DESK_TXT = { ld1:'의자 다리 하나가 조금 짧다.', ld2:'들인 지 하루도 안 됐는데 먹 자국이 있다.', ld3:'책상 밑에 붓 한 자루가 떨어져 있다. 우리 서고의 붓이 아니다.', ld4:'앉으면 창이 정면으로 보인다. 밤에는 창에 비친 얼굴이 하나 더 있다.', ld5:'아무도 앉지 않았는데 의자가 조금 빠져 있다.' };
 for (const d of DESK_IDS) ITEM[d] = ['별채 책상', '별채에 들인 책상과 의자. 연구원 한 사람이 앉을 자리다.<br>서고의 책을 베껴 둔 사본을 놓고 읽는다.<br><br>' + DESK_TXT[d]];
 
@@ -214,7 +214,9 @@ function goScene(sc){
   if (sc === 'lab') S.labSeen = true;
   S.scene = sc; save(); sceneAt = performance.now();
   noise(0.35, 240, 0.12, 'lowpass'); setTimeout(() => noise(0.12, 110, 0.3, 'lowpass'), 300);   // 문 여닫는 소리
-  if (typeof tlog === 'function') tlog(sc === 'lab' ? '별채로 감' : '서고로 돌아옴');
+  if (typeof tlog === 'function') tlog(sc === 'lab' ? '별채로 감' : sc === 'gate' ? '대문으로 나감' : '서고로 돌아옴');
+  if (sc === 'seogo' && S.bangAt && !S.labDoorNoted && !S.labSeen){ S.labDoorNoted = true; save();
+    setTimeout(() => queueOv('<h3>서고</h3>방을 붙이고 돌아오니, 서고 왼쪽 벽에 문이 하나 있다.<br>별채로 이어지는 문이다.<br><br>전에도 있었던 것 같다.'), 900); }
 }
 const knock = (v = 1) => { noise(0.12, 110, 0.4*v, 'lowpass'); setTimeout(() => noise(0.12, 110, 0.35*v, 'lowpass'), 260); };
 
@@ -225,9 +227,11 @@ function showBang(){
   openOv('<h3>방 종이</h3>방(榜)을 써 붙일 종이와 붓. 한서진이 문 곁에 두고 간 것이다.<br>한 장에는 벌써 글이 적혀 있다. 한서진의 글씨다.' + bangHtml().replace('<h3>방(榜)</h3>', '')
     + '<div style="text-align:center;margin-top:14px"><button class="btn rec" id="bBang" style="color:var(--ink);border-color:#00000066">대문에 붙인다</button></div>');
   document.getElementById('bBang').addEventListener('click', ev => {
-    ev.stopPropagation(); S.bangAt = Date.now(); save(); ov.classList.add('hidden'); sPlace();
-    setTimeout(() => { noise(0.4, 180, 0.12, 'lowpass'); }, 600);                                     // 벽 너머에서 무언가 끄는 소리
-    setTimeout(() => queueOv('<h3>서고</h3>방을 붙이고 돌아오니, 서고 왼쪽 벽에 문이 하나 있다.<br>별채로 이어지는 문이다.<br><br>전에도 있었던 것 같다.'), 1400);
+    ev.stopPropagation(); S.bangAt = Date.now(); save(); ov.classList.add('hidden');
+    goScene('gate');                                                                                   // 대문으로 나가 직접 붙임
+    setTimeout(() => { noise(0.25, 900, 0.06); setTimeout(() => sPlace(), 250); }, 700);               // 풀칠하고 탁 붙이는 소리
+    setTimeout(() => noise(0.4, 180, 0.12, 'lowpass'), 2200);                                          // 벽 너머에서 무언가 끄는 소리
+    if (typeof tlog === 'function') tlog('방을 붙임');
   });
 }
 const letterOf = k => `<h3>편지 — ${STAFF[k].name}</h3>` + vlet([`${esc(S.sur)}씨 가문 서고에 올립니다.`, '', ...STAFF[k].letter], `${STAFF[k].name}(${STAFF[k].hj}) 올림.`);
@@ -328,7 +332,7 @@ function labTick(dt){
     const gPages = gArr.reduce((a, k) => a + (S.st[k].pages||0), 0);
     if (!smw.at && gArr.length >= 2 && gPages >= 200){ smw.at = now; save(); knock(); }                                   // 별채가 함께 2권을 넘긴 뒤
     else if (!ojr.at && smw.read && now >= smw.at + 60000 && ((S.sweatSec||0) >= 600 || now >= smw.at + 1800000)){ ojr.at = now; save(); knock(); }   // 땀 흘린 시간이 모두 합쳐 10분을 넘으면(아니면 30분 뒤)
-    else if (gHired < GEN_MAX && now >= (S.genNext || S.bangAt + 120000)){ S.genN = (S.genN || 0) + 1; stOf('g' + S.genN).at = now; save(); knock(0.7); }
+    else if (gHired < GEN_MAX && !S.bangOff && now >= (S.genNext || S.bangAt + 120000)){ S.genN = (S.genN || 0) + 1; stOf('g' + S.genN).at = now; save(); knock(0.7); }
   }
   for (const k of allKeys()){
     const s = S.st[k];

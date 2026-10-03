@@ -17,8 +17,9 @@ function diaryList(){
 }
 const diaryCount = () => diaryList().length;
 function readNote(){                                    // 서안 위 쪽지: 자리 비운 동안의 쪽지 먼저, 그다음 부탁 쪽지
-  if (S.pendingNote){ const h = S.pendingNote; S.pendingNote = null; save(); openOv(h); return; }
-  if (S.pendingNotes && S.pendingNotes.length){ const h = S.pendingNotes.shift(); save(); openOv(h); return; }
+  const keep = h => { S.awayLog = (S.awayLog || []).concat([h]).slice(-20); };   // 읽은 쪽지는 문갑 '안 계신 동안' 서랍으로
+  if (S.pendingNote){ const h = S.pendingNote; S.pendingNote = null; keep(h); save(); openOv(h); return; }
+  if (S.pendingNotes && S.pendingNotes.length){ const h = S.pendingNotes.shift(); keep(h); save(); openOv(h); return; }
   if (S.helpNote && !S.helpRead){ readHelp(); return; }
   if (S.goNote && !S.goRead) readGo();
 }
@@ -365,7 +366,7 @@ function lampClick(){
 function brew(){ const now = performance.now(); if (now < steamUntil) return; steamUntil = now + 2600; calmUntil = now + 2600 + 25000; sBoil(); setTimeout(()=>save(), 2700); }
 const ITEM = {
   lamp:  ['등잔', '불을 켜면 글자가 보인다.<br>한 번에 두 장씩 넘길 수 있다.<br>서고에 무슨 일이 생기면 바람도 없이 불이 꺼진다. 등잔을 누르면 다시 붙인다.<br><br>기름은 줄지 않는다.'],
-  brush: ['붓걸이', '푼 글자를 받아 적는다. 해독이 빨라진다.<br>받아 적은 것은 도서관에 남는다.<br><br>붓이 넷. 하나는 쓴 적이 없는데 먹이 묻어 있다.'],
+  brush: ['붓걸이', '푼 글자를 받아 적는다. 해독이 빨라진다.<br>받아 적은 것은 문갑에 남는다.<br><br>붓이 넷. 하나는 쓴 적이 없는데 먹이 묻어 있다.'],
   desk:  ['서안', '궤짝에서 책을 꺼내 책장에 꽂았다. 이제 책장에는 열세 권이 있다. 궤짝은 구석으로 치웠다.<br>{LAMP}서안은 비워 두었다. 책장에서 읽을 것을 가져와 올려야 한다.<br><br>책을 펼쳐 두면 손대지 않아도 넘어간다.<br>책을 덮어 두어도 넘어간다.<br>한 번에 넘기는 장수도 늘어난다.<br>밤에 펼쳐 두고 자리를 비우면, 아침에 몇 장 넘어가 있다.<br><br>창은 닫혀 있다.'],
   sundial: ['앙부일구(仰釜日晷)', '해 그림자로 때를 재는 솥 모양 해시계.<br>이제 연구원이 얼마나 빨리 넘기는지 정확히 셀 수 있다.<br><br>그림자가 가끔 두 갈래로 갈라진다.'],
   glass: ['수정 문진(水晶文鎭)', '종이를 눌러 두는 문진. 가운데 박힌 수정으로 글자를 크게 볼 수 있다. 해독이 훨씬 빨라진다.<br>책을 펼치면 책 곁에 놓여 있다. 집어 들어 대면 글자가 크게 보인다.<br>크게 보면 아직 풀리지 않은 글자도 조금 읽힌다.<br>내려놓으려면 놓였던 자리를 누른다.<br><br>여백에 다른 손으로 쓴 글씨가 있다. 아주 작다.'],

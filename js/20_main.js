@@ -6,7 +6,7 @@ const JUMPS = [
   ['2. 덮인 첫 책 앞', { opened:false }],
   ['3. 등잔을 들일 즈음', { opened:true, pages:20, earned:20, D:20 }],
   ['4. 장부 반쯤 해독 (등잔·붓걸이)', { opened:true, pages:60, earned:220, D:330, owned:{ lamp:true, brush:true } }],
-  ['5. 장부 다 풀림 · 도서관 문', { opened:true, pages:140, earned:420, D:680, owned:{ lamp:true, brush:true } }],
+  ['5. 장부 다 풀림 · 문갑과 문', { opened:true, pages:140, earned:420, D:680, owned:{ lamp:true, brush:true } }],
   ['6. 공포 문장 · 손이 떨리기 직전', { opened:true, pages:160, earned:560, D:1035, fear:0.3, owned:{ lamp:true, brush:true } }],
   ['7. 서안·수정 문진까지 들인 뒤', { opened:true, pages:40, earned:800, D:1100, owned:{ lamp:true, brush:true, desk:true, glass:true }, teaArrived:true }],
   ['8. 편지가 오기 직전', { opened:true, pages:60, earned:900, D:1290, owned:{ lamp:true, brush:true, desk:true, glass:true }, teaArrived:true, glitchDone:true }],

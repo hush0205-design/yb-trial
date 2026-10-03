@@ -71,7 +71,7 @@ function readDongui(){
 }
 const recDongui = () => '<h3>동의보감 三 — 간 장</h3>' + DONGUI.map(p => p.h ? `${p.h}<br>${p.k}` : `<span style="color:#6a2a16;font-style:italic">${p.note}</span>`).join('<br><br>');
 function letterHtml(){ return `<h3>편지</h3><div class="vletter rec">${esc(S.sur)}씨 가문 서고에 올립니다.<br><br>저는 글자를 읽는 일을 해 온 사람입니다.<br>댁의 서고에 읽히지 않는 책이 있다는 말을 들었습니다.<br>누구에게 들었는지는 기억나지 않습니다.<br><br>서고에서 일하게 해 주십시오.<br>밤에는 일하지 않겠습니다.<div class="sign">한서진(韓瑞眞) 올림.</div></div>`; }
-function showLibrary(){
+function buildRecs(){
   const recs = [['족보 첫 장', recJokbo], ['서고 장부', recLedger]];
   if (S.owned.brush) recs.push(['해독 노트', recNotes]);
   if (S.sideRead.dongui) recs.push(['동의보감 三 — 간 장', recDongui]);
@@ -81,7 +81,22 @@ function showLibrary(){
   if (S.helpRead) recs.push(['쪽지 — 한서진', () => '<h3>쪽지</h3>가주께. 지도의 그 굴에 가 봐야겠습니다. 다만 혼자서는 바닷가에 못 가겠습니다. 바람 소리만 들어도 발이 떨어지지 않습니다. 사람을 더 구해 주실 수 없겠습니까. — 한서진 올림.']);
   labRecs(recs);
   if (glHas()) recs.push([S.gl.fresh ? `낱말 장부 — 새로 정리된 것 ${S.gl.fresh}` : '낱말 장부', recGloss]);
-  openOv('<h3>도서관</h3>' + recs.map((r,i)=>`<div class="rec" data-i="${i}">${r[0]}</div>`).join(''));
+  if (S.awayLog && S.awayLog.length) recs.push(['안 계신 동안의 쪽지', () => '<h3>안 계신 동안</h3><div style="font-size:12px;opacity:.6;margin-bottom:6px">자리를 비운 사이 서안에 놓여 있던 쪽지들. 새것이 위에.</div>' + S.awayLog.slice().reverse().join('<hr style="border:none;border-top:1px solid #00000022">')]);
+  return recs;
+}
+// 문갑: 서랍마다 나눠 둔 기록(도서관 대신, 기획서 14-2)
+const DRAWERS = [['첫째 서랍 — 책에서 받아 적은 것', /장부|족보|노트|동의보감/], ['둘째 서랍 — 편지와 방', /편지|답장|방\(|지원서/], ['셋째 서랍 — 일지', /일지/], ['넷째 서랍 — 쪽지', /쪽지|안 계신/]];
+function showLibrary(){
+  const recs = buildRecs(); S.libSig = libSig(); save();
+  const used = new Set(); let h = '<h3>문갑</h3>';
+  for (const [title, re] of DRAWERS){
+    const items = recs.map((r, i) => [r, i]).filter(([r, i]) => !used.has(i) && re.test(r[0]));
+    if (!items.length) continue;
+    h += `<div style="font-size:12px;opacity:.55;margin-top:10px">${title}</div>` + items.map(([r, i]) => { used.add(i); return `<div class="rec" data-i="${i}">${r[0]}</div>`; }).join('');
+  }
+  const rest = recs.map((r, i) => [r, i]).filter(([r, i]) => !used.has(i));
+  if (rest.length) h += '<div style="font-size:12px;opacity:.55;margin-top:10px">맨 아래 서랍</div>' + rest.map(([r, i]) => `<div class="rec" data-i="${i}">${r[0]}</div>`).join('');
+  openOv(h);
   ovBody.querySelectorAll('.rec').forEach(el => el.addEventListener('click', ev => { ev.stopPropagation(); openOv(recs[+el.dataset.i][1]()); }));
 }
 function readLetter(){
