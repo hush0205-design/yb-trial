@@ -908,7 +908,7 @@ const OBJ = [
   { id:'shelfMap', x:-26, y:-17, z:26, m:()=>'mapFold', show:()=>S.mapFound && S.loc && S.loc.map === 'shelf', click:()=>showPlace('map'), glow:()=>!S.helpRead && mapMarks() < 6 },
   { id:'ditem', x:0, y:3, get z(){ return 8 + dropZ('desk'); }, m:()=> itemModel(itemAt('desk')), show:()=> !!S.owned.desk && !!itemAt('desk'), click:()=>deskClick() },
   { id:'ritem', x:25, y:19, get z(){ return 11 + dropZ('rdesk'); }, m:()=> itemModel(itemAt('rdesk')), show:()=>S.chair && !!itemAt('rdesk'), click:()=>showResearcher() },
-  { id:'note', x:27, y:19, z:12, m:()=>'letter', show:()=>S.helpNote && !S.helpRead, click:()=>readHelp(), glow:()=>true },
+  { id:'note', get x(){ return S.owned.desk ? 8 : 4; }, get y(){ return S.owned.desk ? 3 : 2; }, get z(){ return 8; }, m:()=>'letter', show:()=> !!S.pendingNote || (S.helpNote && !S.helpRead), click:()=>readNote(), glow:()=>true },
   { id:'chair', x:27, get y(){ return S.rArrived ? sjState().chair : CHAIR_IN; }, rot:0, show:()=>S.chair },
 ];
 let W=0, H=0, DPR=1, SC=4, ang=-0.35, drag=0, t0=performance.now(), steamUntil=0, glitchUntil=0;
@@ -939,8 +939,8 @@ function frame(now){
     }
     if (SJ.show()){ const st = sjState(), rx = st.x*c - st.y*s, ry = st.x*s + st.y*c; list.push({ o:SJ, ghost:false, sx: ox + rx*SC, sy: oy + ry*SC*0.6, ry }); } else SJ.hit = null;
     const deskIt = list.find(it => it.o.id === 'desk' && !it.ghost);
-    if (deskIt) for (const it of list) if ((it.o.id === 'glass' || it.o.id === 'ditem') && !it.ghost && S.owned.desk) it.ry = deskIt.ry + 0.01;   // 서안 위 물건
-    const rdIt = list.find(it => it.o.id === 'rdesk'); if (rdIt) for (const it of list) if (it.o.id === 'note' || it.o.id === 'ritem') it.ry = rdIt.ry + 0.01;
+    if (deskIt) for (const it of list) if ((it.o.id === 'glass' || it.o.id === 'ditem' || it.o.id === 'note') && !it.ghost && S.owned.desk) it.ry = deskIt.ry + 0.01;   // 서안 위 물건
+    const rdIt = list.find(it => it.o.id === 'rdesk'); if (rdIt) for (const it of list) if (it.o.id === 'ritem') it.ry = rdIt.ry + 0.01;
     const shIt = list.find(it => it.o.id === 'shelf'); if (shIt) for (const it of list) if (it.o.id === 'shelfMap') it.ry = shIt.ry + 0.01;
     list.sort((p,q)=>p.ry-q.ry);
     for (const it of list){
@@ -1001,6 +1001,10 @@ function diaryList(){
   return L;
 }
 const diaryCount = () => diaryList().length;
+function readNote(){                                    // 서안 위 쪽지: 자리 비운 동안의 쪽지 먼저, 그다음 부탁 쪽지
+  if (S.pendingNote){ const h = S.pendingNote; S.pendingNote = null; save(); openOv(h); return; }
+  readHelp();
+}
 function readHelp(){
   S.helpRead = true; save();
   openOv('<h3>쪽지</h3><div class="vletter rec" style="height:min(50vh,360px)">가주께.<br>지도의 그 굴에 가 봐야겠습니다.<br>다만 혼자서는 바닷가에 못 가겠습니다.<br>바람 소리만 들어도 발이 떨어지지 않습니다.<br>사람을 더 구해 주실 수 없겠습니까.<div class="sign">한서진 올림.</div></div>', () => { setTimeout(() => document.getElementById('endnote').style.opacity = 1, 1500); });
@@ -1195,6 +1199,7 @@ function roomNews(){
   if (S.D >= T.letter && !S.letterRead) n.push('letter');
   if (S.rArrived) n.push('researcher', 'diary:' + diaryCount());
   if (S.helpNote) n.push('help');
+  if (S.pendingNote) n.push('note:' + S.pendingNote.length);
   if ((S.rFear||0) > 0.6) n.push('rfear');
   if (S.jokboDone && !S.mapFound) n.push('chest');
   return n;
@@ -1465,7 +1470,7 @@ resize();
 ensureLoc();
 const away = S.stage === 'room' ? offlineWork() : { r:0, night:0 };
 if (away.r || away.night) setTimeout(() => {
-  if (S.rArrived) openOv(`<h3>쪽지</h3><div class="vletter rec" style="height:min(50vh,360px)">가주께.<br>${away.r ? `안 계신 동안 ${fmtP(away.r)}을 넘겼습니다.<br>` : ''}밤에는 일하지 않았습니다.${away.night ? `<br><br>아침에 와 보니 서안의 책이<br>${fmtP(away.night)} 넘어가 있었습니다.<br>저는 밤에 오지 않았습니다.` : ''}<div class="sign">한서진 올림.</div></div>`);
+  if (S.rArrived) { S.pendingNote = `<h3>쪽지</h3><div class="vletter rec" style="height:min(50vh,360px)">가주께.<br>${away.r ? `안 계신 동안 ${fmtP(away.r)}을 넘겼습니다.<br>` : ''}밤에는 일하지 않았습니다.${away.night ? `<br><br>아침에 와 보니 서안의 책이<br>${fmtP(away.night)} 넘어가 있었습니다.<br>저는 밤에 오지 않았습니다.` : ''}<div class="sign">한서진 올림.</div></div>`; save(); }
   else openOv(`<h3>서안</h3>자리를 비운 사이, 서안에 펼쳐 둔 책이 ${fmtP(away.night)} 넘어가 있다.<br>아무도 손대지 않았다.<br><br>창은 닫혀 있었다.`);
 }, 900);
 S.lastSeen = Date.now();
