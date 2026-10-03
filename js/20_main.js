@@ -72,6 +72,24 @@ function showSettings(){
   });
 }
 document.getElementById('setBtn').addEventListener('click', showSettings);
+// 컴퓨터: Esc로 창 닫기 → 지도 접기 → 책 덮기
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  if (!ov.classList.contains('hidden')) { ov.dispatchEvent(new MouseEvent('click', { bubbles:true })); return; }
+  if (!mapView.classList.contains('hidden')) { closeMap(); return; }
+  if (bookOpen) closeBook();
+});
+// 쪽·장·권 숫자를 누르면 셈 풀이
+document.getElementById('counter').addEventListener('click', () => {
+  if (S.stage !== 'room') return;
+  openOv(`<h3>장부의 셈</h3>책장 두 쪽이 한 장, 쉰 장이 한 권이다.<br>지금 쓸 수 있는 것: ${fmtP(S.pages)}<br>지금까지 넘긴 것: ${fmtP(S.earned)}<br><br>서고에 물건을 들일 때 이 셈으로 값을 친다.`);
+});
+// 가훈: 족자 사이 빈틈을 눌러도 가까운 족자를 고름
+document.getElementById('sGahun').addEventListener('click', e => {
+  if (e.target.closest('.scroll')) return;
+  const sc = [...document.querySelectorAll('.scroll')], cxp = el => { const r = el.getBoundingClientRect(); return r.left + r.width/2; };
+  sc.reduce((a, b) => Math.abs(cxp(b) - e.clientX) < Math.abs(cxp(a) - e.clientX) ? b : a).click();
+});
 
 // ───────── 서고 입력 ─────────
 let down = null;
@@ -84,7 +102,7 @@ cv.addEventListener('pointerup', e => {
   let best = null, bd = 1e9;
   for (const o of [...curObjs(), ...curDolls()]){ if (!o.hit) continue; const h = o.hit, cy = Math.max(h.y1, Math.min(h.y0, py)), dd = Math.hypot(px-h.x, py-cy); if (dd < h.r && dd < bd){ bd = dd; best = o; } }
   if (!best) return;
-  if (best.hit.ghost) buy(best); else if (best.click) best.click(); else if (ITEM[best.id]) showItem(best.id);
+  if (best.hit.ghost) askBuy(best); else if (best.click) best.click(); else if (ITEM[best.id]) showItem(best.id);
 });
 
 // ───────── 화면 전환 ─────────

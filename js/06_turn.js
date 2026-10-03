@@ -39,6 +39,14 @@ function closeBook(){
 }
 document.getElementById('bClose').addEventListener('click', e => { e.stopPropagation(); closeBook(); });
 document.querySelector('#thread .hit').addEventListener('click', e => { e.stopPropagation(); if (bookOpen) closeBook(); });
+// 책 바깥(책상)을 눌러도 책을 덮고 서고로(시험 플레이에서 실을 못 찾아 갇힌 일이 있어서)
+bookView.addEventListener('click', e => {
+  if (!bookOpen || coverBusy || loupeOn) return;
+  if (e.target.closest('#book, #thread, #deskGlass, #bookBar, #loupe, button')) return;
+  const r = book.getBoundingClientRect();
+  if (e.clientX > r.left - 24 && e.clientX < r.right + 24 && e.clientY > r.top - 24 && e.clientY < r.bottom + 24) return;
+  closeBook();
+});
 window.addEventListener('resize', () => { if (!bookView.classList.contains('hidden')) layoutBook(); });
 
 // ───────── 돋보기 ─────────

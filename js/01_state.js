@@ -10,6 +10,7 @@ const S = Object.assign({
 S.opt = Object.assign({ horiz:false, mute:false, fast:false, gameTime:false }, S.opt); S.sideRead = S.sideRead || {}; S.owned = S.owned || {};
 let resetting = false;
 const save = () => { if (!resetting) localStorage.setItem(SAVE, JSON.stringify(S)); };
+const josa = (w, a, b) => { const c = w.charCodeAt(w.length - 1) - 0xAC00; return w + (c >= 0 && c < 11172 && c % 28 ? a : b); };   // 받침에 따라 은/는·이/가
 const esc = s => String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 
 // ───────── 성씨 한자 ─────────

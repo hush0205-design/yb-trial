@@ -271,7 +271,7 @@ function showStaff(k){
   if (!k) return;
   const P = DEF(k), s = stOf(k);
   if (!arrived(k)){ openOv(`<h3>별채 책상</h3>${P.name}의 자리를 마련해 두었다. 아직 오지 않았다.`); return; }
-  if (!present(k)){ openOv(`<h3>${P.name}의 자리</h3>밤이다. ${P.name}은 집에 갔다.<br>해가 뜨면 온다.`); return; }
+  if (!present(k)){ openOv(`<h3>${P.name}의 자리</h3>밤이다. ${josa(P.name, '은', '는')} 집에 갔다.<br>해가 뜨면 온다.`); return; }
   const rf = s.fear || 0, fac = rf > 0.7 ? 0.25 : rf > 0.35 ? 0.5 : 1, perMin = 60 / P.sec * fac;
   const speed = !working(k) ? (k === 'smw' ? '눈을 감고 쉬고 있다 — 해가 높다' : '쉬고 있다') : S.owned.sundial
     ? `1분에 ${fmtP(Math.round(perMin))} — ${fac === 1 ? '평소대로' : fac === 0.5 ? '평소의 절반' : '평소의 4분의 1'}`
@@ -293,7 +293,7 @@ function showStaff(k){
 function readGo(){
   S.goRead = true; save();
   openOv('<h3>쪽지</h3>' + vlet(['가주께.', '사람이 늘었습니다.', '새로 온 이들도 손이 제법입니다.', '정림 씨가 차를 맡아 주니', '이제 바닷가에 가 볼 수 있겠습니다.', '날을 잡아 주십시오.'], '한서진 올림.'),
-    () => { setTimeout(() => document.getElementById('endnote').style.opacity = 1, 1500); });
+    () => { setTimeout(() => { const en = document.getElementById('endnote'); en.innerHTML = '— 체험판은 여기까지입니다 —<br><span style="font-size:12px">해 보신 분은 설정 → 시험 기록 → 복사해서 보내 주시면 큰 도움이 됩니다.</span>'; en.style.opacity = 1; }, 1500); });
   if (typeof tlog === 'function') tlog('체험판 끝 쪽지');
 }
 function labRecs(recs){

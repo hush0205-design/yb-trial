@@ -251,6 +251,7 @@ function frame(now){
     const shIt = list.find(it => it.o.id === 'shelf'); if (shIt) for (const it of list) if (it.o.id === 'shelfMap') it.ry = shIt.ry + 0.01;
     for (const it of list) if (it.o.on){ const base = list.find(b => b.o.id === it.o.on()); if (base) it.ry = base.ry + (it.o.onOrder || 0.01); }   // 책상 위 물건은 그 책상 바로 다음에(돌려도 사람 위로 뜨지 않게)
     list.sort((p,q)=>p.ry-q.ry);
+    const labels = [];
     for (const it of list){
       if (it.o.doll){
         const D = it.o, st = D.st(), walking = st.pose === 'walk', e = Date.now() - D.arrT(), fr0 = D.fear(), I = (D.imgL && D.imgL[fr0 > 0.7 ? 2 : fr0 > 0.35 ? 1 : 0]) || D.img;   // 겁먹으면 표정이 바뀌고 땀
@@ -273,7 +274,7 @@ function frame(now){
       if (it.o.alpha) alpha = it.o.alpha();
       drawModel(m, it.sx, it.sy, a + (it.o.rot||0), alpha, it.o.z||0);
       it.o.hit = { x: it.sx, y0: it.sy - (it.o.z||0)*SC*0.85, y1: it.sy - (m.h + (it.o.z||0) + (it.ghost ? 8 : 0))*SC*0.85, r: Math.max(Math.max(m.w, m.d)*SC*0.5, 28*DPR), ghost: it.ghost };
-      if (it.ghost){ cx.font = `${12*DPR}px serif`; cx.fillStyle = S.pages >= it.o.buy.cost ? '#cfc3a8' : '#6d6350'; cx.textAlign='center'; cx.fillText(`${it.o.buy.name} ${fmtP(it.o.buy.cost)}`, it.sx, it.sy - (m.h+4)*SC*0.85); }
+      if (it.ghost) labels.push({ t:`${it.o.buy.name} ${fmtP(it.o.buy.cost)}`, x: it.sx, y: it.sy - (m.h+4)*SC*0.85, c: S.pages >= it.o.buy.cost ? '#cfc3a8' : '#6d6350' });
       if (it.o.id==='lamp' && !it.ghost && S.lampOut){ cx.fillStyle = 'rgba(120,110,100,.35)'; for (let k=0;k<3;k++){ const ph=(t*0.6+k/3)%1; cx.fillRect(it.sx + Math.sin(t*2+k)*3*DPR, it.sy - 24*SC*0.85 - ph*30*DPR, SC*0.6, SC*0.6); } }   // 꺼진 심지의 연기
       if (it.o.id==='lamp' && !it.ghost && !S.lampOut){ const fy = it.sy - 24*SC*0.85, fl = 0.6+0.4*Math.sin(t*11)*Math.sin(t*7.3);
         cx.fillStyle = '#ffd27a'; cx.fillRect(it.sx - SC*0.5, fy - SC*1.6, SC, SC*1.6); cx.fillStyle = '#e8a040'; cx.fillRect(it.sx - SC*0.5, fy - SC*0.6, SC, SC*0.6);
@@ -281,6 +282,17 @@ function frame(now){
         cx.fillStyle=g; cx.fillRect(it.sx-30*DPR, fy-30*DPR, 60*DPR, 60*DPR); }
       if (it.o.id==='teapot' && now < steamUntil){ cx.fillStyle='rgba(220,215,200,0.5)';
         for (let k=0;k<6;k++){ const ph=(t*1.5+k/6)%1; cx.fillRect(it.sx + Math.sin(t*3+k)*4*DPR, it.sy - 6*SC*0.85 - ph*40*DPR, SC*0.8, SC*0.8); } }
+    }
+    // 흐린 물건 이름표: 서로 겹치면 위로 비켜 쓰고, 화면 밖으로 나가지 않게
+    cx.font = `${12*DPR}px serif`; cx.textAlign = 'center';
+    const placed = [];
+    for (const L of labels.sort((a, b) => b.y - a.y)){
+      const w = cx.measureText(L.t).width + 8*DPR, h = 15*DPR;
+      L.x = Math.max(w/2 + 4, Math.min(W - w/2 - 4, L.x));
+      for (let k = 0; k < 8 && placed.some(q => Math.abs(q.x - L.x) < (q.w + w)/2 && Math.abs(q.y - L.y) < h); k++) L.y -= h;
+      placed.push({ x:L.x, y:L.y, w });
+      cx.fillStyle = 'rgba(11,9,7,.55)'; cx.fillRect(L.x - w/2, L.y - h + 3*DPR, w, h);
+      cx.fillStyle = L.c; cx.fillText(L.t, L.x, L.y);
     }
     const dl = daylight();
     if (dl > 0){ const WX = lab ? 15 : 7, wx = WX*c - (-26)*s, wy = WX*s + (-26)*c, gx = ox + wx*SC, gy = oy + wy*SC*0.6 + 30*DPR;

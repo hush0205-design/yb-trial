@@ -294,7 +294,7 @@ function roomNews(){
   n.push(...labNews());
   return n;
 }
-let lastNewsCheck = 0, threadStir = false, threadPh = 0;
+let lastNewsCheck = 0, threadStir = false, threadPh = 0, bookOpenedAt = 0, lastTwitch = -1e9, twitchUntil = 0;
 function drawThread(amp){
   const th = document.getElementById('thread'); if (!th) return;
   const w = Math.sin(threadPh), w2 = Math.sin(threadPh*1.7 + 1);
@@ -309,7 +309,10 @@ function updateThread(now){
   const ack = S.ack || [];
   const fresh = roomNews().filter(k => !ack.includes(k));
   const urgent = S.teaArrived && S.fear > 0.4;            // 손이 떨릴 만큼 무서우면 실도 떨림
-  threadStir = bookOpen && (fresh.length > 0 || urgent);
+  if (!bookOpen) bookOpenedAt = now;
+  if (bookOpen && now - bookOpenedAt > 90000 && now - lastTwitch > 25000){ lastTwitch = now; twitchUntil = now + 1400; }   // 오래 읽고 있으면 실이 가끔 살짝 움직임
+  threadStir = bookOpen && (fresh.length > 0 || urgent || now < twitchUntil);
+  const thEl = document.getElementById('thread'); if (thEl) thEl.classList.toggle('stir', threadStir);
   const blown = S.blown || [];
   const newly = fresh.filter(k => !blown.includes(k));
   if (bookOpen && S.owned.lamp && !S.lampOut && newly.length){   // 책을 읽는 동안 생긴 일에만
@@ -368,6 +371,13 @@ const ITEM = {
   glass: ['수정 문진(水晶文鎭)', '종이를 눌러 두는 문진. 가운데 박힌 수정으로 글자를 크게 볼 수 있다. 해독이 훨씬 빨라진다.<br>책을 펼치면 책 곁에 놓여 있다. 집어 들어 대면 글자가 크게 보인다.<br>크게 보면 아직 풀리지 않은 글자도 조금 읽힌다.<br>내려놓으려면 놓였던 자리를 누른다.<br><br>여백에 다른 손으로 쓴 글씨가 있다. 아주 작다.'],
 };
 function showItem(id){ const body = ITEM[id][1].replace('{LAMP}', S.owned.lamp ? '등잔대는 서안 곁으로 옮겼다. ' : ''); openOv(`<h3>${ITEM[id][0]}</h3>${body}`); }
+function askBuy(o){                                     // 사기 전 한 번 확인(시험 플레이: 설명 보려다 13권이 빠짐)
+  const c = o.buy.cost, have = S.pages, ok = have >= c;
+  openOv(`<h3>${o.buy.name}</h3>값: ${fmtP(c)}<br>가진 것: ${fmtP(have)}`
+    + (ok ? '<div style="text-align:center;margin-top:14px"><button class="btn rec" id="bBuy" style="color:var(--ink);border-color:#00000066">들인다</button></div>'
+          : `<div style="margin-top:10px;opacity:.75">${fmtP(c - have)} 모자란다. 더 읽어야 한다.</div>`));
+  const b = document.getElementById('bBuy'); if (b) b.addEventListener('click', ev => { ev.stopPropagation(); ov.classList.add('hidden'); buy(o); });
+}
 function buy(o){ if (S.pages < o.buy.cost) return; S.pages -= o.buy.cost; S.owned[o.id] = true; tlog('들임: ' + o.buy.name);
   if (o.id === 'desk'){ ensureLoc(); ITEMS.forEach(k => { if (S.loc[k] === 'desk') S.loc[k] = 'shelf'; }); }
   sPlace(); save(); showItem(o.id); }

@@ -33,7 +33,7 @@ function showShelf(){
     ['농가집성 二', 0], ['동의보감 三', 1], [alienHtml(glyphs('모를책', 53)), 0], ['시조 묶음', 0], [alienHtml(glyphs('이름모를책', 54)), 0], [alienHtml(glyphs('모를', 55)), 0],
   ];
   ensureLoc();
-  const W = { shelf:'책장', desk: S.owned.desk ? '서안 위' : '궤짝 위', rdesk:'연구원 책상 위' };
+  const W = { shelf:'꽂혀 있음', desk: S.owned.desk ? '서안 위' : '궤짝 위', rdesk:'연구원 책상 위' };
   if (S.owned.desk || S.loc.first !== 'desk') books.unshift(['제목 없는 책', 'first']);
   if (S.mapFound) books.unshift(['지도', 'map']);
   books.forEach(b => { if (b[1] === 1) b[1] = 'dongui'; });
