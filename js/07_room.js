@@ -190,7 +190,7 @@ const OBJ = [
   { id:'brush', x:9, y:-20, buy:{ cost:50, name:'붓걸이' } },
   { id:'desk', get x(){ return S.owned.desk ? 0 : 0; }, get y(){ return S.owned.desk ? 3 : 15; }, m:()=> 'seoan', buy:{ cost:120, name:'서안' }, click:()=>deskClick() },
   { id:'glass', get x(){ return S.owned.glass && S.owned.desk ? -10 : 8; }, get y(){ return S.owned.glass && S.owned.desk ? 3 : 22; }, get z(){ return S.owned.glass && S.owned.desk ? 8 : 0; }, buy:{ cost:260, name:'수정 문진' } },
-  { id:'sundial', x:4, y:-15, buy:{ cost:300, name:'앙부일구' }, show:()=>!!S.rArrived },
+  { id:'sundial', x:4, y:-15, buy:{ cost:300, name:'앙부일구' }, show:()=>!!S.obsOpen || !!S.owned.sundial },   // 관측소가 열리면 생김(관측소는 아직 없음 — 기획서 14-1). 이미 들인 사람은 그대로
   { id:'teapot', x:-31, y:-5, show:()=>reveal('teapot', S.teaArrived), click:()=>showTea() },
   { id:'door', x:27, y:-25.5, show:()=>reveal('door', S.D>=T.door), click:()=>showLibrary() },
   { id:'letter', x:24, y:-11, show:()=>reveal('letter', S.D>=T.letter && !S.replied), click:()=>readLetter(), glow:()=>!S.letterRead },
