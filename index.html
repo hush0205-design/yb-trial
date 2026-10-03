@@ -191,7 +191,7 @@ const S = Object.assign({
   pages:0, earned:0, D:0, owned:{}, fear:0, opened:false,
   letterRead:false, chair:false, glitchDone:false, sideRead:{}, opt:{ horiz:false, mute:false }
 }, JSON.parse(localStorage.getItem(SAVE) || '{}'));
-S.opt = Object.assign({ horiz:false, mute:false }, S.opt); S.sideRead = S.sideRead || {}; S.owned = S.owned || {};
+S.opt = Object.assign({ horiz:false, mute:false, fast:false }, S.opt); S.sideRead = S.sideRead || {}; S.owned = S.owned || {};
 let resetting = false;
 const save = () => { if (!resetting) localStorage.setItem(SAVE, JSON.stringify(S)); };
 const esc = s => String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
@@ -372,7 +372,7 @@ function finishTurn(){
   if (pending) { pending.el.innerHTML = pending.html; pending.el.style.backgroundImage = pending.bg; pending = null; }
   if (loupeOn) buildLoupe();
 }
-function turnPage(slow){
+function turnPage(slow, fast){
   finishTurn();
   if (!bookOpen) { renderFaces(); return; }
   const n = S.earned*2, f = turnFace(), earWasReady = performance.now() - lastFlip >= CD;
@@ -387,7 +387,7 @@ function turnPage(slow){
   f.innerHTML = fresh[0] + EAR; f.style.backgroundImage = stain(n);
   document.getElementById('ear').classList.toggle('ready', earWasReady);
   snapshot();
-  animateLeaf(slow ? 2000 : 950, finishTurn);
+  animateLeaf(slow ? 2000 : fast ? 230 : 950, finishTurn);
 }
 
 // ───────── 책 열고 덮기 ─────────
@@ -454,14 +454,22 @@ const CD = 1200;     // 손으로 넘기는 간격(읽는 시간)
 let lastFlip = -1e9;
 function perClick(){ return 1 + (S.owned.lamp?1:0) + (S.owned.desk?1:0); }
 function mult(){ return (1 + (S.owned.brush?0.5:0) + (S.owned.glass?1:0)) * (S.fear > 0.45 ? 0.6 : 1); }
-function flip(auto){
+function flip(auto, fast){
   const now = performance.now();
-  if (!auto){ if (now - lastFlip < CD) return; lastFlip = now; setTimeout(() => { const e = document.getElementById('ear'); if (e) e.classList.add('ready'); }, CD); }
+  if (!auto && !fast){ if (now - lastFlip < CD) return; lastFlip = now; setTimeout(() => { const e = document.getElementById('ear'); if (e) e.classList.add('ready'); }, CD); }
   const p = auto ? 1 : perClick(); S.pages += p; S.earned += p; S.D += p*mult();
   if (bookOpen) { if (auto) noise(0.5, 900, 0.035, 'lowpass'); else sFlip(); }
-  turnPage(!!auto);
+  turnPage(!!auto, !!fast);
 }
-book.addEventListener('click', () => { if (bookOpen && !loupeOn && !coverBusy) flip(false); });
+book.addEventListener('click', () => { if (bookOpen && !loupeOn && !coverBusy && !heldFlipped) flip(false); heldFlipped = false; });
+let holdTimer = null, holdStart = null, heldFlipped = false;
+book.addEventListener('pointerdown', () => {
+  if (!S.opt.fast || !bookOpen || loupeOn || coverBusy) return;
+  clearTimeout(holdStart); clearInterval(holdTimer); heldFlipped = false;
+  holdStart = setTimeout(() => { holdTimer = setInterval(() => { heldFlipped = true; flip(false, true); }, 140); }, 250);
+});
+const stopHold = () => { clearTimeout(holdStart); clearInterval(holdTimer); holdTimer = null; };
+['pointerup', 'pointercancel', 'pointerleave'].forEach(ev => book.addEventListener(ev, stopHold));
 
 // ───────── 서고(스프라이트 스태킹) ─────────
 const cv = document.getElementById('cv'), cx = cv.getContext('2d');
@@ -714,6 +722,7 @@ function showSettings(){
   openOv(`<h3>설정</h3>
     <div class="opt rec"><span>글 방향</span><span class="ch"><span data-k="horiz" data-v="0" class="${!o.horiz?'on':''}">세로</span><span data-k="horiz" data-v="1" class="${o.horiz?'on':''}">가로</span></span></div>
     <div class="opt rec"><span>소리</span><span class="ch"><span data-k="mute" data-v="0" class="${!o.mute?'on':''}">켬</span><span data-k="mute" data-v="1" class="${o.mute?'on':''}">끔</span></span></div>
+    <div class="opt rec"><span>시험용: 누르고 있으면 빨리 넘기기</span><span class="ch"><span data-k="fast" data-v="0" class="${!o.fast?'on':''}">끔</span><span data-k="fast" data-v="1" class="${o.fast?'on':''}">켬</span></span></div>
     <div class="opt rec"><span>처음부터</span><span class="ch"><span id="bReset">기록을 지운다</span></span></div>`);
   ovBody.querySelectorAll('.ch span[data-k]').forEach(el => el.addEventListener('click', ev => {
     ev.stopPropagation(); S.opt[el.dataset.k] = el.dataset.v === '1'; save();
