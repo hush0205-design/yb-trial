@@ -96,10 +96,10 @@
 
   /* 돋보기 */
   #loupe { position:absolute; width:150px; height:150px; border-radius:50%; overflow:hidden; display:none; z-index:6; pointer-events:none;
-    background:var(--paper); border:4px solid #8a7a4a; box-shadow:0 0 0 2px #0009, 0 10px 24px #000a, inset 0 0 18px #0004; }
+    background:var(--paper); border:5px solid #a8873e; outline:1px solid #6a5224; box-shadow:0 0 0 2px #0009, 0 10px 24px #000a, inset 0 0 18px #0004; }
   #lz { position:absolute; left:0; top:0; transform-origin:0 0; display:flex; }
   #book.loupe { cursor:none; touch-action:none; }
-  #deskGlass { position:absolute; z-index:1; width:120px; height:64px; cursor:pointer; }
+  #deskGlass { position:absolute; z-index:1; width:170px; height:60px; cursor:pointer; }
   #deskGlass .spot { opacity:0; transition:opacity .3s; }
   #deskGlass.held .obj { opacity:0; }
   #deskGlass.held .spot { opacity:.5; }
@@ -153,20 +153,23 @@
       <div id="passShadow"></div>
     </div>
     <div id="cover" class="coverFace"><div class="slip">□□</div><div class="bind"></div></div>
-    <svg id="deskGlass" class="hidden" viewBox="0 0 120 64">
-      <defs><filter id="gblur" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="1.6"/></filter>
-        <radialGradient id="lens" cx="40%" cy="35%" r="70%"><stop offset="0" stop-color="#e8f0f2" stop-opacity=".55"/><stop offset=".6" stop-color="#9fb4b8" stop-opacity=".28"/><stop offset="1" stop-color="#3a4a4c" stop-opacity=".45"/></radialGradient></defs>
-      <g class="obj">
-        <ellipse cx="36" cy="36" rx="27" ry="25" fill="#000" opacity=".45" filter="url(#gblur)" transform="translate(2,4)"/>
-        <rect x="58" y="29" width="50" height="9" rx="4" fill="#000" opacity=".4" filter="url(#gblur)" transform="translate(2,5) rotate(12 58 33)"/>
-        <rect x="58" y="28" width="50" height="9" rx="4" fill="#5a3a20" transform="rotate(12 58 33)"/>
-        <rect x="58" y="29" width="50" height="2" rx="1" fill="#7a5530" transform="rotate(12 58 33)"/>
-        <circle cx="34" cy="32" r="25" fill="url(#lens)" stroke="#a8873e" stroke-width="5"/>
-        <circle cx="34" cy="32" r="25" fill="none" stroke="#6a5224" stroke-width="1"/>
-        <path d="M20 22 Q26 14 36 13" stroke="#ffffff" stroke-opacity=".5" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <svg id="deskGlass" class="hidden" viewBox="0 0 170 60">
+      <defs><filter id="gblur" x="-30%" y="-60%" width="160%" height="220%"><feGaussianBlur stdDeviation="1.6"/></filter>
+        <radialGradient id="lens" cx="38%" cy="32%" r="75%"><stop offset="0" stop-color="#f4f8f8" stop-opacity=".75"/><stop offset=".45" stop-color="#c9d6d6" stop-opacity=".35"/><stop offset="1" stop-color="#5a6a6a" stop-opacity=".55"/></radialGradient>
+        <linearGradient id="bar" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4a2e1c"/><stop offset=".5" stop-color="#2e1b10"/><stop offset="1" stop-color="#1e110a"/></linearGradient></defs>
+      <g class="obj" transform="rotate(-6 85 30)">
+        <rect x="8" y="24" width="154" height="18" rx="3" fill="#000" opacity=".5" filter="url(#gblur)" transform="translate(2,5)"/>
+        <rect x="8" y="22" width="154" height="16" rx="3" fill="url(#bar)"/>
+        <path d="M20 27 H70 M100 31 H150 M30 34 H62 M108 26 H140" stroke="#5a3a24" stroke-width=".7" opacity=".7"/>
+        <rect x="8" y="22" width="12" height="16" rx="3" fill="#a8873e"/><rect x="150" y="22" width="12" height="16" rx="3" fill="#a8873e"/>
+        <rect x="19" y="22" width="2" height="16" fill="#6a5224"/><rect x="149" y="22" width="2" height="16" fill="#6a5224"/>
+        <ellipse cx="85" cy="32" rx="22" ry="7" fill="#000" opacity=".35" filter="url(#gblur)"/>
+        <circle cx="85" cy="27" r="20" fill="#a8873e"/>
+        <circle cx="85" cy="27" r="17" fill="url(#lens)"/>
+        <path d="M74 19 Q79 13 88 12" stroke="#ffffff" stroke-opacity=".7" stroke-width="2" fill="none" stroke-linecap="round"/>
       </g>
-      <g class="spot"><circle cx="34" cy="32" r="25" fill="none" stroke="#c8b98e" stroke-width="1.2" stroke-dasharray="3 4"/></g>
-      <rect class="hitg" x="0" y="0" width="120" height="64" fill="transparent"/>
+      <g class="spot" transform="rotate(-6 85 30)"><rect x="8" y="22" width="154" height="16" rx="3" fill="none" stroke="#c8b98e" stroke-width="1.2" stroke-dasharray="3 4"/><circle cx="85" cy="27" r="20" fill="none" stroke="#c8b98e" stroke-width="1.2" stroke-dasharray="3 4"/></g>
+      <rect class="hitg" x="0" y="0" width="170" height="60" fill="transparent"/>
     </svg>
     <svg id="thread" width="150" height="70" viewBox="0 0 150 70">
       <defs><filter id="tblur" x="-20%" y="-50%" width="140%" height="200%"><feGaussianBlur stdDeviation="0.9"/></filter></defs>
@@ -311,7 +314,7 @@ function layoutBook(){
   book.style.setProperty('--fs', fs + 'px'); book.style.setProperty('--lh', Math.round(fs*1.8) + 'px'); book.style.setProperty('--pt', Math.round(FH*0.15) + 'px');
   cover.style.width = FW + 'px'; cover.style.height = FH + 'px'; cover.style.left = '0px'; cover.style.top = '0px';
   const th = document.getElementById('thread'); const dg = document.getElementById('deskGlass');
-  if (single){ dg.style.left = '4px'; dg.style.top = (FH + 18) + 'px'; } else { dg.style.left = '-132px'; dg.style.top = Math.round(FH*0.58) + 'px'; }
+  if (single){ dg.style.left = '0px'; dg.style.top = (FH + 22) + 'px'; } else { dg.style.left = '-182px'; dg.style.top = Math.round(FH*0.6) + 'px'; }
   const spineX = FW - Math.round(FW*0.035);   // 한 면이면 묶은 쪽이 화면 오른쪽 끝이라 실이 왼쪽으로 눕고, 두 면이면 오른쪽으로 누움
   th.style.left = (single ? spineX - 130 : spineX - 20) + 'px'; th.style.top = (FH - 6) + 'px'; th.style.transform = single ? 'scaleX(-1)' : ''; drawThread(0);   // 실은 묶은 선(한 면이면 오른쪽 끝, 두 면이면 가운데)에서 늘어짐
   facesEl.innerHTML = ''; faces = [];
@@ -595,7 +598,7 @@ const M = {
     if (z===6) return (x>=3 && x<=12 && y>=2 && y<=5) ? (x===7||x===8 ? '#8a7d62' : (y===2||y===5 ? '#bfb393' : PAPER)) : null;   // 서안 위에 펼친 책
     if (z===5) return '#4e3220'; if ((x<2||x>13)&&(y<2||y>5)) return DARK; if (z===4 && (x<2||x>13)) return DARK; return null; }),
   desk: model(16,8,6,(x,y,z)=>{ if (z===5) return '#4e3220'; if ((x<2||x>13)&&(y<2||y>5)) return DARK; if (z===4 && (x<2||x>13)) return DARK; return null; }),
-  glass: model(5,5,3,(x,y,z)=>{ const r=Math.hypot(x-2,y-2); if (z===0) return r<=2.2&&r>1.3 ? '#9a8a5a' : null; if (z===1) return r<=1.3 ? '#8fa9b0' : null; return null; }),
+  glass: model(12,3,3,(x,y,z)=>{ const c = Math.hypot(x-5.5, y-1); if (z===0) return x===0||x===11 ? '#a8873e' : '#2e1b10'; if (z===1) return c<=1.6 ? '#a8873e' : (x===0||x===11 ? '#a8873e' : (y===1 ? '#3a2416' : null)); if (z===2) return c<=1.2 ? '#bcd0d2' : null; return null; }),
   teapot: model(7,6,6,(x,y,z)=>{ const r=Math.hypot(x-3,y-2.5); if (z<4) return r<=2.6 ? '#2f3a34' : (x===6&&y===2&&z===2 ? '#2f3a34':null); if (z===4) return r<=1.6 ? '#3c4a42' : null; if (z===5) return r<0.7 ? '#3c4a42':null; return null; }),
   door: model(12,2,24,(x,y,z)=>{ if (x<2||x>9||z>21) return WOOD; return y===0 ? '#050403' : null; }),
   scroll: model(9,1,17,(x,y,z)=>{ if (z===0||z===16) return DARK; if (x===0||x===8) return null; if (z>2&&z<14&&(x===3||x===5)&&(z%3!==0)) return '#2a2118'; return PAPER; }),
@@ -609,7 +612,7 @@ const OBJ = [
   { id:'lamp', get x(){ return S.owned.lamp && S.owned.desk ? 11 : 11; }, get y(){ return S.owned.lamp && S.owned.desk ? 0 : -1; }, get z(){ return S.owned.lamp && S.owned.desk ? 8 : 0; }, buy:{ cost:15, name:'등잔' } },
   { id:'brush', x:9, y:-20, buy:{ cost:50, name:'붓걸이' } },
   { id:'desk', get x(){ return S.owned.desk ? 0 : 20; }, get y(){ return S.owned.desk ? 3 : 16; }, m:()=> S.owned.desk ? 'seoanBook' : 'seoan', buy:{ cost:120, name:'서안' }, click:()=>openBook() },
-  { id:'glass', get x(){ return S.owned.glass && S.owned.desk ? -9 : -27; }, get y(){ return S.owned.glass && S.owned.desk ? 5 : 3; }, get z(){ return S.owned.glass && S.owned.desk ? 8 : 0; }, buy:{ cost:260, name:'돋보기' } },
+  { id:'glass', get x(){ return S.owned.glass && S.owned.desk ? -9 : -27; }, get y(){ return S.owned.glass && S.owned.desk ? 5 : 3; }, get z(){ return S.owned.glass && S.owned.desk ? 8 : 0; }, buy:{ cost:260, name:'수정 문진' } },
   { id:'teapot', x:-9, y:-11, show:()=>S.D>=T.tea, click:()=>brew() },
   { id:'door', x:27, y:-20, show:()=>S.D>=T.door, click:()=>showLibrary() },
   { id:'letter', x:24, y:-11, show:()=>S.D>=T.letter && !S.letterRead, click:()=>readLetter(), glow:()=>true },
@@ -713,7 +716,7 @@ const ITEM = {
   lamp:  ['등잔', '불을 켜면 글자가 보인다.<br>한 번에 두 장씩 넘길 수 있다.<br><br>기름은 줄지 않는다.'],
   brush: ['붓걸이', '푼 글자를 받아 적는다. 해독이 빨라진다.<br>받아 적은 것은 도서관에 남는다.<br><br>붓이 넷. 하나는 쓴 적이 없는데 먹이 묻어 있다.'],
   desk:  ['서안', '궤짝에서 책을 꺼내 서안에 올렸다. 궤짝은 구석으로 치웠다.<br>등잔도 서안 위로 올렸다. 서안을 누르면 책을 펼친다.<br><br>책을 펼쳐 두면 손대지 않아도 넘어간다.<br>책을 덮어 두어도 넘어간다.<br>한 번에 넘기는 장수도 늘어난다.<br><br>창은 닫혀 있다.'],
-  glass: ['돋보기', '해독이 훨씬 빨라진다.<br>책을 펼치면 책 곁에 놓여 있다. 집어 들어 대면 글자가 크게 보인다.<br>크게 보면 아직 풀리지 않은 글자도 조금 읽힌다.<br>내려놓으려면 놓였던 자리를 누른다.<br><br>여백에 다른 손으로 쓴 글씨가 있다. 아주 작다.'],
+  glass: ['수정 문진(水晶文鎭)', '종이를 눌러 두는 문진. 가운데 박힌 수정으로 글자를 크게 볼 수 있다. 해독이 훨씬 빨라진다.<br>책을 펼치면 책 곁에 놓여 있다. 집어 들어 대면 글자가 크게 보인다.<br>크게 보면 아직 풀리지 않은 글자도 조금 읽힌다.<br>내려놓으려면 놓였던 자리를 누른다.<br><br>여백에 다른 손으로 쓴 글씨가 있다. 아주 작다.'],
 };
 function showItem(id){ openOv(`<h3>${ITEM[id][0]}</h3>${ITEM[id][1]}`); }
 function buy(o){ if (S.pages < o.buy.cost) return; S.pages -= o.buy.cost; S.owned[o.id] = true; sPlace(); save(); showItem(o.id); }
