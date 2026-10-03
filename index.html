@@ -244,7 +244,7 @@ const S = Object.assign({
   pages:0, earned:0, D:0, owned:{}, fear:0, opened:false,
   letterRead:false, chair:false, glitchDone:false, sideRead:{}, opt:{ horiz:false, mute:false }
 }, JSON.parse(localStorage.getItem(SAVE) || '{}'));
-S.opt = Object.assign({ horiz:false, mute:false, fast:false }, S.opt); S.sideRead = S.sideRead || {}; S.owned = S.owned || {};
+S.opt = Object.assign({ horiz:false, mute:false, fast:false, gameTime:false }, S.opt); S.sideRead = S.sideRead || {}; S.owned = S.owned || {};
 let resetting = false;
 const save = () => { if (!resetting) localStorage.setItem(SAVE, JSON.stringify(S)); };
 const esc = s => String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
@@ -381,12 +381,15 @@ const sPlace = () => noise(0.14, 140, 0.35, 'lowpass');
 
 // ───────── 기록 창 ─────────
 const ov = document.getElementById('overlay'), ovBody = document.getElementById('ovBody');
+const ovQueue = [];
+function queueOv(html){ if (ov.classList.contains('hidden')) openOv(html); else ovQueue.push(html); }
 function openOv(html, onClose){ ovBody.innerHTML = html + '<div class="close">닫기</div>'; ov.classList.remove('hidden'); ov._onClose = onClose; ov._t = performance.now(); }
 // 터치 직후 따라오는 클릭이 방금 연 창(과 그 안의 항목)을 누르지 않게: 잡기 단계에서 먼저 막음
 ov.addEventListener('click', e => { if (performance.now() - (ov._t||0) < 450) { e.stopPropagation(); e.preventDefault(); } }, true);
 ov.addEventListener('click', e => {
   if (e.target.closest('.rec')) return;
   ov.classList.add('hidden'); const f = ov._onClose; ov._onClose = null; if (f) f();
+  if (ovQueue.length && ov.classList.contains('hidden')) setTimeout(() => { if (ov.classList.contains('hidden')) openOv(ovQueue.shift()); }, 350);
 });
 
 // ───────── 책: 크기·면 구성 ─────────
@@ -701,7 +704,7 @@ function addBook(id, v){
 function checkDongui(){
   if (S.sideRead.dongui || (S.dD||0) < bDone(BD, DLINES.length-1)) return;
   S.sideRead.dongui = true; save();
-  setTimeout(() => openOv('<h3>동의보감 三</h3>다 풀었다.<br>간을 다룬 장에만 손때가 많다. 누군가 이 장만 여러 번 펼쳤다.<br><br>두려움이 조금 더디게 찾아온다.'), 1100);
+  setTimeout(() => queueOv('<h3>동의보감 三</h3>다 풀었다.<br>간을 다룬 장에만 손때가 많다. 누군가 이 장만 여러 번 펼쳤다.<br><br>두려움이 조금 더디게 찾아온다.'), 1100);
 }
 function flip(auto, fast){
   const now = performance.now();
@@ -875,8 +878,9 @@ function reveal(id, cond){
   if (S.owned.lamp && S.lampOut) return false;
   S.revealed.push(id); return true;
 }
+function gameHour(d = new Date()){ return S.opt.gameTime ? (d.getTime()/1000/300) % 24 : d.getHours() + d.getMinutes()/60; }
 function daylight(d = new Date()){         // 0 = 밤, 1 = 한낮
-  const h = d.getHours() + d.getMinutes()/60;
+  const h = gameHour(d);
   if (h < 5 || h >= 21) return 0;
   if (h < 7) return (h - 5)/2;
   if (h >= 18) return (21 - h)/3;
@@ -983,7 +987,7 @@ function frame(now){
 // ───────── 진행 ─────────
 const cnt = document.getElementById('cnt');
 // ───────── 연구원 한서진 ─────────
-const isNight = (d = new Date()) => { const h = d.getHours(); return h >= 22 || h < 6; };   // 밤에는 일하지 않겠습니다
+const isNight = (d = new Date()) => { const h = gameHour(d); return h >= 22 || h < 6; };   // 밤에는 일하지 않겠습니다
 const R_SEC = 4;   // 4초에 한 장
 const DIARY = [
   [60,  '맑음. 가주께서 푸신 장부를 다시 읽었다. 첫 글자가 이 댁의 성(姓)이었다. 책이 이 댁을 알고 있는 것 같다. 우연이겠지.'],
@@ -1022,16 +1026,26 @@ function researcherTick(dt){
   while (S.rAcc >= R_SEC){ S.rAcc -= R_SEC; S.pages += 1; S.earned += 1; addBook(rItem, mult()); S.rPages = (S.rPages||0) + 1; }
 }
 // 자리를 비운 동안: 낮 시간만 세어(최대 8시간) 넘김
+const NIGHT_SEC = 60;   // 밤에 서안의 책이 혼자 한 장 넘어가는 간격
 function offlineWork(){
-  if (!S.rArrived || !S.lastSeen) return 0;
+  const res = { r:0, night:0 };
+  if (!S.lastSeen) return res;
   const now = Date.now(), from = Math.max(S.lastSeen, now - 8*3600e3);
-  let daySec = 0;
-  for (let t = from; t < now; t += 60e3){ if (!isNight(new Date(t))) daySec += Math.min(60, (now - t)/1000); }
-  const n = Math.floor(daySec / R_SEC * 0.6);
-  const rItem = itemAt('rdesk'); if (!rItem) return 0;
-  S.rFear = Math.max(S.rFear||0, 0.5);   // 자리를 비운 동안 혼자 읽으며 겁이 쌓임
-  S.rWork = (S.rWork||0) + daySec; S.pages += n; S.earned += n; addBook(rItem, n*mult()); S.rPages = (S.rPages||0) + n;
-  return (now - S.lastSeen) > 180e3 ? n : 0;
+  let daySec = 0, nightSec = 0;
+  for (let t = from; t < now; t += 60e3){ const d = Math.min(60, (now - t)/1000); if (isNight(new Date(t))) nightSec += d; else daySec += d; }
+  const rItem = itemAt('rdesk');
+  if (S.rArrived && rItem && daySec > 0){
+    const n = Math.floor(daySec / R_SEC * 0.3);
+    S.rFear = Math.max(S.rFear||0, 0.5);   // 자리를 비운 동안 혼자 읽으며 겁이 쌓임
+    S.rWork = (S.rWork||0) + daySec; S.pages += n; S.earned += n; addBook(rItem, n*mult()); S.rPages = (S.rPages||0) + n; res.r = n;
+  }
+  const di = itemAt('desk');
+  if (S.owned.desk && (di === 'first' || di === 'dongui') && nightSec > 0){          // 아무도 없는 밤, 서안의 책이 혼자 넘어감
+    const m = Math.floor(nightSec / NIGHT_SEC);
+    S.pages += m; S.earned += m; addBook(di, m); res.night = m;
+  }
+  if (now - S.lastSeen < 180e3) { res.r = 0; res.night = 0; }
+  return res;
 }
 function showResearcher(){
   if (isNight()) { openOv('<h3>연구원의 자리</h3>밤이다. 한서진은 돌아갔다.<br>해가 뜨면 온다.'); return; }
@@ -1168,7 +1182,7 @@ function tick(now){
   researcherTick(dt);
   if (!S.helpNote && S.caveAt && (S.rWork||0) >= (S.caveWork||0) + 90){ S.helpNote = true; save(); }
   if (!S.jokboDone && S.D >= T.jEnd){ S.jokboDone = true; save();
-    setTimeout(() => openOv(`<h3>족보</h3>다 풀었다.<br><br>${esc((S.bon||'') + ' ' + S.sur)}씨 17세손 ${esc(S.sur + S.name)}.<br>18세와 19세는 이름 칸이 비어 있다. 끝난 자리만 적혀 있다.<br>20세 아래로는 아무것도 없다.<br><br>그때 구석의 궤짝에서 무언가 들썩이는 소리가 났다.`), 1200);
+    setTimeout(() => queueOv(`<h3>족보</h3>다 풀었다.<br><br>${esc((S.bon||'') + ' ' + S.sur)}씨 17세손 ${esc(S.sur + S.name)}.<br>18세와 19세는 이름 칸이 비어 있다. 끝난 자리만 적혀 있다.<br>20세 아래로는 아무것도 없다.<br><br>그때 구석의 궤짝에서 무언가 들썩이는 소리가 났다.`), 1200);
     setTimeout(() => { noise(0.25, 90, 0.45, 'lowpass'); setTimeout(() => noise(0.18, 120, 0.3, 'lowpass'), 380); }, 700); }
   if (bookOpen && !bookView.classList.contains('hidden')) { threadPh += threadStir ? dt*5.5 : 0; drawThread(threadStir ? 5 : 0); }
   if (S.owned.desk && (itemAt('desk') === 'first' || itemAt('desk') === 'dongui') && now - lastAuto > 9000 && now - lastFlip > 4000 && ov.classList.contains('hidden')){ lastAuto = now; flip(true); }
@@ -1254,7 +1268,7 @@ function brew(){ const now = performance.now(); if (now < steamUntil) return; st
 const ITEM = {
   lamp:  ['등잔', '불을 켜면 글자가 보인다.<br>한 번에 두 장씩 넘길 수 있다.<br>서고에 무슨 일이 생기면 바람도 없이 불이 꺼진다. 등잔을 누르면 다시 붙인다.<br><br>기름은 줄지 않는다.'],
   brush: ['붓걸이', '푼 글자를 받아 적는다. 해독이 빨라진다.<br>받아 적은 것은 도서관에 남는다.<br><br>붓이 넷. 하나는 쓴 적이 없는데 먹이 묻어 있다.'],
-  desk:  ['서안', '궤짝에서 책을 꺼내 책장에 꽂았다. 이제 책장에는 열세 권이 있다. 궤짝은 구석으로 치웠다.<br>{LAMP}서안은 비워 두었다. 책장에서 읽을 것을 가져와 올려야 한다.<br><br>책을 펼쳐 두면 손대지 않아도 넘어간다.<br>책을 덮어 두어도 넘어간다.<br>한 번에 넘기는 장수도 늘어난다.<br><br>창은 닫혀 있다.'],
+  desk:  ['서안', '궤짝에서 책을 꺼내 책장에 꽂았다. 이제 책장에는 열세 권이 있다. 궤짝은 구석으로 치웠다.<br>{LAMP}서안은 비워 두었다. 책장에서 읽을 것을 가져와 올려야 한다.<br><br>책을 펼쳐 두면 손대지 않아도 넘어간다.<br>책을 덮어 두어도 넘어간다.<br>한 번에 넘기는 장수도 늘어난다.<br>밤에 펼쳐 두고 자리를 비우면, 아침에 몇 장 넘어가 있다.<br><br>창은 닫혀 있다.'],
   sundial: ['앙부일구(仰釜日晷)', '해 그림자로 때를 재는 솥 모양 해시계.<br>이제 연구원이 얼마나 빨리 넘기는지 정확히 셀 수 있다.<br><br>그림자가 가끔 두 갈래로 갈라진다.'],
   glass: ['수정 문진(水晶文鎭)', '종이를 눌러 두는 문진. 가운데 박힌 수정으로 글자를 크게 볼 수 있다. 해독이 훨씬 빨라진다.<br>책을 펼치면 책 곁에 놓여 있다. 집어 들어 대면 글자가 크게 보인다.<br>크게 보면 아직 풀리지 않은 글자도 조금 읽힌다.<br>내려놓으려면 놓였던 자리를 누른다.<br><br>여백에 다른 손으로 쓴 글씨가 있다. 아주 작다.'],
 };
@@ -1397,6 +1411,8 @@ function showSettings(){
   const o = S.opt;
   openOv(`<h3>설정</h3>
     <div class="opt rec"><span>글 방향</span><span class="ch"><span data-k="horiz" data-v="0" class="${!o.horiz?'on':''}">세로</span><span data-k="horiz" data-v="1" class="${o.horiz?'on':''}">가로</span></span></div>
+    <div class="opt rec"><span>밤낮</span><span class="ch"><span data-k="gameTime" data-v="0" class="${!o.gameTime?'on':''}">실제 시각</span><span data-k="gameTime" data-v="1" class="${o.gameTime?'on':''}">게임 시간</span></span></div>
+    <div style="font-size:12px;opacity:.6;margin:-4px 0 6px">게임 시간: 실제 5분이 게임 속 1시간. 두 시간에 하루가 지난다.</div>
     <div class="opt rec"><span>소리</span><span class="ch"><span data-k="mute" data-v="0" class="${!o.mute?'on':''}">켬</span><span data-k="mute" data-v="1" class="${o.mute?'on':''}">끔</span></span></div>
     <div class="opt rec"><span>시험용: 누르고 있으면 빨리 넘기기</span><span class="ch"><span data-k="fast" data-v="0" class="${!o.fast?'on':''}">끔</span><span data-k="fast" data-v="1" class="${o.fast?'on':''}">켬</span></span></div>
     <div class="opt rec"><span>시험용: 구간으로 바로 가기</span><span class="ch"><span id="bJump">고르기</span></span></div>
@@ -1447,8 +1463,11 @@ document.querySelectorAll('.scroll').forEach(el => el.onclick = () => { S.gahun 
 window.__yb = { openBook, closeBook, toggleLoupe, setMapMark: () => { S.mapLastMark = 0; }, hits: () => OBJ.filter(o => o.hit).map(o => ({ id:o.id, x:o.hit.x/DPR, y:(o.hit.y0*0.4 + o.hit.y1*0.6)/DPR })) };
 resize();
 ensureLoc();
-const away = S.stage === 'room' ? offlineWork() : 0;
-if (away) setTimeout(() => openOv(`<h3>쪽지</h3><div class="vletter rec" style="height:min(46vh,320px)">가주께.<br>안 계신 동안 ${fmtP(away)}을 넘겼습니다.<br>밤에는 일하지 않았습니다.<div class="sign">한서진 올림.</div></div>`), 900);
+const away = S.stage === 'room' ? offlineWork() : { r:0, night:0 };
+if (away.r || away.night) setTimeout(() => {
+  if (S.rArrived) openOv(`<h3>쪽지</h3><div class="vletter rec" style="height:min(50vh,360px)">가주께.<br>${away.r ? `안 계신 동안 ${fmtP(away.r)}을 넘겼습니다.<br>` : ''}밤에는 일하지 않았습니다.${away.night ? `<br><br>아침에 와 보니 서안의 책이<br>${fmtP(away.night)} 넘어가 있었습니다.<br>저는 밤에 오지 않았습니다.` : ''}<div class="sign">한서진 올림.</div></div>`);
+  else openOv(`<h3>서안</h3>자리를 비운 사이, 서안에 펼쳐 둔 책이 ${fmtP(away.night)} 넘어가 있다.<br>아무도 손대지 않았다.<br><br>창은 닫혀 있었다.`);
+}, 900);
 S.lastSeen = Date.now();
 if (S.stage === 'room') enterRoom(); else if (S.stage === 'gahun') scr('sGahun'); else if (S.stage === 'jokbo') scr('sJokbo'); else scr('sStart');
 setInterval(() => { if (S.stage === 'room') { S.lastSeen = Date.now(); save(); } }, 2000);
