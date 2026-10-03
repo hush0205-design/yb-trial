@@ -19,7 +19,9 @@ function buildLines(){
     { idu:'一世 ▒▒▒ 此書庫乙 創建爲齊', old:'一世 ▒▒▒ 이 셔고ᄅᆞᆯ 셰오다', mod:'1세. ▒▒▒ — 이 서고를 세우다.' },
     { idu:`二世 ${h}文學 讀書爲齊`, old:`二世 ${s}문학 글을 닑다`, mod:`2세. ${s}문학 — 글을 읽다.` },
     { idu:`三世 ${h}瑞道 讀書爲齊`, old:`三世 ${s}셔도 글을 닑다`, mod:`3세. ${s}서도 — 글을 읽다.` },
-    { idu:'自四世 至十六世 皆 讀書爲齊', old:'四世브터 十六世ᄭᆞ지 다 글을 닑다', mod:'4세부터 16세까지, 모두 글을 읽다.' },
+    { idu:'自四世 至十二世 皆 讀書爲齊', old:'四世브터 十二世ᄭᆞ지 다 글을 닑다', mod:'4세부터 12세까지, 모두 글을 읽다.' },
+    { idu:`十三世 ${h}守津 書庫門乙 閉爲遣 去爲齊`, old:`十三世 ${s}슈진 셔고 門을 닫고 가다`, mod:`13세. ${s}수진 — 서고 문을 닫고 떠나다.` },   // 정본: 마지막 장 앞에서 멈추고 바다로 사라짐
+    { idu:'十四世 ━━━ 十五世 ━━━ 十六世 ━━━', old:'十四世 ━━━ 十五世 ━━━ 十六世 ━━━', mod:'14세 ━━━ 15세 ━━━ 16세 ━━━' },   // 먹줄이 그어진 세 대(서고가 버려진 동안)
     { idu:`十七世 ${h}${nm} 櫃乙 開爲齊`, old:`十七世 ${s}${nm} 궤ᄶᆞᆨ을 열다`, mod:`17세. ${s}${nm} — 궤짝을 열다.` },
     { idu:'十八世 　　 水邊良中', old:'十八世 　　 믈ᄀᆞ애셔', mod:'18세. 　　 — 물가에서.' },
     { idu:'十九世 　　 門乙 鎖爲遣 不出爲齊', old:'十九世 　　 門을 ᄌᆞᆷ고고 나디 아니ᄒᆞ다', mod:'19세. 　　 — 문을 잠그고 나오지 않다.' },
@@ -37,9 +39,11 @@ let LINES = buildLines();
 const DONGUI_SRC = [
   { h:'肝者 將軍之官 謀慮出焉', k:'간은 장군의 벼슬이니, 꾀가 여기서 나온다.' },
   { h:'肝藏魂', k:'간은 혼(魂)을 갈무리한다.' },
+  { h:'肝開竅於目', k:'간은 눈으로 구멍이 열린다.' },
   { h:'肝氣虛則恐', k:'간의 기운이 허하면 두려워하고,' },
   { h:'實則怒', k:'차면 성낸다.' },
   { note:'두려움이 없는 자는 간이 없는 자다.' },
+  { note:'보지 않으면 두렵지 않다.<br>그러나 보지 않으면 읽을 수 없다.' },
   { note:'바다에서 돌아온 이는 겁이 없었다.<br>간을 어디 두고 왔느냐 물으니 웃기만 하였다.' },
 ];
 const DLINES = (() => { const L = []; DONGUI_SRC.forEach((p,i) => {
@@ -70,7 +74,7 @@ const bDone = (b, i) => b.start(i) + (b.L()[i].length-1)*b.per;
 const J0 = 1400;
 const lineStart = i => i < 8 ? i*70 : i < 11 ? 780 + (i-8)*70 : J0 + (i-11)*140;
 const lineDone  = i => lineStart(i) + (LINES[i].length-1)*PER;
-const T = { door: lineDone(7), fearOn: lineDone(8), tea: lineDone(9), glitch: 1150, letter: 1300, fearPage: 700, jEnd: lineDone(19) };
+const T = { door: lineDone(7), fearOn: lineDone(8), tea: lineDone(9), glitch: 1150, letter: 1300, fearPage: 700, jEnd: lineDone(21) };
 function mix(a, b, f, seed){ const A = Array.from(a), B = Array.from(b), n = Math.max(A.length, B.length); let o = ''; for (let k=0;k<n;k++) o += hash(seed,k) < f ? (B[k]||'') : (A[k]||''); return o; }
 function lineText(i, Dv, b = BF){
   const D = Dv === undefined ? b.D() : Dv, v = b.L()[i], p = Math.max(0, Math.min(v.length-1, (D - b.start(i))/b.per));

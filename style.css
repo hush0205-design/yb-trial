@@ -161,3 +161,5 @@
   #glTip .glC span, .glMe { opacity:.6; font-size:12px; }
   #glTip .glN { font-size:12px; color:#6a2a16; margin-top:2px; }
   .glE { padding:7px 0; border-bottom:1px solid #00000014; font-size:14px; line-height:1.7; }
+  /* 족보의 먹줄: 대가 끊긴 14~16세 */
+  .inkline { display:inline-block; width:62%; height:3px; margin-left:10px; vertical-align:middle; background:#2a2118; border-radius:2px; transform:rotate(-1.2deg); opacity:.85; }
