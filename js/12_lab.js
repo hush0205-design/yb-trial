@@ -234,7 +234,7 @@ const replyOf = k => `<h3>답장</h3>` + vlet([`${STAFF[k].name} 님께.`, '', .
 const genLetter = k => { const P = DEF(k); return `<h3>지원서 — ${P.name}</h3>` + vlet([`${esc(S.sur)}씨 가문 서고에 올립니다.`, ...P.lines], `${P.name}(${P.hj}) 올림.`, 'min(36vh,250px)'); };
 function hire(k){
   const s = stOf(k); s.replied = true; s.desk = freeDesk(); s.item = 'first'; s.due = Date.now() + (isGen(k) ? 5000 : 6000);
-  if (isGen(k)) S.genNext = Date.now() + 40000;
+  if (isGen(k)) S.genNext = Date.now() + 210000;
   save(); ov.classList.add('hidden'); sPlace();
   if (typeof tlog === 'function') tlog('받아들임: ' + DEF(k).name);
 }
@@ -246,7 +246,7 @@ function readApplicant(k){
   if (isGen(k)){
     openOv(genLetter(k) + '<div style="text-align:center;margin-top:12px">' + (fd ? btn('bHire', '받아들인다') : '') + btn('bSendAway', '돌려보낸다') + '</div>' + (fd ? '' : full));
     const h = document.getElementById('bHire'); if (h) h.addEventListener('click', ev => { ev.stopPropagation(); hire(k); });
-    document.getElementById('bSendAway').addEventListener('click', ev => { ev.stopPropagation(); stOf(k).gone = true; S.genNext = Date.now() + 40000; save(); ov.classList.add('hidden'); });
+    document.getElementById('bSendAway').addEventListener('click', ev => { ev.stopPropagation(); stOf(k).gone = true; S.genNext = Date.now() + 210000; save(); ov.classList.add('hidden'); });
     return;
   }
   openOv(letterOf(k) + (fd ? '<div style="text-align:center;margin-top:14px">' + btn('bReplyA', '답장을 쓴다') + '</div>' : full));
@@ -282,7 +282,7 @@ function showStaff(k){
     + `<div class="opt rec"><span>읽을 사본</span><span class="ch">${o('first', '제목 없는 책')}${o('dongui', '동의보감 三')}${S.mapFound ? o('map', '지도') : ''}</span></div>`
     + '<div style="font-size:12px;opacity:.6">서고의 책을 베껴 둔 사본이라, 같은 책을 여럿이 읽을 수 있다.</div>'
     + (isGen(k) ? '' : `<br><b>일지</b>` + (dl.length ? dl.map((d, i) => `<div class="rec dlist" data-d="${i}"><span>일지 ${i+1} — ${esc(d.split('.')[0])}</span><span style="opacity:.45;font-size:12px">읽기</span></div>`).join('') : '<br>아직 쓴 것이 없다.')));
-  const bt = document.getElementById('bSTea'); if (bt) bt.addEventListener('click', ev => { ev.stopPropagation(); ov.classList.add('hidden'); s.steam = Date.now() + 3000; s.calm = Date.now() + 48000; save(); sBoil(); });
+  const bt = document.getElementById('bSTea'); if (bt) bt.addEventListener('click', ev => { ev.stopPropagation(); ov.classList.add('hidden'); s.steam = Date.now() + 3000; s.calm = Date.now() + 243000; save(); sBoil(); });
   ovBody.querySelectorAll('[data-cp]').forEach(el => el.addEventListener('click', ev => { ev.stopPropagation(); s.item = el.dataset.cp; save(); sPlace(); showStaff(k); }));
   ovBody.querySelectorAll('.dlist').forEach(el => el.addEventListener('click', ev => { ev.stopPropagation(); const i = +el.dataset.d;
     openOv(`<h3>${P.name}의 일지 ${i+1}</h3>${staffDiary(k)[i]}<div class="rec" id="bBackS" style="margin-top:14px;text-align:center">← 목록으로</div>`);
@@ -323,9 +323,10 @@ function labTick(dt){
   const now = Date.now(), smw = stOf('smw'), ojr = stOf('ojr');
   if (!curApplicant()){
     const gArr = genKeys().filter(arrived), gHired = genKeys().filter(k => S.st[k].replied).length;
-    if (!smw.at && gArr.length >= 2 && now >= Math.max(...gArr.map(k => S.st[k].arr)) + 60000){ smw.at = now; save(); knock(); }
-    else if (!ojr.at && smw.arr && now >= smw.arr + 60000 && (anyScared() || now >= smw.arr + 180000)){ ojr.at = now; save(); knock(); }
-    else if (gHired < GEN_MAX && now >= (S.genNext || S.bangAt + 30000)){ S.genN = (S.genN || 0) + 1; stOf('g' + S.genN).at = now; save(); knock(0.7); }
+    const gPages = gArr.reduce((a, k) => a + (S.st[k].pages||0), 0);
+    if (!smw.at && gArr.length >= 2 && gPages >= 200){ smw.at = now; save(); knock(); }                                   // 별채가 함께 2권을 넘긴 뒤
+    else if (!ojr.at && smw.arr && now >= smw.arr + 60000 && ((S.sweatSec||0) >= 600 || now >= smw.arr + 1800000)){ ojr.at = now; save(); knock(); }   // 땀 흘린 시간이 모두 합쳐 10분을 넘으면(아니면 30분 뒤)
+    else if (gHired < GEN_MAX && now >= (S.genNext || S.bangAt + 120000)){ S.genN = (S.genN || 0) + 1; stOf('g' + S.genN).at = now; save(); knock(0.7); }
   }
   for (const k of allKeys()){
     const s = S.st[k];
@@ -338,9 +339,12 @@ function labTick(dt){
       setTimeout(() => noise(0.45, 300, 0.1*v, 'lowpass'), T_SIT + 50);
       if (typeof tlog === 'function') tlog('도착: ' + DEF(k).name);
     }
+    if (s && s.arr && !working(k)) s.rest = true;                                           // 쉬고(집에 가고) 돌아오면 겁이 절반으로
+    else if (s && s.rest){ s.rest = false; s.fear = (s.fear||0) * 0.5; }
     if (!s || !working(k)) continue;
     if (now < (s.steam||0)) s.fear = Math.max(0, (s.fear||0) - dt*0.25);
-    else s.fear = Math.min(1, (s.fear||0) + dt*0.006*DEF(k).fearK*(now < (s.calm||0) ? 0.3 : 1));
+    else s.fear = Math.min(1, (s.fear||0) + dt*readFear(s.item || 'first')*DEF(k).fearK*(now < (s.calm||0) ? 0.3 : 1));
+    if (s.fear > 0.35) S.sweatSec = (S.sweatSec||0) + dt;                                   // 별채에서 누군가 땀 흘린 시간(오정림이 듣게 되는 소문)
     const fac = s.fear > 0.7 ? 0.25 : s.fear > 0.35 ? 0.5 : 1;
     s.work = (s.work||0) + dt; s.acc = (s.acc||0) + dt*fac;
     while (s.acc >= DEF(k).sec){ s.acc -= DEF(k).sec; S.pages += 1; S.earned += 1; addBook(s.item || 'first', mult()); s.pages = (s.pages||0) + 1; }
@@ -348,11 +352,12 @@ function labTick(dt){
   // 다원지기: 낮 동안 1분 30초마다 떨고 있는 사람에게 차를 내줌(책상에 찻잔이 놓임)
   if (working('ojr') && now - lastTeaRound > 90000){
     lastTeaRound = now; let gave = false;
-    if (S.rArrived && !isNight() && (S.rFear||0) > 0.4){ S.rSteam = now + 3000; S.rCalm = now + 48000; gave = true; }
-    for (const k of allKeys()) if (k !== 'ojr' && working(k) && (S.st[k].fear||0) > 0.4){ S.st[k].steam = now + 3000; S.st[k].calm = now + 48000; gave = true; }
+    if (S.rArrived && !isNight() && (S.rFear||0) > 0.4){ S.rSteam = now + 3000; S.rCalm = now + 243000; gave = true; }
+    for (const k of allKeys()) if (k !== 'ojr' && working(k) && (S.st[k].fear||0) > 0.4){ S.st[k].steam = now + 3000; S.st[k].calm = now + 243000; gave = true; }
     if (gave){ save(); if (S.scene === 'lab') sBoil(); }
   }
-  if (!S.goNote && ojr.arr && now - ojr.arr > 60000){ S.goNote = true; save(); }
+  if (S.rArrived && !isNight() && (S.rFear||0) > 0.35) S.sweatSec = (S.sweatSec||0) + dt;
+  if (!S.goNote && ojr.arr && now - ojr.arr > 180000){ S.goNote = true; save(); }
 }
 // 자리를 비운 동안: 서명우는 밤 시간, 밤일 하는 이는 낮밤 모두, 나머지는 낮 시간만 (한서진과 같이 30%)
 function labOffline(){
@@ -366,7 +371,8 @@ function labOffline(){
     const s = S.st[k]; if (!s || !s.arr || s.gone) continue;
     const sec = k === 'smw' ? nightSec : DEF(k).night ? daySec + nightSec : daySec; if (sec <= 0) continue;
     const n = Math.floor(sec / DEF(k).sec * 0.3); if (!n) continue;
-    s.work = (s.work||0) + sec; s.fear = Math.max(s.fear||0, 0.4); S.pages += n; S.earned += n; addBook(s.item || 'first', n*mult()); s.pages = (s.pages||0) + n;
+    const rested = k === 'smw' ? daySec > 0 : (!DEF(k).night && nightSec > 0);
+    s.work = (s.work||0) + sec; s.fear = Math.max((s.fear||0) * (rested ? 0.5 : 1), 0.3); S.pages += n; S.earned += n; addBook(s.item || 'first', n*mult()); s.pages = (s.pages||0) + n;
     if (isGen(k)) { gen += n; continue; }
     out.push(k === 'smw'
       ? '<h3>쪽지</h3>' + vlet(['가주께.', `밤사이 ${fmtP(n)}을 넘겼습니다.`, '하늘은 맑았습니다.', isNight() ? '이상 없음. ✶' : '해가 뜨기에 눈을 감았습니다. ✶'], '서명우 올림.', 'min(44vh,320px)')

@@ -172,7 +172,8 @@ function reveal(id, cond){
   if (S.owned.lamp && S.lampOut) return false;
   S.revealed.push(id); return true;
 }
-function gameHour(d = new Date()){ return S.opt.gameTime ? (d.getTime()/1000/300) % 24 : d.getHours() + d.getMinutes()/60; }
+function gameHour(d = new Date()){ if (S.opt.forceHour != null) return S.opt.forceHour;   // 시험용: 낮밤 고정
+  return S.opt.gameTime ? (d.getTime()/1000/300) % 24 : d.getHours() + d.getMinutes()/60; }
 function daylight(d = new Date()){         // 0 = 밤, 1 = 한낮
   const h = gameHour(d);
   if (h < 5 || h >= 21) return 0;

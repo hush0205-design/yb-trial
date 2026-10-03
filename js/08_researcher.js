@@ -26,6 +26,12 @@ function readHelp(){
   S.helpRead = true; save();
   openOv('<h3>쪽지</h3><div class="vletter rec" style="height:min(50vh,360px)">가주께.<br>지도의 그 굴에 가 봐야겠습니다.<br>다만 혼자서는 바닷가에 못 가겠습니다.<br>바람 소리만 들어도 발이 떨어지지 않습니다.<br>사람을 더 구해 주실 수 없겠습니까.<br><br>방을 붙일 종이를 문 곁에 두었습니다.<div class="sign">한서진 올림.</div></div>');
 }
+// 연구원 공포가 차는 빠르기(1초에): 오정림이 오기 전엔 4~5분이면 땀, 온 뒤엔 8분쯤. 읽는 것에 따라 다름(장부 0.5·족보 1·동의보감 0.8·지도 1.3)
+function readFear(item){
+  const base = S.st && S.st.ojr && S.st.ojr.arr ? 0.00075 : 0.0013;
+  const k = item === 'map' ? 1.3 : item === 'dongui' ? 0.8 : (S.D >= J0 ? 1 : 0.5);
+  return base * k;
+}
 function researcherTick(dt){
   if (S.replied && !S.rArrived && S.rDue && Date.now() >= S.rDue){
     S.rArrived = Date.now(); S.rWork = 0; S.rPages = 0; save();
@@ -46,9 +52,11 @@ function researcherTick(dt){
     S.pendingNote = '<h3>쪽지</h3><div class="vletter rec" style="height:min(50vh,360px)">가주께.<br>와 보니 이미 밤이었습니다.<br>밤에는 일하지 않겠다고 말씀드렸으니<br>오늘은 자리만 보고 갑니다.<br>의자가 꼭 맞았습니다.<br>해가 뜨면 오겠습니다.<div class="sign">한서진 올림.</div></div>';
     save();
   }
+  if (S.rArrived && isNight()) S.rRest = true;                                                    // 밤에 집에 갔다 오면 겁이 절반으로
+  else if (S.rRest){ S.rRest = false; S.rFear = (S.rFear||0) * 0.5; }
   if (!S.rArrived || isNight()) return;
   if (Date.now() < (S.rSteam||0)) S.rFear = Math.max(0, (S.rFear||0) - dt*0.25);                  // 차를 마시는 동안 가라앉음
-  else if (itemAt('rdesk')) S.rFear = Math.min(1, (S.rFear||0) + dt*0.006*(Date.now() < (S.rCalm||0) ? 0.3 : 1));   // 읽을수록 무서워짐
+  else if (itemAt('rdesk')) S.rFear = Math.min(1, (S.rFear||0) + dt*readFear(itemAt('rdesk'))*(Date.now() < (S.rCalm||0) ? 0.3 : 1));   // 읽을수록 무서워짐
   const rf = S.rFear || 0, fac = rf > 0.7 ? 0.25 : rf > 0.35 ? 0.5 : 1;                         // 떨면 손이 느려짐
   if (itemAt('rdesk')) S.rWork = (S.rWork||0) + dt;
   S.rAcc = (S.rAcc||0) + dt*fac;
@@ -67,7 +75,7 @@ function offlineWork(){
   const rItem = itemAt('rdesk');
   if (S.rArrived && rItem && daySec > 0){
     const n = Math.floor(daySec / R_SEC * 0.3);
-    S.rFear = Math.max(S.rFear||0, 0.5);   // 자리를 비운 동안 혼자 읽으며 겁이 쌓임
+    S.rFear = Math.max((S.rFear||0) * (nightSec > 0 ? 0.5 : 1), 0.3);   // 자리를 비운 동안 혼자 읽으며 겁이 쌓임(밤에 집에 다녀왔으면 먼저 절반)
     S.rWork = (S.rWork||0) + daySec; S.pages += n; S.earned += n; addBook(rItem, n*mult()); S.rPages = (S.rPages||0) + n; res.r = n;
   }
   const di = itemAt('desk');
@@ -338,7 +346,7 @@ function showPlace(id){
     placeItem(id, to); ov.classList.add('hidden');   // 서고에서 올라가는 모습을 보게, 바로 펼치지 않음
   }));
 }
-function giveTea(){ S.rSteam = Date.now() + 3000; S.rCalm = Date.now() + 3000 + 45000; save(); sBoil(); }
+function giveTea(){ S.rSteam = Date.now() + 3000; S.rCalm = Date.now() + 3000 + 240000; save(); sBoil(); }   // 차 효과 4분
 function showTea(){
   openOv('<h3>찻주전자</h3>손이 떨리기 시작하자 서고 한쪽에 놓여 있었다. 누가 가져왔는지는 모른다.<br>차를 끓여 마시면 떨림이 가라앉고, 한동안은 두려움이 더디게 찾아온다.<br><br>찻잎은 줄지 않는다.'
     + '<div style="text-align:center;margin-top:16px"><button class="btn rec" id="bBrew" style="color:var(--ink);border-color:#00000066">차를 끓인다</button>' + (S.rArrived ? '<button class="btn rec" id="bBrew2" style="color:var(--ink);border-color:#00000066;margin-left:6px">한서진에게 한 잔 내준다</button>' : '') + '</div>');

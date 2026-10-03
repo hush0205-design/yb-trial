@@ -23,7 +23,7 @@ JUMPS.push(['15. 별채에 다 모인 뒤 (마지막 쪽지)', Object.assign(JSO
        smw:{ at:-1, read:true, replied:true, arr:-1, desk:'ld4', item:'first', work:300 }, ojr:{ at:-1, read:true, replied:true, arr:-2, desk:'ld5', item:'dongui', work:100 } } })]);
 JUMPS.push(['16. 일반 연구원 둘이 자리 잡은 뒤 (서명우 편지 직전, 한 명은 겁에 질림)', Object.assign(JSON.parse(JSON.stringify(JUMPS[12][1])), { helpNote:true, helpRead:true, bangAt:-1, labSeen:true, pages:500, earned:2600, genN:2, genNext:-1,
   owned:{ lamp:true, brush:true, desk:true, glass:true, ld1:true, ld2:true }, teaArrived:true,
-  st:{ g1:{ at:-1, read:true, replied:true, arr:-2, desk:'ld1', item:'first', fear:0.8 }, g2:{ at:-1, read:true, replied:true, arr:-2, desk:'ld2', item:'first', fear:0.45 } } })]);
+  st:{ g1:{ at:-1, read:true, replied:true, arr:-2, desk:'ld1', item:'first', fear:0.8, pages:120 }, g2:{ at:-1, read:true, replied:true, arr:-2, desk:'ld2', item:'first', fear:0.45, pages:100 } } })]);
 function jumpTo(i){
   const keep = { sur:S.sur || '윤', bon:S.bon, name:S.name || '서하', gahun:S.gahun >= 0 ? S.gahun : 0, opt:S.opt };
   resetting = true;
@@ -38,7 +38,7 @@ function jumpTo(i){
   if (fresh.replied && !fresh.rArrived) fresh.rDue = Date.now() + 6000;
   if (fresh.bangAt === -1) fresh.bangAt = Date.now() - 40000;
   if (fresh.genNext === -1) fresh.genNext = Date.now() + 600000;
-  for (const s of Object.values(fresh.st || {})){ if (s.at === -1) s.at = Date.now() - 100000; if (s.arr === -1) s.arr = Date.now() - T_PUSH - 1000; if (s.arr === -2) s.arr = Date.now() - 61000; }
+  for (const s of Object.values(fresh.st || {})){ if (s.at === -1) s.at = Date.now() - 100000; if (s.arr === -1) s.arr = Date.now() - T_PUSH - 1000; if (s.arr === -2) s.arr = Date.now() - 181000; }
   fresh.lastSeen = Date.now();
   localStorage.setItem(SAVE, JSON.stringify(fresh)); location.reload();
 }
@@ -54,6 +54,7 @@ function showSettings(){
     <div style="font-size:12px;opacity:.6;margin:-4px 0 6px">게임 시간: 실제 5분이 게임 속 1시간. 두 시간에 하루가 지난다.</div>
     <div class="opt rec"><span>소리</span><span class="ch"><span data-k="mute" data-v="0" class="${!o.mute?'on':''}">켬</span><span data-k="mute" data-v="1" class="${o.mute?'on':''}">끔</span></span></div>
     <div class="opt rec"><span>시험용: 누르고 있으면 빨리 넘기기</span><span class="ch"><span data-k="fast" data-v="0" class="${!o.fast?'on':''}">끔</span><span data-k="fast" data-v="1" class="${o.fast?'on':''}">켬</span></span></div>
+    <div class="opt rec"><span>시험용: 낮밤 고정</span><span class="ch">${[['', '끔'], ['13', '낮'], ['19.5', '해 질 녘'], ['23', '밤'], ['5.5', '새벽']].map(([v, l]) => `<span data-fh="${v}" class="${(o.forceHour == null ? '' : String(o.forceHour)) === v ? 'on' : ''}">${l}</span>`).join('')}</span></div>
     <div class="opt rec"><span>시험 기록 (해 본 사람이 보내 주는 용)</span><span class="ch"><span id="bLog">보기</span></span></div>
     <div class="opt rec"><span>시험용: 구간으로 바로 가기</span><span class="ch"><span id="bJump">고르기</span></span></div>
     <div class="opt rec"><span>처음부터</span><span class="ch"><span id="bReset">기록을 지운다</span></span></div>`);
@@ -62,6 +63,7 @@ function showSettings(){
     if (!bookView.classList.contains('hidden')) layoutBook(); showSettings();
   }));
   document.getElementById('bJump').addEventListener('click', ev => { ev.stopPropagation(); showJumps(); });
+  ovBody.querySelectorAll('[data-fh]').forEach(el => el.addEventListener('click', ev => { ev.stopPropagation(); S.opt.forceHour = el.dataset.fh === '' ? null : +el.dataset.fh; save(); showSettings(); }));
   document.getElementById('bLog').addEventListener('click', ev => { ev.stopPropagation(); showTlog(); });
   document.getElementById('bReset').addEventListener('click', ev => {
     ev.stopPropagation();
