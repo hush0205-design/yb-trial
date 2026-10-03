@@ -132,6 +132,9 @@
   .side .note { font-size:14px; color:#6a2a16; font-style:italic; transform:rotate(-1.2deg); padding:0 6px; }
   .side .pg { font-size:11px; opacity:.5; margin-top:22px; }
   .spine { display:flex; justify-content:space-between; }
+  .vletter { writing-mode:vertical-rl; height:min(58vh, 420px); font-size:16px; line-height:2.1; letter-spacing:1px; overflow-x:auto; padding:4px 2px; margin:0 auto;
+    background-image:repeating-linear-gradient(to left, transparent 0 calc(2.1em - 1px), #6a4a2a22 calc(2.1em - 1px) 2.1em); }
+  .vletter .sign { margin-block-start:2.5em; }
   .opt { display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #00000022; padding:10px 0; }
   .opt .ch { display:flex; gap:6px; }
   .opt .ch span { padding:3px 10px; border:1px solid #00000033; cursor:pointer; font-size:14px; }
@@ -602,7 +605,21 @@ const M = {
   teapot: model(7,6,6,(x,y,z)=>{ const r=Math.hypot(x-3,y-2.5); if (z<4) return r<=2.6 ? '#2f3a34' : (x===6&&y===2&&z===2 ? '#2f3a34':null); if (z===4) return r<=1.6 ? '#3c4a42' : null; if (z===5) return r<0.7 ? '#3c4a42':null; return null; }),
   door: model(12,2,24,(x,y,z)=>{ if (x<2||x>9||z>21) return WOOD; return y===0 ? '#050403' : null; }),
   scroll: model(9,1,17,(x,y,z)=>{ if (z===0||z===16) return DARK; if (x===0||x===8) return null; if (z>2&&z<14&&(x===3||x===5)&&(z%3!==0)) return '#2a2118'; return PAPER; }),
-  letter: model(8,6,1,(x,y)=> (x===0||y===0||x===7||y===5) ? '#bfb393' : '#e2d6b8'),
+  letter: model(6,12,2,(x,y,z)=>{
+    if (z===1){
+      if (x===2 && y>=3 && y<=8 && y%2===1) return '#3a2a1a';            // 세로 글씨
+      if (x>=2 && x<=3 && (y===10)) return '#9a2a1a';                    // 붉은 봉함 인장
+      if (y===1) return '#cbbf9f';                                          // 접힌 윗단
+      return null;
+    }
+    return (x===0||x===5||y===0||y===11) ? '#bfb393' : '#e6dcc2';
+  }),
+  rdesk: model(12,7,7,(x,y,z)=>{                                          // 연구원 책상: 종이 묶음과 벼루
+    if (z===6){ if (x>=2 && x<=5 && y>=1 && y<=4) return '#e2d6b8'; if (x>=8 && x<=9 && y>=2 && y<=4) return y===2 ? '#2a2a2e' : '#141416'; return null; }
+    if (z===5) return '#55361f';
+    if ((x<=1||x>=10) && (y<=1||y>=5)) return '#3a2414';
+    return null;
+  }),
   chair: model(7,7,11,(x,y,z)=>{ if (z===4) return '#4a2f1e'; if (z<4) return ((x===0||x===6)&&(y===0||y===6)) ? DARK : null; if (y===0) return (x===0||x===6||z===10||z===7) ? DARK : null; return null; }),
 };
 const OBJ = [
@@ -611,12 +628,13 @@ const OBJ = [
   { id:'chest', get x(){ return S.owned.desk ? -30 : 0; }, get y(){ return S.owned.desk ? 19 : 2; }, get rot(){ return S.owned.desk ? 0.35 : 0.05; }, m:()=> S.owned.desk ? 'chestClosed' : 'chest', click:()=> S.owned.desk ? showEmptyChest() : openBook(), glow:()=>!S.opened && !S.owned.desk },
   { id:'lamp', get x(){ return S.owned.lamp && S.owned.desk ? 11 : 11; }, get y(){ return S.owned.lamp && S.owned.desk ? 0 : -1; }, get z(){ return S.owned.lamp && S.owned.desk ? 8 : 0; }, buy:{ cost:15, name:'등잔' } },
   { id:'brush', x:9, y:-20, buy:{ cost:50, name:'붓걸이' } },
-  { id:'desk', get x(){ return S.owned.desk ? 0 : 20; }, get y(){ return S.owned.desk ? 3 : 16; }, m:()=> S.owned.desk ? 'seoanBook' : 'seoan', buy:{ cost:120, name:'서안' }, click:()=>openBook() },
+  { id:'desk', get x(){ return S.owned.desk ? 0 : 0; }, get y(){ return S.owned.desk ? 3 : 15; }, m:()=> S.owned.desk ? 'seoanBook' : 'seoan', buy:{ cost:120, name:'서안' }, click:()=>openBook() },
   { id:'glass', get x(){ return S.owned.glass && S.owned.desk ? -10 : -27; }, get y(){ return S.owned.glass && S.owned.desk ? 3 : 3; }, get z(){ return S.owned.glass && S.owned.desk ? 8 : 0; }, buy:{ cost:260, name:'수정 문진' } },
   { id:'teapot', x:-9, y:-11, show:()=>S.D>=T.tea, click:()=>brew() },
   { id:'door', x:27, y:-20, show:()=>S.D>=T.door, click:()=>showLibrary() },
   { id:'letter', x:24, y:-11, show:()=>S.D>=T.letter && !S.letterRead, click:()=>readLetter(), glow:()=>true },
-  { id:'chair', x:5, y:16, rot:-0.2, show:()=>S.chair },
+  { id:'rdesk', x:27, y:19, rot:0, show:()=>S.chair, click:()=>openOv('<h3>연구원의 자리</h3>작은 책상과 의자. 종이 묶음과 벼루가 놓여 있다.<br><br>아직 아무도 앉지 않았다.') },
+  { id:'chair', x:27, y:12, rot:Math.PI, show:()=>S.chair },
 ];
 let W=0, H=0, DPR=1, SC=4, ang=-0.35, drag=0, t0=performance.now(), steamUntil=0, glitchUntil=0;
 function resize(){ const r = cv.getBoundingClientRect(); DPR = Math.min(2, window.devicePixelRatio||1);
@@ -765,7 +783,7 @@ function readDongui(){
   draw();
 }
 const recDongui = () => '<h3>동의보감 三 — 간 장</h3>' + DONGUI.map(p => p.h ? `${p.h}<br>${p.k}` : `<span style="color:#6a2a16;font-style:italic">${p.note}</span>`).join('<br><br>');
-function letterHtml(){ return `<h3>편지</h3>${esc(S.sur)}씨 가문 서고에 올립니다.<br><br>저는 글자를 읽는 일을 해 온 사람입니다. 댁의 서고에 읽히지 않는 책이 있다는 말을 들었습니다.<br>누구에게 들었는지는 기억나지 않습니다.<br><br>서고에서 일하게 해 주십시오. 밤에는 일하지 않겠습니다.<br><br><div style="text-align:right">한서진(韓瑞眞) 올림.</div>`; }
+function letterHtml(){ return `<h3>편지</h3><div class="vletter rec">${esc(S.sur)}씨 가문 서고에 올립니다.<br><br>저는 글자를 읽는 일을 해 온 사람입니다.<br>댁의 서고에 읽히지 않는 책이 있다는 말을 들었습니다.<br>누구에게 들었는지는 기억나지 않습니다.<br><br>서고에서 일하게 해 주십시오.<br>밤에는 일하지 않겠습니다.<div class="sign">한서진(韓瑞眞) 올림.</div></div>`; }
 function showLibrary(){
   const recs = [['족보 첫 장', recJokbo], ['서고 장부', recLedger]];
   if (S.owned.brush) recs.push(['해독 노트', recNotes]);
