@@ -99,7 +99,7 @@
     background:var(--paper); border:5px solid #a8873e; outline:1px solid #6a5224; box-shadow:0 0 0 2px #0009, 0 10px 24px #000a, inset 0 0 18px #0004; }
   #lz { position:absolute; left:0; top:0; transform-origin:0 0; display:flex; }
   #book.loupe { cursor:none; touch-action:none; }
-  #deskGlass { position:absolute; z-index:1; width:170px; height:60px; cursor:pointer; }
+  #deskGlass { position:absolute; z-index:1; width:170px; height:60px; cursor:pointer; transform:rotate(86deg) scale(.78); }
   #deskGlass .spot { opacity:0; transition:opacity .3s; }
   #deskGlass.held .obj { opacity:0; }
   #deskGlass.held .spot { opacity:.5; }
@@ -314,7 +314,7 @@ function layoutBook(){
   book.style.setProperty('--fs', fs + 'px'); book.style.setProperty('--lh', Math.round(fs*1.8) + 'px'); book.style.setProperty('--pt', Math.round(FH*0.15) + 'px');
   cover.style.width = FW + 'px'; cover.style.height = FH + 'px'; cover.style.left = '0px'; cover.style.top = '0px';
   const th = document.getElementById('thread'); const dg = document.getElementById('deskGlass');
-  if (single){ dg.style.left = '0px'; dg.style.top = (FH + 22) + 'px'; } else { dg.style.left = '-182px'; dg.style.top = Math.round(FH*0.6) + 'px'; }
+  if (single){ dg.style.left = '-48px'; dg.style.top = (FH + 50) + 'px'; } else { dg.style.left = '-150px'; dg.style.top = Math.round(FH*0.55) + 'px'; }
   const spineX = FW - Math.round(FW*0.035);   // 한 면이면 묶은 쪽이 화면 오른쪽 끝이라 실이 왼쪽으로 눕고, 두 면이면 오른쪽으로 누움
   th.style.left = (single ? spineX - 130 : spineX - 20) + 'px'; th.style.top = (FH - 6) + 'px'; th.style.transform = single ? 'scaleX(-1)' : ''; drawThread(0);   // 실은 묶은 선(한 면이면 오른쪽 끝, 두 면이면 가운데)에서 늘어짐
   facesEl.innerHTML = ''; faces = [];
@@ -598,7 +598,7 @@ const M = {
     if (z===6) return (x>=3 && x<=12 && y>=2 && y<=5) ? (x===7||x===8 ? '#8a7d62' : (y===2||y===5 ? '#bfb393' : PAPER)) : null;   // 서안 위에 펼친 책
     if (z===5) return '#4e3220'; if ((x<2||x>13)&&(y<2||y>5)) return DARK; if (z===4 && (x<2||x>13)) return DARK; return null; }),
   desk: model(16,8,6,(x,y,z)=>{ if (z===5) return '#4e3220'; if ((x<2||x>13)&&(y<2||y>5)) return DARK; if (z===4 && (x<2||x>13)) return DARK; return null; }),
-  glass: model(12,3,3,(x,y,z)=>{ const c = Math.hypot(x-5.5, y-1); if (z===0) return x===0||x===11 ? '#a8873e' : '#2e1b10'; if (z===1) return c<=1.6 ? '#a8873e' : (x===0||x===11 ? '#a8873e' : (y===1 ? '#3a2416' : null)); if (z===2) return c<=1.2 ? '#bcd0d2' : null; return null; }),
+  glass: model(2,8,3,(x,y,z)=>{ const c = Math.hypot(x-0.5, y-3.5); if (z===0) return y===0||y===7 ? '#a8873e' : '#2e1b10'; if (z===1) return c<=1.2 ? '#a8873e' : (y===0||y===7 ? '#a8873e' : null); if (z===2) return c<=0.8 ? '#bcd0d2' : null; return null; }),
   teapot: model(7,6,6,(x,y,z)=>{ const r=Math.hypot(x-3,y-2.5); if (z<4) return r<=2.6 ? '#2f3a34' : (x===6&&y===2&&z===2 ? '#2f3a34':null); if (z===4) return r<=1.6 ? '#3c4a42' : null; if (z===5) return r<0.7 ? '#3c4a42':null; return null; }),
   door: model(12,2,24,(x,y,z)=>{ if (x<2||x>9||z>21) return WOOD; return y===0 ? '#050403' : null; }),
   scroll: model(9,1,17,(x,y,z)=>{ if (z===0||z===16) return DARK; if (x===0||x===8) return null; if (z>2&&z<14&&(x===3||x===5)&&(z%3!==0)) return '#2a2118'; return PAPER; }),
@@ -612,7 +612,7 @@ const OBJ = [
   { id:'lamp', get x(){ return S.owned.lamp && S.owned.desk ? 11 : 11; }, get y(){ return S.owned.lamp && S.owned.desk ? 0 : -1; }, get z(){ return S.owned.lamp && S.owned.desk ? 8 : 0; }, buy:{ cost:15, name:'등잔' } },
   { id:'brush', x:9, y:-20, buy:{ cost:50, name:'붓걸이' } },
   { id:'desk', get x(){ return S.owned.desk ? 0 : 20; }, get y(){ return S.owned.desk ? 3 : 16; }, m:()=> S.owned.desk ? 'seoanBook' : 'seoan', buy:{ cost:120, name:'서안' }, click:()=>openBook() },
-  { id:'glass', get x(){ return S.owned.glass && S.owned.desk ? -9 : -27; }, get y(){ return S.owned.glass && S.owned.desk ? 5 : 3; }, get z(){ return S.owned.glass && S.owned.desk ? 8 : 0; }, buy:{ cost:260, name:'수정 문진' } },
+  { id:'glass', get x(){ return S.owned.glass && S.owned.desk ? -10 : -27; }, get y(){ return S.owned.glass && S.owned.desk ? 3 : 3; }, get z(){ return S.owned.glass && S.owned.desk ? 8 : 0; }, buy:{ cost:260, name:'수정 문진' } },
   { id:'teapot', x:-9, y:-11, show:()=>S.D>=T.tea, click:()=>brew() },
   { id:'door', x:27, y:-20, show:()=>S.D>=T.door, click:()=>showLibrary() },
   { id:'letter', x:24, y:-11, show:()=>S.D>=T.letter && !S.letterRead, click:()=>readLetter(), glow:()=>true },
