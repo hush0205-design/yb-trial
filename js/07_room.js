@@ -158,6 +158,10 @@ const M = {
     if (z === 6) return (x === 4 && y >= 2 && y <= 4) ? '#2a2018' : null;
     return null; }),
   mapFold: model(6,4,2,(x,y,z)=> z===0 ? '#cfc2a3' : (x===2 || y===1) ? '#a89a78' : '#ddd1b4'),
+  cup: model(4,4,3,(x,y,z)=>{ const r = Math.hypot(x-1.5, y-1.5);          // 찻잔: 흰 사발에 누런 찻물
+    if (z===0) return r <= 1.2 ? '#cfcabd' : null;
+    if (z===1) return r <= 2.1 ? '#e8e4d8' : null;
+    return r <= 2.1 ? (r <= 1.3 ? '#9a7a3a' : '#f2eee4') : null; }),
   chair: model(9,8,13,(x,y,z)=>{ const L='#6a4628', Dk='#4a2e18'; if (z===5) return (x===0||x===8||y===7) ? Dk : L; if (z<5) return ((x<=1||x>=7)&&(y<=1||y>=6)) ? Dk : null; if (y<=1) return (x<=1||x>=7||z===12||z===9) ? (z===12 ? L : Dk) : null; return null; }),
 };
 // 불이 꺼져 있을 때 처음 생긴 것은 등잔을 다시 켜야 비로소 보임(켜는 순간 '아까 없던 것'이 거기 있음)
@@ -183,7 +187,7 @@ function windowModel(col){ return model(12,1,12,(x,y,z)=> (x===0||x===11||z===0|
 function winModel(){ const c = paperColor(); return WIN[c] || (WIN[c] = windowModel(c)); }
 const OBJ = [
   { id:'shelf', x:-24, y:-17, rot:0, click:()=>showShelf() },
-  { id:'window', x:15, y:-26, z:8, rot:0, m:()=>'__win', click:()=>openOv(`<h3>창</h3>${daylight() >= 0.8 ? '창호지가 환하다. 낮이다.' : daylight() > 0 ? '창호지가 누렇게 물들었다. 해가 걸려 있다.' : '창호지가 어둡다. 밤이다.<br><br>연구원은 밤에는 일하지 않는다.'}`) },
+  { id:'window', x:7, y:-26, z:8, rot:0, m:()=>'__win', click:()=>openOv(`<h3>창</h3>${daylight() >= 0.8 ? '창호지가 환하다. 낮이다.' : daylight() > 0 ? '창호지가 누렇게 물들었다. 해가 걸려 있다.' : '창호지가 어둡다. 밤이다.<br><br>연구원은 밤에는 일하지 않는다.'}`) },
   { id:'scroll', x:-6, y:-24, rot:0, z:6, show:()=>S.gahun>=0, click:()=>showGahun() },
   { id:'chest', glow2:()=> S.jokboDone && !S.mapFound, get x(){ return S.owned.desk ? -30 : 0; }, get y(){ return S.owned.desk ? 19 : 2; }, get rot(){ return S.owned.desk ? 0.35 : 0.05; }, m:()=> S.owned.desk ? 'chestClosed' : 'chest', click:()=> S.owned.desk ? showEmptyChest() : deskClick(), glow:()=>!S.opened && !S.owned.desk },
   { id:'lamp', get x(){ return S.owned.lamp && S.owned.desk ? -18 : -12; }, get y(){ return S.owned.lamp && S.owned.desk ? 0 : -3; }, click:()=>lampClick(), buy:{ cost:15, name:'등잔' } },
@@ -200,12 +204,16 @@ const OBJ = [
   { id:'ritem', x:25, y:19, get z(){ return 11 + dropZ('rdesk'); }, m:()=> itemModel(itemAt('rdesk')), show:()=>S.chair && !!itemAt('rdesk'), click:()=>showResearcher() },
   { id:'note', get x(){ return S.owned.desk ? 8 : 4; }, get y(){ return S.owned.desk ? 3 : 2; }, get z(){ return 8; }, m:()=>'letter', show:()=> !!S.pendingNote || !!(S.pendingNotes && S.pendingNotes.length) || (S.helpNote && !S.helpRead) || (S.goNote && !S.goRead), click:()=>readNote(), glow:()=>true },
   { id:'chair', x:27, get y(){ return S.rArrived ? sjState().chair : CHAIR_IN; }, rot:0, show:()=>S.chair },
+  // 차를 내주면 놓이는 찻잔: 효과가 이어지는 동안 그대로 있다가, 끝날 무렵 흐려져 사라짐
+  { id:'cupR', x:32, y:20, z:12, rot:0, m:()=>'cup', on:()=>'rdesk', onOrder:0.02, show:()=> !!S.rArrived && Date.now() < (S.rCalm||0) && SJ.show(), alpha:()=> cupAlpha(S.rCalm), click:()=>showResearcher() },
+  { id:'cupMe', x:7, y:5, z:8, rot:0, m:()=>'cup', on:()=>'desk', onOrder:0.02, show:()=> !!S.owned.desk && performance.now() < calmUntil, alpha:()=> Math.min(1, (calmUntil - performance.now())/4000), click:()=>openOv('<h3>찻잔</h3>방금 마신 찻잔. 아직 따뜻하다.<br>온기가 남아 있는 동안은 두려움이 더디게 찾아온다.') },
 ];
 let W=0, H=0, DPR=1, SC=4, ang=-0.35, drag=0, t0=performance.now(), steamUntil=0, glitchUntil=0;
 function resize(){ const r = cv.getBoundingClientRect(); DPR = Math.min(2, window.devicePixelRatio||1);
   W = cv.width = Math.floor(r.width*DPR); H = cv.height = Math.floor(r.height*DPR);
   SC = Math.max(2, Math.floor(Math.min(W/96, H/78))); }
 window.addEventListener('resize', resize);
+const cupAlpha = until => Math.min(1, (until - Date.now())/4000);
 function drawModel(m, sx, sy, a, alpha, z0=0){
   // 층마다 save/restore로 변환을 쌓던 것을 변환 행렬 한 번 계산 + setTransform으로 바꿈(돌릴 때 끊김 줄이기)
   const step = SC*0.85, n = Math.ceil(step), ca = Math.cos(a), sa = Math.sin(a);
@@ -222,7 +230,7 @@ function frame(now){
   const lowQ = typeof down !== 'undefined' && !!down && down.moved && bookView.classList.contains('hidden');
   if (lowQ) beginLow();
   const t = (now - t0)/1000, a = ang + Math.sin(t*0.12)*0.1 + drag, c = Math.cos(a), s = Math.sin(a), ox = W/2, oy = H*0.58;
-  if (bookView.classList.contains('hidden')){
+  if (bookView.classList.contains('hidden') && mapView.classList.contains('hidden')){   // 지도·책이 덮고 있으면 방은 그리지 않음
     cx.fillStyle = '#0b0907'; cx.fillRect(0,0,W,H); cx.imageSmoothingEnabled = false;
     const lab = S.scene === 'lab';
     drawModel(lab ? M.labFloor : M.floor, ox, oy, a, 1, -1);
@@ -240,10 +248,11 @@ function frame(now){
     if (deskIt) for (const it of list) if ((it.o.id === 'glass' || it.o.id === 'ditem' || it.o.id === 'note') && !it.ghost && S.owned.desk) it.ry = deskIt.ry + 0.01;   // 서안 위 물건
     const rdIt = list.find(it => it.o.id === 'rdesk'); if (rdIt) for (const it of list) if (it.o.id === 'ritem') it.ry = rdIt.ry + 0.01;
     const shIt = list.find(it => it.o.id === 'shelf'); if (shIt) for (const it of list) if (it.o.id === 'shelfMap') it.ry = shIt.ry + 0.01;
+    for (const it of list) if (it.o.on){ const base = list.find(b => b.o.id === it.o.on()); if (base) it.ry = base.ry + (it.o.onOrder || 0.01); }   // 책상 위 물건은 그 책상 바로 다음에(돌려도 사람 위로 뜨지 않게)
     list.sort((p,q)=>p.ry-q.ry);
     for (const it of list){
       if (it.o.doll){
-        const D = it.o, st = D.st(), walking = st.pose === 'walk', e = Date.now() - D.arrT(), I = D.img;
+        const D = it.o, st = D.st(), walking = st.pose === 'walk', e = Date.now() - D.arrT(), fr0 = D.fear(), I = (D.imgL && D.imgL[fr0 > 0.7 ? 2 : fr0 > 0.35 ? 1 : 0]) || D.img;   // 겁먹으면 표정이 바뀌고 땀
         const face = st.f[0]*s + st.f[1]*c;                        // 바라보는 쪽이 화면(앞)으로 향한 정도
         const f = Math.max(0.05, Math.abs(face)), bk = face < 0;   // 옆으로 돌면 얇아지고, 등을 보이면 뒷모습
         const img = st.pose === 'sit' ? (bk ? I.SIT_BK : (st.closed && I.SIT_CL) || I.SIT) : walking ? (Math.floor(e/280) % 2 ? (bk ? I.A_BK : I.A) : (bk ? I.B_BK : I.B)) : (bk ? I.A_BK : I.A);
@@ -260,6 +269,7 @@ function frame(now){
       const mk = it.o.m ? it.o.m() : it.o.id, m = mk === '__win' ? winModel() : M[mk];
       let alpha = it.ghost ? (S.pages >= it.o.buy.cost ? 0.42 : 0.18) : 1;
       if ((it.o.glow && it.o.glow()) || (it.o.glow2 && it.o.glow2())) alpha = 0.72 + 0.28*Math.sin(t*3);
+      if (it.o.alpha) alpha = it.o.alpha();
       drawModel(m, it.sx, it.sy, a + (it.o.rot||0), alpha, it.o.z||0);
       it.o.hit = { x: it.sx, y0: it.sy - (it.o.z||0)*SC*0.85, y1: it.sy - (m.h + (it.o.z||0) + (it.ghost ? 8 : 0))*SC*0.85, r: Math.max(Math.max(m.w, m.d)*SC*0.5, 28*DPR), ghost: it.ghost };
       if (it.ghost){ cx.font = `${12*DPR}px serif`; cx.fillStyle = S.pages >= it.o.buy.cost ? '#cfc3a8' : '#6d6350'; cx.textAlign='center'; cx.fillText(`${it.o.buy.name} ${fmtP(it.o.buy.cost)}`, it.sx, it.sy - (m.h+4)*SC*0.85); }
@@ -272,7 +282,7 @@ function frame(now){
         for (let k=0;k<6;k++){ const ph=(t*1.5+k/6)%1; cx.fillRect(it.sx + Math.sin(t*3+k)*4*DPR, it.sy - 6*SC*0.85 - ph*40*DPR, SC*0.8, SC*0.8); } }
     }
     const dl = daylight();
-    if (dl > 0){ const wx = 15*c - (-26)*s, wy = 15*s + (-26)*c, gx = ox + wx*SC, gy = oy + wy*SC*0.6 + 30*DPR;
+    if (dl > 0){ const WX = lab ? 15 : 7, wx = WX*c - (-26)*s, wy = WX*s + (-26)*c, gx = ox + wx*SC, gy = oy + wy*SC*0.6 + 30*DPR;
       const wg = cx.createRadialGradient(gx, gy, 0, gx, gy, 140*DPR); wg.addColorStop(0, `rgba(240,225,190,${0.10*dl})`); wg.addColorStop(1, 'rgba(240,225,190,0)'); cx.fillStyle = wg; cx.fillRect(gx-140*DPR, gy-140*DPR, 280*DPR, 280*DPR); }
     const lit = lab || (S.owned.lamp && !S.lampOut) ? 1 : 0, out = !lab && S.owned.lamp && S.lampOut;
     const g = cx.createRadialGradient(ox, oy-20*DPR, Math.min(W,H)*(out ? 0.04 : 0.18+0.12*lit), ox, oy, Math.max(W,H)*(out ? 0.38 : 0.62));

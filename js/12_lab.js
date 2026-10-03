@@ -1,13 +1,16 @@
 'use strict';
-// ───────── 별채 연구실·사람 늘리기 (기획서 14절) ─────────
-// 한서진의 부탁 쪽지 → 방(榜) 종이 → 대문에 붙이면 서고 왼쪽 벽에 별채 문 → 지원 편지가 차례로 옴
-// → 별채에 빈 책상이 있어야 답장할 수 있음(책상은 권 단위) → 연구원이 별채 문으로 들어와 앉음
+// ───────── 별채 연구실·사람 늘리기 (기획서 14·14-1절) ─────────
+// 한서진의 부탁 쪽지 → 방(榜) 종이 → 대문에 붙이면 서고 왼쪽 벽에 별채 문
+// → 일반 연구원들이 먼저 찾아와 자리를 채움(지원서 두세 줄, 받아들이거나 돌려보냄)
+// → 둘쯤 자리를 잡으면 서명우(관측사), 사람들이 겁에 질리기 시작하면 오정림(다원지기) → 한서진의 마지막 쪽지
+// 별채에 빈 책상이 있어야 사람을 받을 수 있음(책상은 권 단위).
 let sceneAt = -1e9;
 S.st = S.st || {};
 const LAB_DOOR = [-27, -22];
-const LAB_DESKS = { ld1:[-22, 6], ld2:[0, 6], ld3:[22, 6] };
-const DESK_COST = { ld1:200, ld2:400, ld3:800 };
-const KNUM = ['', '하나', '둘', '셋', '넷', '다섯', '여섯'];
+const LAB_DESKS = { ld1:[-30, 6], ld2:[-15, 6], ld3:[0, 6], ld4:[15, 6], ld5:[30, 6] };
+const DESK_COST = { ld1:100, ld2:150, ld3:250, ld4:400, ld5:600 };
+const GEN_MAX = 3;   // 체험판에서 받는 일반 연구원 수(남은 두 자리는 메인 몫)
+const KNUM = ['', '하나', '둘', '셋', '넷', '다섯', '여섯', '일곱', '여덟'];
 
 // 마루: 길게 깐 널, 서고 바닥보다 밝음
 M.labFloor = model(76,54,1,(x,y)=> (y%5===0 || (x + Math.floor(y/5)*23)%31===0) ? '#2e2015' : ((Math.floor(y/5))%2 ? '#4a3421' : '#45301f'));
@@ -19,7 +22,14 @@ M.roster = model(11,1,16,(x,y,z)=>{                      // 벽에 건 명부: �
   if (z===0||z===15) return DARK; if (x===0||x===10) return null;
   if (z>2 && z<13 && (x===2||x===4||x===6||x===8) && z%2) return x===8 ? '#5a3a3a' : '#2a2118';
   return '#d8cdb0'; });
+M.ldesk = model(12,8,12,(x,y,z)=>{                       // 별채 책상: 의자에 앉아 쓰는 높이, 벼루 하나
+  if (z===11){ if (x>=8 && x<=9 && y>=2 && y<=3) return y===2 ? '#2a2a2e' : '#141416'; return null; }
+  if (z===10) return '#55361f';
+  if (z===9 && (y===0 || y===7)) return '#3a2414';
+  if ((x<=1||x>=10) && (y<=1||y>=6)) return '#3a2414';
+  return null; });
 
+// 메인 연구원(반장): 견본이 있는 사람들
 const STAFF = {
   smw: { name:'서명우', hj:'徐明雨', job:'관측사', sec:4, fearK:1.5, shadow:true,
     note:'밤에만 일한다. 해가 높으면 눈을 감고 쉰다.',
@@ -36,18 +46,45 @@ const STAFF = {
            [240, '서진 씨가 두 잔 마셨다. 손이 떨려서 잔을 잡아 주었다. 명우 씨는 밤새 별채에 있다고 해서 한 잔 들고 갔다.'],
            [600, '아궁이 불이 좋다. 불씨는 내가 지킨다. 우리 집은 불씨를 꺼뜨린 적이 없다.']] },
 };
-const SKEYS = Object.keys(STAFF);
+// 일반 연구원: 이름·성격·차림을 조합해 만듦(일지는 쓰지 않음)
+const G_SUR = [['박','朴'],['최','崔'],['정','鄭'],['강','姜'],['윤','尹'],['장','張'],['신','申'],['권','權'],['황','黃'],['송','宋'],['홍','洪'],['임','任']];
+const G_NAME_M = [['덕수','德洙'],['만복','萬福'],['기남','基男'],['영길','永吉'],['춘보','春甫'],['치문','致文'],['학규','學奎'],['상렬','相烈']];
+const G_NAME_F = [['문옥','文玉'],['봉이','鳳伊'],['순덕','順德'],['막례','莫禮']];
+const G_TRAIT = [
+  { lines:['글을 베끼는 일을 해 왔습니다.', '손은 빠르나 겁이 많습니다.'], sec:3.5, fearK:1.6, note:'손이 빠르다. 겁이 많다.' },
+  { lines:['장터에서 셈을 보던 사람입니다.', '겁은 없으나 글이 느립니다.'], sec:6, fearK:0.5, note:'글이 느리다. 겁이 없다.' },
+  { lines:['서당에서 아이들을 가르쳤습니다.', '해 지기 전에는 돌아가야 합니다.'], sec:4, fearK:1, note:'해 지기 전에 집에 간다.' },
+  { lines:['잠이 없는 사람입니다.', '밤에도 일하겠습니다.'], sec:5, fearK:1.2, night:true, note:'밤낮없이 일한다.' },
+  { lines:['방을 보고 왔습니다.', '무엇이든 하겠습니다.'], sec:4.5, fearK:1, note:'시키는 일은 무엇이든 한다.' },
+];
+const G_ROBE = [['#ece6d6','#ddd5c0','#bfb59e'], ['#e0dccf','#cfc9b8','#aea896'], ['#d8dccd','#c7ccbb','#a6ab99'], ['#e6dccb','#d6c9b2','#b5a68c'], ['#d6dde2','#c4ccd2','#a3adb5']];
+const G_BELT = [['#5a5a5a','#3a3a3a'], ['#7a5a3a','#5a3e24'], ['#3e5a52','#2a403a'], ['#6a4a5a','#4a3040'], ['#4a4a6a','#30304a']];
+const G_SKIRT = [['#7a5a4a','#6a4a3c','#523a2e'], ['#6a7a5a','#5a6a4c','#46543a'], ['#6d5f7d','#5c4f6b','#463c54']];
+const GDEF = {};
+function genDef(k){
+  if (GDEF[k]) return GDEF[k];
+  const n = +k.slice(1), r = rng(n*97 + 13), f = r() < 0.3;
+  const su = G_SUR[(n*5 + Math.floor(r()*12)) % 12], nm = (f ? G_NAME_F : G_NAME_M)[(n*3 + Math.floor(r()*8)) % (f ? 4 : 8)];
+  const tr = G_TRAIT[(n + Math.floor(r()*5)) % 5];
+  const look = f ? { skirt: G_SKIRT[Math.floor(r()*3)], jeo: ['#e6d7b4','#e8e0cc','#dcd6c0'][Math.floor(r()*3)] }
+                 : { robe: G_ROBE[Math.floor(r()*5)], belt: G_BELT[n%5][0], belt2: G_BELT[n%5][1], hat: ['gat','tang','sangtu'][Math.floor(r()*3)] };
+  return (GDEF[k] = { gen:true, f, name: su[0] + nm[0], hj: su[1] + nm[1], job:'해독가', sec: tr.sec, fearK: tr.fearK, night: !!tr.night, note: tr.note, lines: tr.lines, look });
+}
+const DEF = k => STAFF[k] || genDef(k);
+const isGen = k => k[0] === 'g';
+const allKeys = () => ['smw', 'ojr', ...Object.keys(S.st).filter(isGen)];
+const genKeys = () => Object.keys(S.st).filter(isGen);
 const stOf = k => (S.st[k] = S.st[k] || {});
 const arrived = k => !!(S.st[k] && S.st[k].arr);
-const present = k => arrived(k) && (k === 'smw' || !isNight());           // 오정림은 밤에 집에 감, 서명우는 늘 있음(낮엔 눈을 감고 쉼)
-const working = k => arrived(k) && Date.now() - S.st[k].arr > T_PUSH && (k === 'smw' ? isNight() : !isNight());
-const deskOwner = d => SKEYS.find(k => S.st[k] && S.st[k].desk === d) || null;
+const present = k => arrived(k) && (k === 'smw' || DEF(k).night || !isNight());    // 서명우는 늘 있음(낮엔 눈을 감고 쉼), 밤일 하는 이도 늘 있음
+const working = k => arrived(k) && Date.now() - S.st[k].arr > T_PUSH && (k === 'smw' ? isNight() : (DEF(k).night || !isNight()));
+const deskOwner = d => allKeys().find(k => S.st[k] && S.st[k].desk === d && !S.st[k].gone) || null;
 const freeDesk = () => Object.keys(LAB_DESKS).find(d => S.owned[d] && !deskOwner(d)) || null;
-const curApplicant = () => SKEYS.find(k => S.st[k] && S.st[k].at && !S.st[k].replied) || null;
+const curApplicant = () => allKeys().filter(k => S.st[k] && S.st[k].at && !S.st[k].replied && !S.st[k].gone).sort((a, b) => S.st[a].at - S.st[b].at)[0] || null;
 
 // 별채의 길: 문 → 책상 옆 → 의자를 빼고 앉음 (한서진과 같은 몸짓, 책상 자리만 다름)
 function labPath(e, d){
-  const [dx, dy] = LAB_DESKS[d], SIDE = [dx + 7, dy - 10.5], CIN = dy - 7, COUT = dy - 10.4;
+  const [dx, dy] = LAB_DESKS[d], SIDE = [dx + 6.5, dy - 10.5], CIN = dy - 7, COUT = dy - 10.4;
   const dir = (ax, ay, bx, by) => { const l = Math.hypot(bx-ax, by-ay) || 1; return [(bx-ax)/l, (by-ay)/l]; };
   if (e < WALK_MS){ const t = e / WALK_MS; return { x: lerp(LAB_DOOR[0], SIDE[0], t), y: lerp(LAB_DOOR[1], SIDE[1], t), pose:'walk', chair: CIN, f: dir(...LAB_DOOR, ...SIDE) }; }
   if (e < T_PULL)  return { x: SIDE[0], y: SIDE[1], pose:'stand', f:[-1, 0], chair: lerp(CIN, COUT, (e - WALK_MS) / (T_PULL - WALK_MS)) };
@@ -63,11 +100,11 @@ function staffState(k){
 }
 
 // 다원지기 종이 인형: 쪽진 머리에 비녀, 소매 걷은 저고리, 쪽빛 치마, 흰 앞치마
-function drawWoman(pose, back){
+function drawWoman(pose, back, o = {}){
   const W = 48, H = pose === 'sit' ? 78 : 98, sit = pose === 'sit', sway = pose === 'a' ? -1.2 : pose === 'b' ? 1.2 : 0;
   const c = document.createElement('canvas'); c.width = W; c.height = H; const g = c.getContext('2d');
   const path = (pts, fill, stroke) => { g.beginPath(); pts(g); g.closePath(); if (fill){ g.fillStyle = fill; g.fill(); } if (stroke){ g.strokeStyle = stroke; g.lineWidth = 0.8; g.stroke(); } };
-  const skirt = g.createLinearGradient(6, 0, 44, 0); skirt.addColorStop(0, '#5d6b88'); skirt.addColorStop(0.6, '#4d5a76'); skirt.addColorStop(1, '#3a4560');
+  const skirt = g.createLinearGradient(6, 0, 44, 0); const SK = o.skirt || ['#5d6b88', '#4d5a76', '#3a4560']; skirt.addColorStop(0, SK[0]); skirt.addColorStop(0.6, SK[1]); skirt.addColorStop(1, SK[2]);
   const hem = sit ? 68 : 91;
   // 치마: 가슴께에서 아래로 넓게 퍼짐
   path(p => { p.moveTo(17, 44); p.quadraticCurveTo(11, 52, 8 + sway, hem); p.quadraticCurveTo(24 + sway, hem + 3, 40 + sway, hem); p.quadraticCurveTo(37, 52, 31, 44); }, skirt, '#2e3850');
@@ -87,7 +124,7 @@ function drawWoman(pose, back){
     g.strokeStyle = '#d8d0bc'; g.beginPath(); g.moveTo(23.5, 50.5); g.lineTo(22, 58); g.moveTo(24.5, 50.5); g.lineTo(26, 58); g.stroke();
   }
   // 걷어 올린 소매와 팔뚝, 손
-  const jeo = '#e6d7b4';
+  const jeo = o.jeo || '#e6d7b4', FR = o.fear || 0;
   path(p => { p.moveTo(15, 39); p.quadraticCurveTo(10, 43, 10.5, 50); p.lineTo(15.5, 50.5); p.quadraticCurveTo(16, 45, 18, 42); }, jeo, '#b0a07c');
   path(p => { p.moveTo(33, 39); p.quadraticCurveTo(38, 43, 37.5, 50); p.lineTo(32.5, 50.5); p.quadraticCurveTo(32, 45, 30, 42); }, jeo, '#b0a07c');
   g.fillStyle = '#d6c69e'; g.fillRect(10.4, 48.6, 5.2, 2.2); g.fillRect(32.4, 48.6, 5.2, 2.2);   // 걷은 소매 단
@@ -120,24 +157,31 @@ function drawWoman(pose, back){
     // 가르마 탄 머리: 이마를 덮고 귀 뒤로 넘김
     g.fillStyle = '#1a1410'; g.beginPath(); g.moveTo(16.6, 27.5); g.quadraticCurveTo(15.5, 17.5, 24, 17); g.quadraticCurveTo(32.5, 17.5, 31.4, 27.5); g.quadraticCurveTo(30, 22.5, 24.6, 21.6); g.lineTo(23.4, 21.6); g.quadraticCurveTo(18, 22.5, 16.6, 27.5); g.closePath(); g.fill();
     g.strokeStyle = '#5a4a3a'; g.lineWidth = 0.6; g.beginPath(); g.moveTo(24, 17.4); g.lineTo(24, 21.4); g.stroke();   // 가르마
-    g.strokeStyle = '#3a2a20'; g.lineWidth = 0.7; g.beginPath(); g.moveTo(19.4, 25.4); g.quadraticCurveTo(20.9, 24.8, 22.4, 25.3); g.moveTo(25.6, 25.3); g.quadraticCurveTo(27.1, 24.8, 28.6, 25.4); g.stroke();   // 눈썹
-    g.fillStyle = '#1a1410'; g.beginPath(); g.ellipse(20.9, 27.4, 1.15, 0.6, 0, 0, Math.PI*2); g.fill(); g.beginPath(); g.ellipse(27.1, 27.4, 1.15, 0.6, 0, 0, Math.PI*2); g.fill();
+    g.strokeStyle = '#3a2a20'; g.lineWidth = 0.7; g.beginPath();
+    if (FR){ const u = FR === 2 ? 1.2 : 0.7; g.moveTo(19.4, 25.5); g.quadraticCurveTo(20.9, 25.3 - u*0.4, 22.4, 25.2 - u); g.moveTo(25.6, 25.2 - u); g.quadraticCurveTo(27.1, 25.3 - u*0.4, 28.6, 25.5); }
+    else { g.moveTo(19.4, 25.4); g.quadraticCurveTo(20.9, 24.8, 22.4, 25.3); g.moveTo(25.6, 25.3); g.quadraticCurveTo(27.1, 24.8, 28.6, 25.4); }
+    g.stroke();   // 눈썹
+    if (FR === 2) fearEyes(g, 20.9, 27.1, 27.4);
+    else { g.fillStyle = '#1a1410'; g.beginPath(); g.ellipse(20.9, 27.4, 1.15, 0.6, 0, 0, Math.PI*2); g.fill(); g.beginPath(); g.ellipse(27.1, 27.4, 1.15, 0.6, 0, 0, Math.PI*2); g.fill(); }
     g.strokeStyle = '#b48a66'; g.lineWidth = 0.7; g.beginPath(); g.moveTo(24, 27.8); g.quadraticCurveTo(23.4, 30.2, 24.5, 30.6); g.stroke();
-    g.strokeStyle = '#a05a4a'; g.lineWidth = 1; g.beginPath(); g.moveTo(22.8, 32.6); g.quadraticCurveTo(24, 33.2, 25.2, 32.6); g.stroke();
+    if (FR) fearMouth(g, FR, 24, 32.6); else { g.strokeStyle = '#a05a4a'; g.lineWidth = 1; g.beginPath(); g.moveTo(22.8, 32.6); g.quadraticCurveTo(24, 33.2, 25.2, 32.6); g.stroke(); }
+    if (FR) fearSweat(g, FR, 17.6, 30.4, 23);
   }
   return c;
 }
-const SMW_O = { robe:['#e4e9e7', '#d1dad7', '#a9b8b4'], belt:'#6a3a4a', belt2:'#4a2434' };   // 옥색 도포, 자줏빛 세조대
-const STAFF_IMG = {
-  smw: { A:drawSeonbi('a', false, SMW_O), B:drawSeonbi('b', false, SMW_O), SIT:drawSeonbi('sit', false, SMW_O), SIT_CL:drawSeonbi('sit', false, Object.assign({ closed:true }, SMW_O)),
-         A_BK:drawSeonbi('a', true, SMW_O), B_BK:drawSeonbi('b', true, SMW_O), SIT_BK:drawSeonbi('sit', true, SMW_O) },
-  ojr: { A:drawWoman('a'), B:drawWoman('b'), SIT:drawWoman('sit'), A_BK:drawWoman('a', true), B_BK:drawWoman('b', true), SIT_BK:drawWoman('sit', true) },
-};
-const LAB_DOLLS = SKEYS.map(k => ({ id:'d_' + k, doll:true, shadow: !!STAFF[k].shadow, img: STAFF_IMG[k],
-  st:()=>staffState(k), fear:()=>stOf(k).fear || 0, steam:()=>stOf(k).steam || 0, arrT:()=>stOf(k).arr || 0,
-  show:()=>present(k), click:()=>showStaff(k) }));
-const ALL_DOLLS = () => [SJ, ...LAB_DOLLS];
-const curDolls = () => S.scene === 'lab' ? LAB_DOLLS : [SJ];
+const SMW_O = { robe:['#e4e9e7', '#d1dad7', '#a9b8b4'], belt:'#6a3a4a', belt2:'#4a2434', closable:true };   // 옥색 도포, 자줏빛 세조대
+const DOLLS = {};
+function dollFor(k){
+  if (DOLLS[k]) return DOLLS[k];
+  const P = DEF(k);
+  const sets = k === 'smw' ? dollSet(drawSeonbi, SMW_O) : k === 'ojr' ? dollSet(drawWoman) : dollSet(P.f ? drawWoman : drawSeonbi, P.look);
+  return (DOLLS[k] = { id:'d_' + k, doll:true, shadow: k === 'smw', img: sets[0], imgL: sets,
+    st:()=>staffState(k), fear:()=>stOf(k).fear || 0, steam:()=>stOf(k).steam || 0, arrT:()=>stOf(k).arr || 0,
+    show:()=>present(k), click:()=>showStaff(k) });
+}
+const labDolls = () => allKeys().filter(arrived).map(dollFor);
+const ALL_DOLLS = () => [SJ, ...labDolls()];
+const curDolls = () => S.scene === 'lab' ? labDolls() : [SJ];
 
 // 별채의 물건
 const LAB_OBJ = [
@@ -145,21 +189,21 @@ const LAB_OBJ = [
   { id:'labWin', x:15, y:-26, z:8, rot:0, m:()=>'__win', click:()=>openOv(`<h3>창</h3>${daylight() >= 0.8 ? '창호지가 환하다. 낮이다.' : daylight() > 0 ? '창호지가 누렇게 물들었다. 해가 걸려 있다.' : '창호지가 어둡다. 밤이다.'}<br><br>별채의 창은 서고의 창보다 조금 크다.`) },
   { id:'roster', x:-8, y:-24, z:6, rot:0, m:()=>'roster', click:()=>showRoster() },
 ];
+const DESK_IDS = Object.keys(LAB_DESKS);
 for (const [d, [dx, dy]] of Object.entries(LAB_DESKS)){
-  const prev = { ld1:null, ld2:'ld1', ld3:'ld2' }[d];
-  LAB_OBJ.push({ id:d, x:dx, y:dy, rot:0, m:()=>'rdesk', buy:{ cost:DESK_COST[d], name:'별채 책상' }, show:()=> !prev || !!S.owned[prev],
-    click:()=>{ const k = deskOwner(d); if (k && arrived(k)) showStaff(k); else showItem(d); } });
-  LAB_OBJ.push({ id:'c_' + d, x:dx, get y(){ const k = deskOwner(d); return k && arrived(k) ? labPath(Date.now() - S.st[k].arr, d).chair : dy - 7; }, rot:0, m:()=>'chair', show:()=>!!S.owned[d] });
-  LAB_OBJ.push({ id:'i_' + d, x:dx - 2, y:dy, z:11, rot:0, m:()=> itemModel(S.st[deskOwner(d)].item), show:()=>{ const k = deskOwner(d); return !!k && arrived(k) && !!S.st[k].item; }, click:()=>showStaff(deskOwner(d)) });
+  const prev = DESK_IDS[DESK_IDS.indexOf(d) - 1];
+  const who = () => { const k = deskOwner(d); return k && arrived(k) ? k : null; };
+  LAB_OBJ.push({ id:d, x:dx, y:dy, rot:0, m:()=>'ldesk', buy:{ cost:DESK_COST[d], name:'별채 책상' }, show:()=> !prev || !!S.owned[prev],
+    click:()=>{ const k = who(); if (k) showStaff(k); else showItem(d); } });
+  LAB_OBJ.push({ id:'c_' + d, x:dx, get y(){ const k = who(); return k ? labPath(Date.now() - S.st[k].arr, d).chair : dy - 7; }, rot:0, m:()=>'chair', show:()=>!!S.owned[d] });
+  LAB_OBJ.push({ id:'i_' + d, x:dx - 2, y:dy, z:11, rot:0, on:()=>d, m:()=> itemModel(S.st[who()].item), show:()=>{ const k = who(); return !!k && !!S.st[k].item; }, click:()=>showStaff(who()) });
+  LAB_OBJ.push({ id:'t_' + d, x:dx + 3.5, y:dy + 1.5, z:11, rot:0, on:()=>d, onOrder:0.02, m:()=>'cup', show:()=>{ const k = who(); return !!k && present(k) && Date.now() < (S.st[k].calm||0); }, alpha:()=> cupAlpha(S.st[who()].calm), click:()=>showStaff(who()) });
 }
 const curObjs = () => S.scene === 'lab' ? LAB_OBJ : OBJ;
-Object.assign(ITEM, {
-  ld1: ['별채 책상', '별채에 들인 책상과 의자. 연구원 한 사람이 앉을 자리다.<br>서고의 책을 베껴 둔 사본을 놓고 읽는다.<br><br>의자 다리 하나가 조금 짧다.'],
-  ld2: ['별채 책상', '별채에 들인 두 번째 책상과 의자.<br>서고의 책을 베껴 둔 사본을 놓고 읽는다.<br><br>들인 지 하루도 안 됐는데 먹 자국이 있다.'],
-  ld3: ['별채 책상', '별채에 들인 세 번째 책상과 의자.<br>아직 앉을 사람이 없다.<br><br>아무도 앉지 않았는데 의자가 조금 빠져 있다.'],
-});
+const DESK_TXT = { ld1:'의자 다리 하나가 조금 짧다.', ld2:'들인 지 하루도 안 됐는데 먹 자국이 있다.', ld3:'책상 밑에 붓 한 자루가 떨어져 있다. 우리 서고의 붓이 아니다.', ld4:'앉으면 창이 정면으로 보인다. 밤에는 창에 비친 얼굴이 하나 더 있다.', ld5:'아무도 앉지 않았는데 의자가 조금 빠져 있다.' };
+for (const d of DESK_IDS) ITEM[d] = ['별채 책상', '별채에 들인 책상과 의자. 연구원 한 사람이 앉을 자리다.<br>서고의 책을 베껴 둔 사본을 놓고 읽는다.<br><br>' + DESK_TXT[d]];
 
-// 서고에 생기는 것: 방 종이, 별채 문, 지원 편지
+// 서고에 생기는 것: 방 종이, 별채 문, 지원서·편지
 OBJ.push(
   { id:'bang', x:21, y:-18, m:()=>'bangRoll', show:()=> !!S.helpRead && !S.bangAt, click:()=>showBang(), glow:()=>true },
   { id:'labDoor', x:-37.5, y:2, rot:Math.PI/2, m:()=>'door', show:()=>reveal('labDoor', !!S.bangAt), click:()=>goScene('lab'), glow:()=>!S.labSeen },
@@ -171,6 +215,7 @@ function goScene(sc){
   noise(0.35, 240, 0.12, 'lowpass'); setTimeout(() => noise(0.12, 110, 0.3, 'lowpass'), 300);   // 문 여닫는 소리
   if (typeof tlog === 'function') tlog(sc === 'lab' ? '별채로 감' : '서고로 돌아옴');
 }
+const knock = (v = 1) => { noise(0.12, 110, 0.4*v, 'lowpass'); setTimeout(() => noise(0.12, 110, 0.35*v, 'lowpass'), 260); };
 
 // 기록들
 const vlet = (lines, sign, h = 'min(52vh,380px)') => `<div class="vletter rec" style="height:${h}">${lines.join('<br>')}<div class="sign">${sign}</div></div>`;
@@ -186,47 +231,57 @@ function showBang(){
 }
 const letterOf = k => `<h3>편지 — ${STAFF[k].name}</h3>` + vlet([`${esc(S.sur)}씨 가문 서고에 올립니다.`, '', ...STAFF[k].letter], `${STAFF[k].name}(${STAFF[k].hj}) 올림.`);
 const replyOf = k => `<h3>답장</h3>` + vlet([`${STAFF[k].name} 님께.`, '', ...STAFF[k].reply], `${esc(S.sur + S.name)}`, 'min(40vh,280px)');
+const genLetter = k => { const P = DEF(k); return `<h3>지원서 — ${P.name}</h3>` + vlet([`${esc(S.sur)}씨 가문 서고에 올립니다.`, ...P.lines], `${P.name}(${P.hj}) 올림.`, 'min(36vh,250px)'); };
+function hire(k){
+  const s = stOf(k); s.replied = true; s.desk = freeDesk(); s.item = 'first'; s.due = Date.now() + (isGen(k) ? 5000 : 6000);
+  if (isGen(k)) S.genNext = Date.now() + 40000;
+  save(); ov.classList.add('hidden'); sPlace();
+  if (typeof tlog === 'function') tlog('받아들임: ' + DEF(k).name);
+}
 function readApplicant(k){
   if (!k) return;
   stOf(k).read = true; save();
-  const fd = freeDesk();
-  openOv(letterOf(k) + (fd ? '<div style="text-align:center;margin-top:14px"><button class="btn rec" id="bReplyA" style="color:var(--ink);border-color:#00000066">답장을 쓴다</button></div>'
-    : '<div style="font-size:13px;opacity:.7;margin-top:12px;text-align:center">답장을 쓰려면 앉을 자리가 있어야 한다.<br>별채에 빈 책상이 없다.</div>'));
+  const fd = freeDesk(), full = '<div style="font-size:13px;opacity:.7;margin-top:12px;text-align:center">사람을 들이려면 앉을 자리가 있어야 한다.<br>별채에 빈 책상이 없다.</div>';
+  const btn = (id, label) => `<button class="btn rec" id="${id}" style="color:var(--ink);border-color:#00000066;margin:4px">${label}</button>`;
+  if (isGen(k)){
+    openOv(genLetter(k) + '<div style="text-align:center;margin-top:12px">' + (fd ? btn('bHire', '받아들인다') : '') + btn('bSendAway', '돌려보낸다') + '</div>' + (fd ? '' : full));
+    const h = document.getElementById('bHire'); if (h) h.addEventListener('click', ev => { ev.stopPropagation(); hire(k); });
+    document.getElementById('bSendAway').addEventListener('click', ev => { ev.stopPropagation(); stOf(k).gone = true; S.genNext = Date.now() + 40000; save(); ov.classList.add('hidden'); });
+    return;
+  }
+  openOv(letterOf(k) + (fd ? '<div style="text-align:center;margin-top:14px">' + btn('bReplyA', '답장을 쓴다') + '</div>' : full));
   const b = document.getElementById('bReplyA'); if (b) b.addEventListener('click', ev => { ev.stopPropagation();
-    openOv(replyOf(k) + '<div style="text-align:center;margin-top:14px"><button class="btn rec" id="bSendA" style="color:var(--ink);border-color:#00000066">보낸다</button></div>');
-    document.getElementById('bSendA').addEventListener('click', e2 => { e2.stopPropagation();
-      const s = stOf(k); s.replied = true; s.desk = freeDesk(); s.item = 'first'; s.due = Date.now() + 6000; save(); ov.classList.add('hidden'); sPlace();
-      if (typeof tlog === 'function') tlog('답장 보냄: ' + STAFF[k].name);
-    });
+    openOv(replyOf(k) + '<div style="text-align:center;margin-top:14px">' + btn('bSendA', '보낸다') + '</div>');
+    document.getElementById('bSendA').addEventListener('click', e2 => { e2.stopPropagation(); hire(k); });
   });
 }
 function showRoster(){
   const names = [];
   if (S.rArrived) names.push(['한서진', '韓瑞眞', '해독가']);
-  for (const k of SKEYS) if (arrived(k)) names.push([STAFF[k].name, STAFF[k].hj, STAFF[k].job]);
+  for (const k of allKeys().filter(arrived).sort((a, b) => S.st[a].arr - S.st[b].arr)) names.push([DEF(k).name, DEF(k).hj, DEF(k).job]);
   const n = names.length + 1;
   openOv(`<h3>명부 — ${KNUM[n] || n}</h3><div style="font-size:13px;opacity:.7;margin-bottom:8px">별채에 드나드는 사람을 적는 명부. 첫 장은 한서진의 글씨다.</div>`
     + names.map((x, i) => `${i+1}. ${x[0]}(${x[1]}) — ${x[2]}`).join('<br>')
     + `<br>${n}. <span style="opacity:.55">${alienHtml(glyphs('누구인가', 77 + n))}</span> — <span style="opacity:.55">${alienHtml(glyphs('필경사', 91))}</span>`);
 }
-function staffDiary(k){ const s = S.st[k] || {}; return STAFF[k].diary.filter(d => (s.work||0) >= d[0]).map(d => d[1]); }
+function staffDiary(k){ const s = S.st[k] || {}; return (STAFF[k] ? STAFF[k].diary : []).filter(d => (s.work||0) >= d[0]).map(d => d[1]); }
 function showStaff(k){
   if (!k) return;
-  const P = STAFF[k], s = stOf(k);
+  const P = DEF(k), s = stOf(k);
   if (!arrived(k)){ openOv(`<h3>별채 책상</h3>${P.name}의 자리를 마련해 두었다. 아직 오지 않았다.`); return; }
   if (!present(k)){ openOv(`<h3>${P.name}의 자리</h3>밤이다. ${P.name}은 집에 갔다.<br>해가 뜨면 온다.`); return; }
   const rf = s.fear || 0, fac = rf > 0.7 ? 0.25 : rf > 0.35 ? 0.5 : 1, perMin = 60 / P.sec * fac;
   const speed = !working(k) ? (k === 'smw' ? '눈을 감고 쉬고 있다 — 해가 높다' : '쉬고 있다') : S.owned.sundial
     ? `1분에 ${fmtP(Math.round(perMin))} — ${fac === 1 ? '평소대로' : fac === 0.5 ? '평소의 절반' : '평소의 4분의 1'}`
     : fac === 1 ? '또박또박 넘긴다' : fac === 0.5 ? '손이 떨려 느릿느릿 넘긴다' : '책장을 붙잡고 거의 넘기지 못한다';
-  const st = rf > 0.7 ? '간이 콩알만 해짐 — 손이 떨려 책장을 거의 넘기지 못한다' : rf > 0.35 ? '간이 콩알만 해짐 — 손이 떨린다' : '평온함';
+  const st = rf > 0.7 ? '간이 콩알만 해짐 — 식은땀을 흘리며 책장을 거의 넘기지 못한다' : rf > 0.35 ? '간이 콩알만 해짐 — 이마에 땀이 맺히고 손이 떨린다' : '평온함';
   const o = (id, label) => `<span data-cp="${id}" class="${s.item === id ? 'on' : ''}">${label}</span>`;
-  const dl = staffDiary(k);
-  openOv(`<h3>연구원 — ${P.name}(${P.hj})</h3>직업: ${P.job}<br>상태: ${st}<br>읽는 빠르기: ${speed}<br>넘긴 것: ${fmtP(s.pages||0)}<br><div style="font-size:12px;opacity:.6">${P.note}</div>`
+  const dl = staffDiary(k), tea = Date.now() < (s.calm||0) ? '<div style="font-size:12px;opacity:.6">책상에 찻잔이 놓여 있다. 아직 따뜻하다.</div>' : '';
+  openOv(`<h3>${isGen(k) ? '연구원' : '반장'} — ${P.name}(${P.hj})</h3>직업: ${P.job}<br>상태: ${st}<br>읽는 빠르기: ${speed}<br>넘긴 것: ${fmtP(s.pages||0)}<br><div style="font-size:12px;opacity:.6">${P.note}</div>${tea}`
     + (S.teaArrived ? `<div style="text-align:center;margin:8px 0"><button class="btn rec" id="bSTea" style="color:var(--ink);border-color:#00000066">차를 한 잔 내준다</button></div>` : '')
     + `<div class="opt rec"><span>읽을 사본</span><span class="ch">${o('first', '제목 없는 책')}${o('dongui', '동의보감 三')}${S.mapFound ? o('map', '지도') : ''}</span></div>`
     + '<div style="font-size:12px;opacity:.6">서고의 책을 베껴 둔 사본이라, 같은 책을 여럿이 읽을 수 있다.</div>'
-    + `<br><b>일지</b>` + (dl.length ? dl.map((d, i) => `<div class="rec dlist" data-d="${i}"><span>일지 ${i+1} — ${esc(d.split('.')[0])}</span><span style="opacity:.45;font-size:12px">읽기</span></div>`).join('') : '<br>아직 쓴 것이 없다.'));
+    + (isGen(k) ? '' : `<br><b>일지</b>` + (dl.length ? dl.map((d, i) => `<div class="rec dlist" data-d="${i}"><span>일지 ${i+1} — ${esc(d.split('.')[0])}</span><span style="opacity:.45;font-size:12px">읽기</span></div>`).join('') : '<br>아직 쓴 것이 없다.')));
   const bt = document.getElementById('bSTea'); if (bt) bt.addEventListener('click', ev => { ev.stopPropagation(); ov.classList.add('hidden'); s.steam = Date.now() + 3000; s.calm = Date.now() + 48000; save(); sBoil(); });
   ovBody.querySelectorAll('[data-cp]').forEach(el => el.addEventListener('click', ev => { ev.stopPropagation(); s.item = el.dataset.cp; save(); sPlace(); showStaff(k); }));
   ovBody.querySelectorAll('.dlist').forEach(el => el.addEventListener('click', ev => { ev.stopPropagation(); const i = +el.dataset.d;
@@ -235,78 +290,88 @@ function showStaff(k){
 }
 function readGo(){
   S.goRead = true; save();
-  openOv('<h3>쪽지</h3>' + vlet(['가주께.', '사람이 늘었습니다.', '명우 씨는 밤을 맡고', '정림 씨는 차를 맡아 주니', '이제 바닷가에 가 볼 수 있겠습니다.', '날을 잡아 주십시오.'], '한서진 올림.'),
+  openOv('<h3>쪽지</h3>' + vlet(['가주께.', '사람이 늘었습니다.', '새로 온 이들도 손이 제법입니다.', '명우 씨는 밤을 맡고', '정림 씨는 차를 맡아 주니', '이제 바닷가에 가 볼 수 있겠습니다.', '날을 잡아 주십시오.'], '한서진 올림.'),
     () => { setTimeout(() => document.getElementById('endnote').style.opacity = 1, 1500); });
   if (typeof tlog === 'function') tlog('체험판 끝 쪽지');
 }
 function labRecs(recs){
   if (S.bangAt) recs.push(['방(榜)', bangHtml]);
-  for (const k of SKEYS){ const s = S.st[k]; if (!s) continue;
+  for (const k of ['smw', 'ojr']){ const s = S.st[k]; if (!s) continue;
     if (s.read) recs.push([`편지 — ${STAFF[k].name}`, () => letterOf(k)]);
     if (s.replied) recs.push([`답장 — ${STAFF[k].name}`, () => replyOf(k)]);
     if (staffDiary(k).length) recs.push([`${STAFF[k].name}의 일지`, () => `<h3>${STAFF[k].name}의 일지</h3>` + staffDiary(k).map(d => `<div style="margin:8px 0">${d}</div>`).join('')]);
   }
-  if (S.goRead) recs.push(['쪽지 — 한서진 (사람이 늘었습니다)', () => '<h3>쪽지</h3>가주께. 사람이 늘었습니다. 명우 씨는 밤을 맡고 정림 씨는 차를 맡아 주니 이제 바닷가에 가 볼 수 있겠습니다. 날을 잡아 주십시오. — 한서진']);
+  const g = genKeys().filter(k => S.st[k].read);
+  if (g.length) recs.push(['지원서 묶음', () => '<h3>지원서 묶음</h3>' + g.map(k => `<div style="margin:8px 0"><b>${DEF(k).name}(${DEF(k).hj})</b>${S.st[k].gone ? ' <span style="opacity:.5;font-size:12px">— 돌려보냄</span>' : ''}<br>${DEF(k).lines.join(' ')}</div>`).join('')]);
+  if (S.goRead) recs.push(['쪽지 — 한서진 (사람이 늘었습니다)', () => '<h3>쪽지</h3>가주께. 사람이 늘었습니다. 새로 온 이들도 손이 제법입니다. 명우 씨는 밤을 맡고 정림 씨는 차를 맡아 주니 이제 바닷가에 가 볼 수 있겠습니다. 날을 잡아 주십시오. — 한서진']);
 }
 function labNews(){
   const n = [];
   if (S.helpRead && !S.bangAt) n.push('bang');
   if (S.bangAt) n.push('labdoor');
-  for (const k of SKEYS){ const s = S.st[k]; if (!s) continue; if (s.at) n.push('al:' + k); if (s.arr) n.push('arr:' + k); }
-  for (const d of Object.keys(LAB_DESKS)) if (!S.owned[d] && S.pages >= DESK_COST[d] && S.bangAt) n.push('buy:' + d);
+  for (const k of allKeys()){ const s = S.st[k]; if (!s) continue; if (s.at && !s.gone) n.push('al:' + k); if (s.arr) n.push('arr:' + k); }
+  for (const d of DESK_IDS) if (!S.owned[d] && S.pages >= DESK_COST[d] && S.bangAt) n.push('buy:' + d);
   if (S.goNote) n.push('go');
   return n;
 }
+const anyScared = () => (S.rFear||0) > 0.5 || allKeys().some(k => working(k) && (S.st[k].fear||0) > 0.5);
 
-// 매 순간: 편지 도착 → 연구원 도착 → 일 → 다원지기의 차 → 마지막 쪽지
+// 매 순간: 지원서·편지 도착 → 연구원 도착 → 일 → 다원지기의 차 → 마지막 쪽지
 let lastTeaRound = 0;
 function labTick(dt){
   if (!S.bangAt) return;
   const now = Date.now(), smw = stOf('smw'), ojr = stOf('ojr');
-  if (!smw.at && now >= S.bangAt + 45000){ smw.at = now; save(); noise(0.12, 110, 0.4, 'lowpass'); setTimeout(() => noise(0.12, 110, 0.35, 'lowpass'), 260); }
-  if (!ojr.at && smw.arr && now >= Math.max(S.bangAt + 120000, smw.arr + 60000)){ ojr.at = now; save(); noise(0.12, 110, 0.4, 'lowpass'); setTimeout(() => noise(0.12, 110, 0.35, 'lowpass'), 260); }
-  for (const k of SKEYS){
+  if (!curApplicant()){
+    const gArr = genKeys().filter(arrived), gHired = genKeys().filter(k => S.st[k].replied).length;
+    if (!smw.at && gArr.length >= 2 && now >= Math.max(...gArr.map(k => S.st[k].arr)) + 60000){ smw.at = now; save(); knock(); }
+    else if (!ojr.at && smw.arr && now >= smw.arr + 60000 && (anyScared() || now >= smw.arr + 180000)){ ojr.at = now; save(); knock(); }
+    else if (gHired < GEN_MAX && now >= (S.genNext || S.bangAt + 30000)){ S.genN = (S.genN || 0) + 1; stOf('g' + S.genN).at = now; save(); knock(0.7); }
+  }
+  for (const k of allKeys()){
     const s = S.st[k];
-    if (s && s.replied && !s.arr && now >= s.due){
+    if (s && s.replied && !s.arr && !s.gone && now >= s.due){
       s.arr = now; s.work = 0; s.pages = 0; s.fear = 0; save();
       const v = S.scene === 'lab' ? 1 : 0.35;                                                          // 서고에 있으면 벽 너머로 희미하게
-      noise(0.12, 110, 0.4*v, 'lowpass'); setTimeout(() => noise(0.12, 110, 0.35*v, 'lowpass'), 260);
+      knock(v);
       for (let t = 300; t < WALK_MS; t += 560) setTimeout(() => noise(0.08, 220, 0.16*v, 'lowpass'), t);
       setTimeout(() => noise(0.5, 320, 0.12*v, 'lowpass'), WALK_MS + 50);
       setTimeout(() => noise(0.45, 300, 0.1*v, 'lowpass'), T_SIT + 50);
-      if (typeof tlog === 'function') tlog('도착: ' + STAFF[k].name);
+      if (typeof tlog === 'function') tlog('도착: ' + DEF(k).name);
     }
     if (!s || !working(k)) continue;
     if (now < (s.steam||0)) s.fear = Math.max(0, (s.fear||0) - dt*0.25);
-    else s.fear = Math.min(1, (s.fear||0) + dt*0.006*STAFF[k].fearK*(now < (s.calm||0) ? 0.3 : 1));
+    else s.fear = Math.min(1, (s.fear||0) + dt*0.006*DEF(k).fearK*(now < (s.calm||0) ? 0.3 : 1));
     const fac = s.fear > 0.7 ? 0.25 : s.fear > 0.35 ? 0.5 : 1;
     s.work = (s.work||0) + dt; s.acc = (s.acc||0) + dt*fac;
-    while (s.acc >= STAFF[k].sec){ s.acc -= STAFF[k].sec; S.pages += 1; S.earned += 1; addBook(s.item || 'first', mult()); s.pages = (s.pages||0) + 1; }
+    while (s.acc >= DEF(k).sec){ s.acc -= DEF(k).sec; S.pages += 1; S.earned += 1; addBook(s.item || 'first', mult()); s.pages = (s.pages||0) + 1; }
   }
-  // 다원지기: 낮 동안 1분 30초마다 떨고 있는 사람에게 차를 내줌
+  // 다원지기: 낮 동안 1분 30초마다 떨고 있는 사람에게 차를 내줌(책상에 찻잔이 놓임)
   if (working('ojr') && now - lastTeaRound > 90000){
     lastTeaRound = now; let gave = false;
     if (S.rArrived && !isNight() && (S.rFear||0) > 0.4){ S.rSteam = now + 3000; S.rCalm = now + 48000; gave = true; }
-    for (const k of SKEYS) if (k !== 'ojr' && working(k) && (S.st[k].fear||0) > 0.4){ S.st[k].steam = now + 3000; S.st[k].calm = now + 48000; gave = true; }
+    for (const k of allKeys()) if (k !== 'ojr' && working(k) && (S.st[k].fear||0) > 0.4){ S.st[k].steam = now + 3000; S.st[k].calm = now + 48000; gave = true; }
     if (gave){ save(); if (S.scene === 'lab') sBoil(); }
   }
   if (!S.goNote && ojr.arr && now - ojr.arr > 60000){ S.goNote = true; save(); }
 }
-// 자리를 비운 동안: 서명우는 밤 시간, 오정림은 낮 시간만 (한서진과 같이 30%)
+// 자리를 비운 동안: 서명우는 밤 시간, 밤일 하는 이는 낮밤 모두, 나머지는 낮 시간만 (한서진과 같이 30%)
 function labOffline(){
   const out = [];
   if (!S.lastSeen || Date.now() - S.lastSeen < 180e3) return out;
   const now = Date.now(), from = Math.max(S.lastSeen, now - 8*3600e3);
   let daySec = 0, nightSec = 0;
   for (let t = from; t < now; t += 60e3){ const d = Math.min(60, (now - t)/1000); if (isNight(new Date(t))) nightSec += d; else daySec += d; }
-  for (const k of SKEYS){
-    const s = S.st[k]; if (!s || !s.arr) continue;
-    const sec = k === 'smw' ? nightSec : daySec; if (sec <= 0) continue;
-    const n = Math.floor(sec / STAFF[k].sec * 0.3); if (!n) continue;
+  let gen = 0;
+  for (const k of allKeys()){
+    const s = S.st[k]; if (!s || !s.arr || s.gone) continue;
+    const sec = k === 'smw' ? nightSec : DEF(k).night ? daySec + nightSec : daySec; if (sec <= 0) continue;
+    const n = Math.floor(sec / DEF(k).sec * 0.3); if (!n) continue;
     s.work = (s.work||0) + sec; s.fear = Math.max(s.fear||0, 0.4); S.pages += n; S.earned += n; addBook(s.item || 'first', n*mult()); s.pages = (s.pages||0) + n;
+    if (isGen(k)) { gen += n; continue; }
     out.push(k === 'smw'
       ? '<h3>쪽지</h3>' + vlet(['가주께.', `밤사이 ${fmtP(n)}을 넘겼습니다.`, '하늘은 맑았습니다.', isNight() ? '이상 없음. ✶' : '해가 뜨기에 눈을 감았습니다. ✶'], '서명우 올림.', 'min(44vh,320px)')
       : '<h3>쪽지</h3>' + vlet(['가주께.', `안 계신 동안 ${fmtP(n)}을 읽었습니다.`, '차는 넉넉히 끓여 두었습니다.', '서진 씨가 두 잔, 명우 씨가 한 잔 마셨습니다.'], '오정림 올림.', 'min(44vh,320px)'));
   }
+  if (gen) out.push('<h3>쪽지</h3>' + vlet(['가주께.', `별채 사람들이 ${fmtP(gen)}을 넘겼습니다.`, '모두 무사합니다.'], '한서진 적음.', 'min(36vh,240px)'));
   return out;
 }

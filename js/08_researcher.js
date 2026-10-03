@@ -102,6 +102,30 @@ function showResearcher(){
 const recDiary = () => '<h3>한서진의 일지</h3>' + diaryList().map(d => `<div style="margin:8px 0">${d}</div>`).join('');
 // 종이 인형(연구원): 갓 쓰고 흰 도포에 청색 세조대를 맨 선비. 늘 화면을 향하지만 방을 돌리면 옆으로 돌아 얇은 선이 됨
 // 선비 종이 인형: 네모난 픽셀 대신 곡선으로 그림(둥근 갓 챙, 갸름한 얼굴, 처진 어깨, 넓게 늘어진 소매, 퍼지는 도포 자락, 버선코)
+// 겁먹은 얼굴: 휘둥그레진 눈, 떨리는 입, 땀방울(종이 인형 공용)
+function fearEyes(g, xl, xr, y){
+  for (const x of [xl, xr]){ g.fillStyle = '#f4efe6'; g.beginPath(); g.ellipse(x, y, 1.5, 0.95, 0, 0, Math.PI*2); g.fill(); g.fillStyle = '#1a1410'; g.beginPath(); g.arc(x, y + 0.1, 0.55, 0, Math.PI*2); g.fill(); }
+}
+function fearMouth(g, fr, x, y){
+  g.strokeStyle = '#8f5446'; g.lineWidth = 0.9; g.beginPath();
+  if (fr === 2){ g.fillStyle = '#5a2e26'; g.ellipse(x, y + 0.2, 1.1, 0.85, 0, 0, Math.PI*2); g.fill(); return; }
+  g.moveTo(x - 1.6, y); g.quadraticCurveTo(x - 0.8, y - 0.6, x, y); g.quadraticCurveTo(x + 0.8, y + 0.6, x + 1.6, y); g.stroke();   // 떨리는 입
+}
+function fearSweat(g, fr, xl, xr, y){
+  const drop = (x, yy, s) => { g.fillStyle = '#d4ecf6'; g.strokeStyle = '#7fa6ba'; g.lineWidth = 0.4; g.beginPath(); g.moveTo(x, yy - 1.8*s); g.quadraticCurveTo(x + 1.2*s, yy, x, yy + 1*s); g.quadraticCurveTo(x - 1.2*s, yy, x, yy - 1.8*s); g.closePath(); g.fill(); g.stroke();
+    g.fillStyle = '#ffffff'; g.fillRect(x - 0.35*s, yy - 0.4*s, 0.45*s, 0.45*s); };
+  drop(xr - 0.4, y + 1, 1.1);
+  if (fr === 2){ drop(xl + 0.6, y + 2, 1); drop(xr - 1.6, y + 7.5, 0.9);
+    g.fillStyle = 'rgba(225,235,240,0.16)'; g.beginPath(); g.ellipse((xl + xr)/2, y + 6, 6.5, 6.5, 0, 0, Math.PI*2); g.fill(); }   // 핏기가 가심
+}
+// 한 사람의 그림 묶음: 겁 0·1·2단계마다 앞모습, 뒷모습은 공용
+function dollSet(draw, o = {}){
+  const L = fr => ({ A:draw('a', false, Object.assign({}, o, { fear:fr })), B:draw('b', false, Object.assign({}, o, { fear:fr })), SIT:draw('sit', false, Object.assign({}, o, { fear:fr })) });
+  const back = { A_BK:draw('a', true, o), B_BK:draw('b', true, o), SIT_BK:draw('sit', true, o) };
+  const sets = [0, 1, 2].map(fr => Object.assign(L(fr), back));
+  if (o.closable) sets[0].SIT_CL = draw('sit', false, Object.assign({}, o, { closed:true }));
+  return sets;
+}
 function drawSeonbi(pose, back, o = {}){
   const RB = o.robe || ['#f3eee2', '#e7e0cf', '#c9c0ab'], BL = o.belt || '#3e5288', BL2 = o.belt2 || '#2c3c6a';
   const W = 48, H = pose === 'sit' ? 78 : 98;
@@ -158,15 +182,33 @@ function drawSeonbi(pose, back, o = {}){
   const skin = g.createLinearGradient(16, 0, 32, 0); skin.addColorStop(0, '#ebcca6'); skin.addColorStop(0.7, '#dfbd95'); skin.addColorStop(1, '#c9a27c');
   g.fillStyle = '#d9b48c'; g.beginPath(); g.ellipse(16.4, 28, 1.6, 2.6, 0, 0, Math.PI*2); g.fill(); g.beginPath(); g.ellipse(31.6, 28, 1.6, 2.6, 0, 0, Math.PI*2); g.fill();
   g.fillStyle = skin; g.beginPath(); g.moveTo(17, 23); g.quadraticCurveTo(16.5, 33, 24, 36.5); g.quadraticCurveTo(31.5, 33, 31, 23); g.closePath(); g.fill();
-  g.strokeStyle = '#3a2a20'; g.lineWidth = 0.9; g.beginPath(); g.moveTo(18.8, 25.2); g.quadraticCurveTo(20.6, 24.4, 22.4, 25); g.moveTo(25.6, 25); g.quadraticCurveTo(27.4, 24.4, 29.2, 25.2); g.stroke();   // 눈썹
+  const FR = o.fear || 0;
+  g.strokeStyle = '#3a2a20'; g.lineWidth = 0.9; g.beginPath();
+  if (FR){ const u = FR === 2 ? 1.3 : 0.8; g.moveTo(18.8, 25.4); g.quadraticCurveTo(20.6, 25.2 - u*0.4, 22.4, 25 - u); g.moveTo(25.6, 25 - u); g.quadraticCurveTo(27.4, 25.2 - u*0.4, 29.2, 25.4); }   // 겁먹으면 눈썹 안쪽이 올라감
+  else { g.moveTo(18.8, 25.2); g.quadraticCurveTo(20.6, 24.4, 22.4, 25); g.moveTo(25.6, 25); g.quadraticCurveTo(27.4, 24.4, 29.2, 25.2); }
+  g.stroke();   // 눈썹
   if (o.closed){ g.strokeStyle = '#2a1e16'; g.lineWidth = 0.8; g.beginPath(); g.moveTo(19.4, 27.6); g.quadraticCurveTo(20.7, 28.3, 22, 27.6); g.moveTo(26, 27.6); g.quadraticCurveTo(27.3, 28.3, 28.6, 27.6); g.stroke(); }   // 감은 눈
+  else if (FR === 2) fearEyes(g, 20.7, 27.3, 27.4);   // 휘둥그레진 눈
   else { g.fillStyle = '#1a1410'; g.beginPath(); g.ellipse(20.7, 27.4, 1.3, 0.65, 0, 0, Math.PI*2); g.fill(); g.beginPath(); g.ellipse(27.3, 27.4, 1.3, 0.65, 0, 0, Math.PI*2); g.fill(); }   // 눈
   g.strokeStyle = '#b48a66'; g.lineWidth = 0.8; g.beginPath(); g.moveTo(24, 27.6); g.quadraticCurveTo(23.2, 30.5, 24.6, 31); g.stroke();   // 코
-  g.strokeStyle = '#8f5446'; g.lineWidth = 0.9; g.beginPath(); g.moveTo(22.3, 33); g.quadraticCurveTo(24, 33.7, 25.7, 33); g.stroke();   // 입
+  if (FR) fearMouth(g, FR, 24, 33); else { g.strokeStyle = '#8f5446'; g.lineWidth = 0.9; g.beginPath(); g.moveTo(22.3, 33); g.quadraticCurveTo(24, 33.7, 25.7, 33); g.stroke(); }   // 입
   g.strokeStyle = '#2a201a'; g.lineWidth = 0.7; g.beginPath(); g.moveTo(21.8, 32.2); g.quadraticCurveTo(24, 31.5, 26.2, 32.2); g.stroke();   // 옅은 콧수염
+  if (FR) fearSweat(g, FR, 17, 31, 23);
   }
   // 망건(이마를 두른 검은 띠)과 상투 아래 머리
   g.fillStyle = '#1a1410'; g.beginPath(); g.moveTo(16.6, 23.6); g.quadraticCurveTo(24, 20.8, 31.4, 23.6); g.lineTo(31.2, 21.4); g.quadraticCurveTo(24, 18.6, 16.8, 21.4); g.closePath(); g.fill();
+  const HAT = o.hat || 'gat';
+  if (HAT === 'tang'){   // 탕건: 갓 없이 쓰는 검은 말총 관
+    g.fillStyle = '#17130f'; g.beginPath(); g.moveTo(17.2, 22); g.lineTo(18.2, 13.5); g.quadraticCurveTo(24, 10.5, 29.8, 13.5); g.lineTo(30.8, 22); g.quadraticCurveTo(24, 19.6, 17.2, 22); g.closePath(); g.fill();
+    g.strokeStyle = '#3a332b'; g.lineWidth = 0.6; g.beginPath(); g.moveTo(18.6, 16.5); g.quadraticCurveTo(24, 14.6, 29.4, 16.5); g.stroke();
+    return c;
+  }
+  if (HAT === 'sangtu'){   // 상투: 정수리에 틀어 올린 머리와 동곳
+    g.fillStyle = '#1a1410'; g.beginPath(); g.moveTo(17, 21.6); g.quadraticCurveTo(17.6, 15.5, 24, 15); g.quadraticCurveTo(30.4, 15.5, 31, 21.6); g.closePath(); g.fill();
+    g.beginPath(); g.ellipse(24, 13, 2.6, 3, 0, 0, Math.PI*2); g.fill();
+    g.strokeStyle = '#c8b27a'; g.lineWidth = 0.9; g.beginPath(); g.moveTo(21, 12.2); g.lineTo(27, 12.6); g.stroke();
+    return c;
+  }
   // 갓: 대우(위로 둥글게 솟은 통)와 넓은 양태(챙). 말총 갓이라 살짝 비침
   g.globalAlpha = 0.93;
   g.fillStyle = '#16130f'; g.beginPath(); g.moveTo(18, 20); g.quadraticCurveTo(17.4, 9, 19.5, 6); g.quadraticCurveTo(24, 3.6, 28.5, 6); g.quadraticCurveTo(30.6, 9, 30, 20); g.closePath(); g.fill();
@@ -204,7 +246,7 @@ function sjPath(e){
   return { x: 27, y: lerp(CHAIR_OUT + 1.2, CHAIR_IN + 1.2, t), pose:'sit', f:[0, 1], chair: lerp(CHAIR_OUT, CHAIR_IN, t) };
 }
 const SJ = { id:'sj', get x(){ return sjState().x; }, get y(){ return sjState().y; }, doll:true, st:()=>sjState(), fear:()=>S.rFear||0, steam:()=>S.rSteam||0, arrT:()=>S.rArrived||0,
-  img:{ A:DOLL_A, B:DOLL_B, SIT:DOLL_SIT, A_BK:DOLL_A_BK, B_BK:DOLL_B_BK, SIT_BK:DOLL_SIT_BK }, show:()=>reveal('sj', S.rArrived) && (!isNight() || nightVisiting()), click:()=>showResearcher() };
+  img:{ A:DOLL_A, B:DOLL_B, SIT:DOLL_SIT, A_BK:DOLL_A_BK, B_BK:DOLL_B_BK, SIT_BK:DOLL_SIT_BK }, imgL: dollSet(drawSeonbi), show:()=>reveal('sj', S.rArrived) && (!isNight() || nightVisiting()), click:()=>showResearcher() };
 let lastTick = performance.now(), lastAuto = performance.now();
 function tick(now){
   const dt = Math.min(0.5, (now - lastTick)/1000); lastTick = now;

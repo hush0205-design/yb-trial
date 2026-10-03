@@ -51,13 +51,13 @@ function drawMap(){
   return c;
 }
 const mapView = document.getElementById('mapView'), mapStage = document.getElementById('mapStage'), mapLoupe = document.getElementById('mapLoupe');
-let mapURL = '', mapW = 0, mapH = 0, mapLoupeOn = false;
+let mapURL = '', mapW = 0, mapH = 0, mapLoupeOn = false, mapSrc = null, foldAnim = 0;
 function openMap(){
   const now = Date.now();
   if (now - (S.mapLastMark || 0) > 20000){ S.mapViews = (S.mapViews || 0) + 1; S.mapLastMark = now; S.mapStudy = (S.mapStudy||0) + MAP_PEEK; }   // 다시 펼 때마다 바다에 하나씩, 글자도 조금씩
   if (mapMarks() >= 3 && !S.caveAt){ S.caveAt = now; S.caveWork = S.rWork || 0; }
   save();
-  mapURL = drawMap().toDataURL();
+  mapSrc = drawMap(); mapURL = mapSrc.toDataURL();
   mapW = Math.floor(Math.min(innerWidth*0.94, innerHeight*0.7*1.6)); mapH = Math.floor(mapW/1.6);
   mapStage.style.width = mapW + 'px'; mapStage.style.height = mapH + 'px';
   mapStage.querySelectorAll('.mtile').forEach(t => t.remove());
@@ -65,7 +65,6 @@ function openMap(){
   for (let c = 0; c < NCOL; c++){
     const t = document.createElement('div'); t.className = 'mtile mcol' + (c % 2 ? ' valley' : '');
     Object.assign(t.style, { left: (c*tw - (c ? 0.5 : 0)) + 'px', top: '0px', width: (tw + 1) + 'px', height: mapH + 'px', backgroundImage: `url(${mapURL})`, backgroundSize: `${mapW}px ${mapH}px`, backgroundPosition: `${-c*tw}px 0px` });
-    t.style.transition = 'none'; t.style.transform = c ? 'rotateY(179deg)' : 'none';   // 세로로 접힌 채로
     mapStage.appendChild(t); tiles.push(t);
   }
   mapView.classList.remove('hidden');
@@ -75,24 +74,54 @@ function openMap(){
   const sr = mapStage.getBoundingClientRect();
   mg.style.left = Math.max(4, sr.left - 120) + 'px'; mg.style.top = (sr.top + mapH*0.55) + 'px';
   if (sr.left < 140){ mg.style.left = (sr.left + 10) + 'px'; mg.style.top = (sr.bottom + 30) + 'px'; } }
-  void mapStage.offsetWidth;
-  tiles.forEach(t => t.style.transition = '');
-  for (let c = 1; c < NCOL; c++) setTimeout(() => { tiles[c].style.transform = 'none'; rustle(0.32, 0.15); }, 300 + (c-1)*380);
+  setFold(tiles, tw, 1);                                   // 병풍처럼 접힌 채로 시작
+  rustle(0.5, 0.15); setTimeout(() => rustle(0.3, 0.12), 650);
+  animFold(tiles, tw, 1, 0, 1000);                         // 한 번에 쭉 펼쳐짐
+}
+// 병풍 접기: 칸마다 산접기·골접기로 번갈아 꺾이고, 접힌 만큼 폭이 줄어 가운데로 모임. f = 1(다 접힘) ~ 0(다 펼침)
+function setFold(tiles, tw, f){
+  const th = f * 86 * Math.PI/180, w = tw*Math.cos(th), dz = tw*Math.sin(th), total = w*tiles.length, x0 = (mapW - total)/2;
+  tiles.forEach((t, c) => {
+    const odd = c % 2 === 1;
+    t.style.transition = 'none';
+    t.style.transform = `translateX(${x0 + c*w - c*tw}px) translateZ(${odd ? -dz : 0}px) rotateY(${odd ? -th : th}rad)`;
+    t.style.filter = `brightness(${(1 - (odd ? 0.32 : 0.12)*Math.sin(th)).toFixed(3)})`;   // 꺾인 면의 그늘
+  });
+}
+function animFold(tiles, tw, a, b, ms, done){
+  const id = ++foldAnim, t0 = performance.now(), ease = x => x < 0.5 ? 2*x*x : 1 - Math.pow(-2*x + 2, 2)/2;
+  const step = now => { if (id !== foldAnim) return; const k = Math.min(1, (now - t0)/ms); setFold(tiles, tw, a + (b - a)*ease(k)); if (k < 1) requestAnimationFrame(step); else if (done) done(); };
+  requestAnimationFrame(step);
 }
 function closeMap(){
   if (S.loc && S.loc.map !== 'desk' && S.loc.map !== 'rdesk') setTimeout(() => openOv('<h3>지도</h3>지도를 접어 책장 위에 올려 두었다.<br>다시 보려면 책장에서 가져다 서안에 펼친다.'), 1200);
   if (mapLoupeOn) toggleMapLoupe();
   const tiles = [...mapStage.querySelectorAll('.mtile')];
-  for (let c = tiles.length - 1, k = 0; c >= 1; c--, k++) setTimeout(() => tiles[c].style.transform = 'rotateY(179deg)', k*160);
   rustle(0.5, 0.16);
-  setTimeout(() => mapView.classList.add('hidden'), 1100);
+  animFold(tiles, mapW/tiles.length, 0, 1, 800, () => setTimeout(() => mapView.classList.add('hidden'), 150));
 }
 function toggleMapLoupe(){
   mapLoupeOn = !mapLoupeOn; mapStage.classList.toggle('loupe', mapLoupeOn); mapLoupe.style.display = mapLoupeOn ? 'block' : 'none'; sPlace();
   document.getElementById('mapGlass').classList.toggle('held', mapLoupeOn);
-  if (mapLoupeOn){ mapLoupe.style.backgroundImage = `url(${mapURL})`; mapLoupe.style.backgroundSize = `${mapW*4}px ${mapH*4}px`; placeMapLoupe(mapW*0.6, mapH*0.6); }
+  if (mapLoupeOn) placeMapLoupe(mapW*0.6, mapH*0.6);
 }
-function placeMapLoupe(x, y){ mapLoupe.style.left = (x - 75) + 'px'; mapLoupe.style.top = (y - 75) + 'px'; mapLoupe.style.backgroundPosition = `${75 - x*4}px ${75 - y*4}px`; }
+// 수정 문진: 지도 원본에서 문진 밑 한 조각만 작은 그림에 4배로 옮겨 그림(움직일 때 가볍게)
+const loupeCv = document.createElement('canvas'), loupeG = loupeCv.getContext('2d');
+loupeCv.style.cssText = 'width:100%;height:100%;border-radius:50%;display:block';
+mapLoupe.appendChild(loupeCv);
+let loupeXY = null, loupeRaf = 0;
+function placeMapLoupe(x, y){
+  loupeXY = [x, y];
+  if (loupeRaf) return;
+  loupeRaf = requestAnimationFrame(() => {
+    loupeRaf = 0; const [px, py] = loupeXY, d = Math.min(2, devicePixelRatio || 1), S0 = 150*d;
+    if (loupeCv.width !== S0){ loupeCv.width = S0; loupeCv.height = S0; }
+    mapLoupe.style.transform = `translate(${px - 75}px, ${py - 75}px)`;
+    const k = MAPW / mapW, sw = 150/4*k;                       // 화면 150px = 지도 원본의 37.5px어치 ×4
+    loupeG.fillStyle = '#e6dabd'; loupeG.fillRect(0, 0, S0, S0);
+    if (mapSrc) loupeG.drawImage(mapSrc, px*k - sw/2, py*(MAPH/mapH) - sw/2, sw, sw, 0, 0, S0, S0);
+  });
+}
 const mvL = e => { if (!mapLoupeOn) return; const r = mapStage.getBoundingClientRect(); placeMapLoupe(e.clientX - r.left, e.clientY - r.top); };
 mapStage.addEventListener('pointermove', mvL); mapStage.addEventListener('pointerdown', mvL);
 document.getElementById('bMapGlass').addEventListener('click', e => { e.stopPropagation(); toggleMapLoupe(); });
