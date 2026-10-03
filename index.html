@@ -841,7 +841,7 @@ const OBJ = [
   { id:'lamp', get x(){ return S.owned.lamp && S.owned.desk ? -18 : -12; }, get y(){ return S.owned.lamp && S.owned.desk ? 0 : -3; }, click:()=>lampClick(), buy:{ cost:15, name:'등잔' } },
   { id:'brush', x:9, y:-20, buy:{ cost:50, name:'붓걸이' } },
   { id:'desk', get x(){ return S.owned.desk ? 0 : 0; }, get y(){ return S.owned.desk ? 3 : 15; }, m:()=> S.owned.desk ? 'seoanBook' : 'seoan', buy:{ cost:120, name:'서안' }, click:()=>openBook() },
-  { id:'glass', get x(){ return S.owned.glass && S.owned.desk ? -10 : -24; }, get y(){ return S.owned.glass && S.owned.desk ? 3 : 8; }, get z(){ return S.owned.glass && S.owned.desk ? 8 : 0; }, buy:{ cost:260, name:'수정 문진' } },
+  { id:'glass', get x(){ return S.owned.glass && S.owned.desk ? -10 : 8; }, get y(){ return S.owned.glass && S.owned.desk ? 3 : 22; }, get z(){ return S.owned.glass && S.owned.desk ? 8 : 0; }, buy:{ cost:260, name:'수정 문진' } },
   { id:'teapot', x:-31, y:-5, show:()=>reveal('teapot', S.teaArrived), click:()=>showTea() },
   { id:'door', x:27, y:-20, show:()=>reveal('door', S.D>=T.door), click:()=>showLibrary() },
   { id:'letter', x:24, y:-11, show:()=>reveal('letter', S.D>=T.letter && !S.replied), click:()=>readLetter(), glow:()=>!S.letterRead },
@@ -1133,10 +1133,10 @@ function brew(){ const now = performance.now(); if (now < steamUntil) return; st
 const ITEM = {
   lamp:  ['등잔', '불을 켜면 글자가 보인다.<br>한 번에 두 장씩 넘길 수 있다.<br>서고에 무슨 일이 생기면 바람도 없이 불이 꺼진다. 등잔을 누르면 다시 붙인다.<br><br>기름은 줄지 않는다.'],
   brush: ['붓걸이', '푼 글자를 받아 적는다. 해독이 빨라진다.<br>받아 적은 것은 도서관에 남는다.<br><br>붓이 넷. 하나는 쓴 적이 없는데 먹이 묻어 있다.'],
-  desk:  ['서안', '궤짝에서 책을 꺼내 서안에 올렸다. 궤짝은 구석으로 치웠다.<br>등잔도 서안 위로 올렸다. 서안을 누르면 책을 펼친다.<br><br>책을 펼쳐 두면 손대지 않아도 넘어간다.<br>책을 덮어 두어도 넘어간다.<br>한 번에 넘기는 장수도 늘어난다.<br><br>창은 닫혀 있다.'],
+  desk:  ['서안', '궤짝에서 책을 꺼내 서안에 올렸다. 궤짝은 구석으로 치웠다.<br>{LAMP}서안을 누르면 책을 펼친다.<br><br>책을 펼쳐 두면 손대지 않아도 넘어간다.<br>책을 덮어 두어도 넘어간다.<br>한 번에 넘기는 장수도 늘어난다.<br><br>창은 닫혀 있다.'],
   glass: ['수정 문진(水晶文鎭)', '종이를 눌러 두는 문진. 가운데 박힌 수정으로 글자를 크게 볼 수 있다. 해독이 훨씬 빨라진다.<br>책을 펼치면 책 곁에 놓여 있다. 집어 들어 대면 글자가 크게 보인다.<br>크게 보면 아직 풀리지 않은 글자도 조금 읽힌다.<br>내려놓으려면 놓였던 자리를 누른다.<br><br>여백에 다른 손으로 쓴 글씨가 있다. 아주 작다.'],
 };
-function showItem(id){ openOv(`<h3>${ITEM[id][0]}</h3>${ITEM[id][1]}`); }
+function showItem(id){ const body = ITEM[id][1].replace('{LAMP}', S.owned.lamp ? '등잔대는 서안 곁으로 옮겼다. ' : ''); openOv(`<h3>${ITEM[id][0]}</h3>${body}`); }
 function buy(o){ if (S.pages < o.buy.cost) return; S.pages -= o.buy.cost; S.owned[o.id] = true; sPlace(); save(); showItem(o.id); }
 
 // ───────── 기록 ─────────
