@@ -517,11 +517,19 @@ function model(w,d,h,fn){
   return { w, d, h, layers };
 }
 const WOOD='#5b3c25', DARK='#2c1c11', PAPER='#cfc2a3', BOOKC=['#6b2d22','#2f4a3a','#5d4a1e','#3b3550','#7a5a2e','#40302a'];
+// 덮인 옛 책: 누런 표지, 왼쪽 위 흰 제첨, 오른쪽 끝 실 매기
+function closedBook(x, y, x0, y0){
+  const dx = x - x0, dy = y - y0;
+  if (dx < 0 || dx > 6 || dy < 0 || dy > 8) return null;
+  if (dx === 6) return dy % 2 === 0 ? '#e8e0cc' : '#6a4e24';
+  if (dx === 1 && dy >= 1 && dy <= 4) return '#e2d6b8';
+  return (dx === 0 || dy === 0 || dy === 8) ? '#6e5228' : '#8a6a34';
+}
 // 서안(書案): 상판 양 끝이 두루마리처럼 말려 오름, 상판 아래 서랍 두 칸(놋쇠 고리), 다리 대신 옆판(판족)에 구름 모양 구멍(풍혈)
 function seoanModel(withBook){
   const TOP = '#5e3a22', EDGE = '#3c2414', SIDE = '#43281a', BR = '#a8873e';
   return model(28,12,10,(x,y,z)=>{
-    if (withBook && z===8 && x>=9 && x<=18 && y>=3 && y<=8) return x===13||x===14 ? '#8a7d62' : (y===3||y===8 ? '#bfb393' : PAPER);
+    if (withBook && z===8){ const c = closedBook(x, y, 11, 2); if (c) return c; }
     if (z===7 && x>=1 && x<=26 && y>=2 && y<=9) return (y===2||y===9) ? EDGE : TOP;                       // 상판
     if ((x<=1 || x>=26) && y>=2 && y<=9 && (z===8 || (z===9 && (x===0 || x===27)))) return EDGE;            // 말려 오른 끝
     if ((x===0 || x===27) && y>=2 && y<=9 && z===8) return EDGE;
@@ -558,7 +566,7 @@ const M = {
         if (y===10 && x>=6 && x<=9 && z>=3 && z<=5) return z===4 && (x===7||x===8) ? '#3a2a10' : BR;   // 앞 자물쇠 판
         return z===6 ? DARK : WOOD;
       }
-      if (z===5 && x>=3 && x<=12 && y>=3 && y<=8) return x===7||x===8 ? '#8a7d62' : (y===3||y===8 ? '#bfb393' : PAPER);   // 안에 펼친 책
+      if (z===5){ const c = closedBook(x, y, 4, 1); if (c) return c; }   // 안에 덮인 책
       return null;
     }
     if (y===0 && x>=0 && x<=15 && z<=14) return (x<=1||x>=14) && z>=12 ? BR : (z===14 || x===0 || x===15 ? DARK : WOOD);   // 뒤로 젖혀진 뚜껑
@@ -629,8 +637,8 @@ const OBJ = [
   { id:'lamp', get x(){ return S.owned.lamp && S.owned.desk ? 11 : 11; }, get y(){ return S.owned.lamp && S.owned.desk ? 0 : -1; }, get z(){ return S.owned.lamp && S.owned.desk ? 8 : 0; }, buy:{ cost:15, name:'등잔' } },
   { id:'brush', x:9, y:-20, buy:{ cost:50, name:'붓걸이' } },
   { id:'desk', get x(){ return S.owned.desk ? 0 : 0; }, get y(){ return S.owned.desk ? 3 : 15; }, m:()=> S.owned.desk ? 'seoanBook' : 'seoan', buy:{ cost:120, name:'서안' }, click:()=>openBook() },
-  { id:'glass', get x(){ return S.owned.glass && S.owned.desk ? -10 : -27; }, get y(){ return S.owned.glass && S.owned.desk ? 3 : 3; }, get z(){ return S.owned.glass && S.owned.desk ? 8 : 0; }, buy:{ cost:260, name:'수정 문진' } },
-  { id:'teapot', x:-9, y:-11, show:()=>S.D>=T.tea, click:()=>brew() },
+  { id:'glass', get x(){ return S.owned.glass && S.owned.desk ? -10 : -24; }, get y(){ return S.owned.glass && S.owned.desk ? 3 : 8; }, get z(){ return S.owned.glass && S.owned.desk ? 8 : 0; }, buy:{ cost:260, name:'수정 문진' } },
+  { id:'teapot', x:-31, y:-5, show:()=>S.D>=T.tea, click:()=>brew() },
   { id:'door', x:27, y:-20, show:()=>S.D>=T.door, click:()=>showLibrary() },
   { id:'letter', x:24, y:-11, show:()=>S.D>=T.letter && !S.letterRead, click:()=>readLetter(), glow:()=>true },
   { id:'rdesk', x:27, y:19, rot:0, show:()=>S.chair, click:()=>openOv('<h3>연구원의 자리</h3>작은 책상과 의자. 종이 묶음과 벼루가 놓여 있다.<br><br>아직 아무도 앉지 않았다.') },
