@@ -33,7 +33,8 @@ M.ldesk = model(12,8,12,(x,y,z)=>{                       // 별채 책상: 의�
 const STAFF = {
   smw: { name:'서명우', hj:'徐明雨', job:'관측사', sec:4, fearK:1.5, shadow:true,
     note:'밤에만 일한다. 해가 높으면 눈을 감고 쉰다.',
-    letter:['저는 하늘을 보는 일을 해 온 사람입니다.', '별의 자리를 적고, 달라진 것이 있으면 아룁니다.', '대문에 붙은 방을 보았습니다.', '밤에만 일하겠습니다.', '해가 높을 때는 눈이 시려 오래 뜨지 못합니다.'],
+    letter:['저는 하늘을 보는 일을 해 온 사람입니다.', '별의 자리를 적고, 달라진 것이 있으면 아룁니다.', '대문에 붙은 방을 보았습니다.', '다만 지금은 별을 볼 때가 아닙니다.', '하늘이 달라지면 찾아뵙겠습니다.'],
+    later:true,   // 1대엔 편지만 — 관측 단계에 옴(기획서 14절, 10/4)
     reply:['오시오.', '별채에 자리를 마련해 두었소.', '밤에만 일해도 좋소.'],
     diary:[[60, '이경(밤 열 시쯤). 동쪽 하늘 맑음. 늘 보던 별들. 이상 없음. ✶'],
            [240, '오시(한낮). 해를 오래 보지 말라고 배웠다. 눈이 시려 감았다. 감으니 편하다. ✶'],
@@ -43,7 +44,7 @@ const STAFF = {
     letter:['방을 보고 왔습니다.', '글은 더디게 읽지만 차는 잘 끓입니다.', '서고에 계신 분들이 잠을 못 이룬다는 말을 들었습니다.', '우리 집은 불씨를 꺼뜨린 적이 없습니다.'],
     reply:['오시오.', '별채에 자리를 마련해 두었소.', '차를 부탁하오.'],
     diary:[[60, '찻잎이 연하게 올라왔다. 우리 서고 사람들 요즘 잠을 못 잔다. 오늘은 넉넉히 끓였다.'],
-           [240, '서진 씨가 두 잔 마셨다. 손이 떨려서 잔을 잡아 주었다. 명우 씨는 밤새 별채에 있다고 해서 한 잔 들고 갔다.'],
+           [240, '서진 씨가 두 잔 마셨다. 손이 떨려서 잔을 잡아 주었다. 별채 사람들 몫으로 한 주전자를 더 끓였다.'],
            [600, '아궁이 불이 좋다. 불씨는 내가 지킨다. 우리 집은 불씨를 꺼뜨린 적이 없다.']] },
 };
 // 일반 연구원: 이름·성격·차림을 조합해 만듦(일지는 쓰지 않음)
@@ -80,7 +81,7 @@ const present = k => arrived(k) && (k === 'smw' || DEF(k).night || !isNight()); 
 const working = k => arrived(k) && Date.now() - S.st[k].arr > T_PUSH && (k === 'smw' ? isNight() : (DEF(k).night || !isNight()));
 const deskOwner = d => allKeys().find(k => S.st[k] && S.st[k].desk === d && !S.st[k].gone) || null;
 const freeDesk = () => Object.keys(LAB_DESKS).find(d => S.owned[d] && !deskOwner(d)) || null;
-const curApplicant = () => allKeys().filter(k => S.st[k] && S.st[k].at && !S.st[k].replied && !S.st[k].gone).sort((a, b) => S.st[a].at - S.st[b].at)[0] || null;
+const curApplicant = () => allKeys().filter(k => S.st[k] && S.st[k].at && !S.st[k].replied && !S.st[k].gone && !(STAFF[k] && STAFF[k].later && S.st[k].read)).sort((a, b) => S.st[a].at - S.st[b].at)[0] || null;
 
 // 별채의 길: 문 → 책상 옆 → 의자를 빼고 앉음 (한서진과 같은 몸짓, 책상 자리만 다름)
 function labPath(e, d){
@@ -249,6 +250,7 @@ function readApplicant(k){
     document.getElementById('bSendAway').addEventListener('click', ev => { ev.stopPropagation(); stOf(k).gone = true; S.genNext = Date.now() + 210000; save(); ov.classList.add('hidden'); });
     return;
   }
+  if (STAFF[k].later){ openOv(letterOf(k)); return; }                                     // 지금은 오지 않는 사람: 편지만
   openOv(letterOf(k) + (fd ? '<div style="text-align:center;margin-top:14px">' + btn('bReplyA', '답장을 쓴다') + '</div>' : full));
   const b = document.getElementById('bReplyA'); if (b) b.addEventListener('click', ev => { ev.stopPropagation();
     openOv(replyOf(k) + '<div style="text-align:center;margin-top:14px">' + btn('bSendA', '보낸다') + '</div>');
@@ -290,7 +292,7 @@ function showStaff(k){
 }
 function readGo(){
   S.goRead = true; save();
-  openOv('<h3>쪽지</h3>' + vlet(['가주께.', '사람이 늘었습니다.', '새로 온 이들도 손이 제법입니다.', '명우 씨는 밤을 맡고', '정림 씨는 차를 맡아 주니', '이제 바닷가에 가 볼 수 있겠습니다.', '날을 잡아 주십시오.'], '한서진 올림.'),
+  openOv('<h3>쪽지</h3>' + vlet(['가주께.', '사람이 늘었습니다.', '새로 온 이들도 손이 제법입니다.', '정림 씨가 차를 맡아 주니', '이제 바닷가에 가 볼 수 있겠습니다.', '날을 잡아 주십시오.'], '한서진 올림.'),
     () => { setTimeout(() => document.getElementById('endnote').style.opacity = 1, 1500); });
   if (typeof tlog === 'function') tlog('체험판 끝 쪽지');
 }
@@ -298,12 +300,12 @@ function labRecs(recs){
   if (S.bangAt) recs.push(['방(榜)', bangHtml]);
   for (const k of ['smw', 'ojr']){ const s = S.st[k]; if (!s) continue;
     if (s.read) recs.push([`편지 — ${STAFF[k].name}`, () => letterOf(k)]);
-    if (s.replied) recs.push([`답장 — ${STAFF[k].name}`, () => replyOf(k)]);
+    if (s.replied && !STAFF[k].later) recs.push([`답장 — ${STAFF[k].name}`, () => replyOf(k)]);
     if (staffDiary(k).length) recs.push([`${STAFF[k].name}의 일지`, () => `<h3>${STAFF[k].name}의 일지</h3>` + staffDiary(k).map(d => `<div style="margin:8px 0">${d}</div>`).join('')]);
   }
   const g = genKeys().filter(k => S.st[k].read);
   if (g.length) recs.push(['지원서 묶음', () => '<h3>지원서 묶음</h3>' + g.map(k => `<div style="margin:8px 0"><b>${DEF(k).name}(${DEF(k).hj})</b>${S.st[k].gone ? ' <span style="opacity:.5;font-size:12px">— 돌려보냄</span>' : ''}<br>${DEF(k).lines.join(' ')}</div>`).join('')]);
-  if (S.goRead) recs.push(['쪽지 — 한서진 (사람이 늘었습니다)', () => '<h3>쪽지</h3>가주께. 사람이 늘었습니다. 새로 온 이들도 손이 제법입니다. 명우 씨는 밤을 맡고 정림 씨는 차를 맡아 주니 이제 바닷가에 가 볼 수 있겠습니다. 날을 잡아 주십시오. — 한서진']);
+  if (S.goRead) recs.push(['쪽지 — 한서진 (사람이 늘었습니다)', () => '<h3>쪽지</h3>가주께. 사람이 늘었습니다. 새로 온 이들도 손이 제법입니다. 정림 씨가 차를 맡아 주니 이제 바닷가에 가 볼 수 있겠습니다. 날을 잡아 주십시오. — 한서진']);
 }
 function labNews(){
   const n = [];
@@ -325,7 +327,7 @@ function labTick(dt){
     const gArr = genKeys().filter(arrived), gHired = genKeys().filter(k => S.st[k].replied).length;
     const gPages = gArr.reduce((a, k) => a + (S.st[k].pages||0), 0);
     if (!smw.at && gArr.length >= 2 && gPages >= 200){ smw.at = now; save(); knock(); }                                   // 별채가 함께 2권을 넘긴 뒤
-    else if (!ojr.at && smw.arr && now >= smw.arr + 60000 && ((S.sweatSec||0) >= 600 || now >= smw.arr + 1800000)){ ojr.at = now; save(); knock(); }   // 땀 흘린 시간이 모두 합쳐 10분을 넘으면(아니면 30분 뒤)
+    else if (!ojr.at && smw.read && now >= smw.at + 60000 && ((S.sweatSec||0) >= 600 || now >= smw.at + 1800000)){ ojr.at = now; save(); knock(); }   // 땀 흘린 시간이 모두 합쳐 10분을 넘으면(아니면 30분 뒤)
     else if (gHired < GEN_MAX && now >= (S.genNext || S.bangAt + 120000)){ S.genN = (S.genN || 0) + 1; stOf('g' + S.genN).at = now; save(); knock(0.7); }
   }
   for (const k of allKeys()){
@@ -376,7 +378,7 @@ function labOffline(){
     if (isGen(k)) { gen += n; continue; }
     out.push(k === 'smw'
       ? '<h3>쪽지</h3>' + vlet(['가주께.', `밤사이 ${fmtP(n)}을 넘겼습니다.`, '하늘은 맑았습니다.', isNight() ? '이상 없음. ✶' : '해가 뜨기에 눈을 감았습니다. ✶'], '서명우 올림.', 'min(44vh,320px)')
-      : '<h3>쪽지</h3>' + vlet(['가주께.', `안 계신 동안 ${fmtP(n)}을 읽었습니다.`, '차는 넉넉히 끓여 두었습니다.', '서진 씨가 두 잔, 명우 씨가 한 잔 마셨습니다.'], '오정림 올림.', 'min(44vh,320px)'));
+      : '<h3>쪽지</h3>' + vlet(['가주께.', `안 계신 동안 ${fmtP(n)}을 읽었습니다.`, '차는 넉넉히 끓여 두었습니다.', '서진 씨가 두 잔, 별채 사람들이 한 잔씩 마셨습니다.'], '오정림 올림.', 'min(44vh,320px)'));
   }
   if (gen) out.push('<h3>쪽지</h3>' + vlet(['가주께.', `별채 사람들이 ${fmtP(gen)}을 넘겼습니다.`, '모두 무사합니다.'], '한서진 적음.', 'min(36vh,240px)'));
   return out;

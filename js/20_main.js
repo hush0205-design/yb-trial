@@ -18,10 +18,10 @@ const JUMPS = [
 ];
 JUMPS.push(['14. 방을 붙인 뒤 (서명우 편지가 오기 직전)', Object.assign(JSON.parse(JSON.stringify(JUMPS[12][1])), { helpNote:true, helpRead:true, bangAt:-1, pages:700, earned:2400 })]);
 JUMPS.push(['15. 별채에 다 모인 뒤 (마지막 쪽지)', Object.assign(JSON.parse(JSON.stringify(JUMPS[12][1])), { helpNote:true, helpRead:true, bangAt:-1, labSeen:true, pages:300, earned:2800, genN:3, genNext:-1,
-  owned:{ lamp:true, brush:true, desk:true, glass:true, ld1:true, ld2:true, ld3:true, ld4:true, ld5:true },
+  owned:{ lamp:true, brush:true, desk:true, glass:true, ld1:true, ld2:true, ld3:true, ld4:true },
   st:{ g1:{ at:-1, read:true, replied:true, arr:-1, desk:'ld1', item:'first' }, g2:{ at:-1, read:true, replied:true, arr:-1, desk:'ld2', item:'first' }, g3:{ at:-1, read:true, replied:true, arr:-1, desk:'ld3', item:'dongui' },
-       smw:{ at:-1, read:true, replied:true, arr:-1, desk:'ld4', item:'first', work:300 }, ojr:{ at:-1, read:true, replied:true, arr:-2, desk:'ld5', item:'dongui', work:100 } } })]);
-JUMPS.push(['16. 일반 연구원 둘이 자리 잡은 뒤 (서명우 편지 직전, 한 명은 겁에 질림)', Object.assign(JSON.parse(JSON.stringify(JUMPS[12][1])), { helpNote:true, helpRead:true, bangAt:-1, labSeen:true, pages:500, earned:2600, genN:2, genNext:-1,
+       smw:{ at:-1, read:true }, ojr:{ at:-1, read:true, replied:true, arr:-2, desk:'ld4', item:'dongui', work:100 } } })]);
+JUMPS.push(['16. 일반 연구원 둘이 자리 잡은 뒤 (서명우의 편지 직전, 한 명은 겁에 질림)', Object.assign(JSON.parse(JSON.stringify(JUMPS[12][1])), { helpNote:true, helpRead:true, bangAt:-1, labSeen:true, pages:500, earned:2600, genN:2, genNext:-1,
   owned:{ lamp:true, brush:true, desk:true, glass:true, ld1:true, ld2:true }, teaArrived:true,
   st:{ g1:{ at:-1, read:true, replied:true, arr:-2, desk:'ld1', item:'first', fear:0.8, pages:120 }, g2:{ at:-1, read:true, replied:true, arr:-2, desk:'ld2', item:'first', fear:0.45, pages:100 } } })]);
 function jumpTo(i){
