@@ -1,6 +1,20 @@
 'use strict';
 // ───────── 서고(스프라이트 스태킹) ─────────
-const cv = document.getElementById('cv'), cx = cv.getContext('2d');
+const cv = document.getElementById('cv'), cxMain = cv.getContext('2d');
+let cx = cxMain;
+// 방을 돌리는 동안에는 절반 해상도로 그려 크게 늘려 붙임(손을 떼면 바로 원래 선명도)
+const loCv = document.createElement('canvas'), loCx = loCv.getContext('2d');
+let loSaved = null;
+function beginLow(){
+  loSaved = { W, H, SC, DPR };
+  const w = Math.ceil(W/2), h = Math.ceil(H/2);
+  if (loCv.width !== w || loCv.height !== h){ loCv.width = w; loCv.height = h; }
+  W = w; H = h; SC = loSaved.SC/2; DPR = loSaved.DPR/2; cx = loCx; cx.imageSmoothingEnabled = false;
+}
+function endLow(){
+  ({ W, H, SC, DPR } = loSaved); loSaved = null; cx = cxMain;
+  cx.imageSmoothingEnabled = false; cx.drawImage(loCv, 0, 0, loCv.width*2, loCv.height*2);
+}
 function hex(c){ return [parseInt(c.slice(1,3),16), parseInt(c.slice(3,5),16), parseInt(c.slice(5,7),16)]; }
 function model(w,d,h,fn){
   const layers = [];
@@ -193,13 +207,20 @@ function resize(){ const r = cv.getBoundingClientRect(); DPR = Math.min(2, windo
   SC = Math.max(2, Math.floor(Math.min(W/96, H/78))); }
 window.addEventListener('resize', resize);
 function drawModel(m, sx, sy, a, alpha, z0=0){
-  const step = SC*0.85; cx.globalAlpha = alpha;
+  // 층마다 save/restore로 변환을 쌓던 것을 변환 행렬 한 번 계산 + setTransform으로 바꿈(돌릴 때 끊김 줄이기)
+  const step = SC*0.85, n = Math.ceil(step), ca = Math.cos(a), sa = Math.sin(a);
+  const A = SC*ca, B = SC*0.6*sa, C = -SC*sa, D = SC*0.6*ca, ox = -m.w/2, oy = -m.d/2;
+  const ex = sx + A*ox + C*oy, ey0 = sy + B*ox + D*oy;
+  cx.globalAlpha = alpha;
   for (let z=0; z<m.h; z++){ const L = m.layers[z]; if (!L) continue;
-    for (let k=0; k<Math.ceil(step); k++){ cx.save(); cx.translate(sx, sy - (z+z0)*step - k); cx.scale(SC, SC*0.6); cx.rotate(a); cx.drawImage(L, -m.w/2, -m.d/2); cx.restore(); }
+    const ey = ey0 - (z+z0)*step;
+    for (let k=0; k<n; k++){ cx.setTransform(A, B, C, D, ex, ey - k); cx.drawImage(L, 0, 0); }
   }
-  cx.globalAlpha = 1;
+  cx.setTransform(1, 0, 0, 1, 0, 0); cx.globalAlpha = 1;
 }
 function frame(now){
+  const lowQ = typeof down !== 'undefined' && !!down && down.moved && bookView.classList.contains('hidden');
+  if (lowQ) beginLow();
   const t = (now - t0)/1000, a = ang + Math.sin(t*0.12)*0.1 + drag, c = Math.cos(a), s = Math.sin(a), ox = W/2, oy = H*0.58;
   if (bookView.classList.contains('hidden')){
     cx.fillStyle = '#0b0907'; cx.fillRect(0,0,W,H); cx.imageSmoothingEnabled = false;
@@ -260,6 +281,7 @@ function frame(now){
     const sc = now - sceneAt; if (sc < 700){ cx.fillStyle = `rgba(0,0,0,${1 - sc/700})`; cx.fillRect(0,0,W,H); }   // 문을 지나 다른 방으로
     if (since < 900){ const k = since < 120 || (since > 260 && since < 380) || (since > 520 && since < 600) ? 0.85 : 0; if (k){ cx.fillStyle = `rgba(8,6,4,${k})`; cx.fillRect(0,0,W,H); } }   // 다시 붙인 불의 깜빡임
   }
+  if (lowQ) endLow();
   tick(now); requestAnimationFrame(frame);
 }
 
