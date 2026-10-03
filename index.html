@@ -41,6 +41,7 @@
     background-image:repeating-linear-gradient(to left, transparent 0, transparent calc(var(--lh) - 1px), #6a4a2a2e calc(var(--lh) - 1px), #6a4a2a2e var(--lh)); }
   .horiz .txt { writing-mode:horizontal-tb; background-image:none; word-break:keep-all; line-height:1.7; padding:4px 2px; }
   .ln { white-space:pre-wrap; }
+  .tcy { text-combine-upright:all; -webkit-text-combine:horizontal; }
   .ln.red { color:#6a2a16; font-style:italic; }
   .ag { display:inline-block; color:#3a2c1e; }
   .ag.r1 { transform:scaleX(-1); } .ag.r2 { transform:rotate(90deg); } .ag.r3 { transform:scale(-1,-1); } .ag.r4 { transform:rotate(-90deg) scaleX(-1); }
@@ -424,7 +425,18 @@ function linesHtml(from, to, Dv, mark, b = curB()){
   let h = '';
   for (let i=from;i<to;i++){
     const now = Array.from(showText(i, Dv, b)), old = Array.from(prevTxt[b.id + ':' + i] || '');
-    h += `<div class="ln${b === BD && i >= 8 ? ' red' : ''}">` + now.map((ch,k) => isAlien(ch) ? agSpan(ch,k) : ((mark && old[k] !== ch && ch.trim()) ? `<span class="nw">${esc(ch)}</span>` : esc(ch))).join('') + '</div>';
+    let out = '';
+    for (let k = 0; k < now.length; k++){
+      const ch = now[k];
+      if (isAlien(ch)) { out += agSpan(ch, k); continue; }
+      if (/\d/.test(ch)){                                                     // 숫자는 두 자리까지 묶어 똑바로
+        let run = ch; while (run.length < 2 && k + 1 < now.length && /\d/.test(now[k+1])) run += now[++k];
+        const changed = mark && [...run].some((c, j) => old[k - run.length + 1 + j] !== c);
+        out += `<span class="tcy${changed ? ' nw' : ''}">${run}</span>`; continue;
+      }
+      out += (mark && old[k] !== ch && ch.trim()) ? `<span class="nw">${esc(ch)}</span>` : esc(ch);
+    }
+    h += `<div class="ln${b === BD && i >= 8 ? ' red' : ''}">` + out + '</div>';
   }
   return h;
 }
@@ -846,6 +858,12 @@ const M = {
     if ((x<=1||x>=14) && (y<=1||y>=7)) return '#3a2414';
     return null;
   }),
+  sundial: model(9,9,7,(x,y,z)=>{ const r = Math.hypot(x-4, y-4);            // 앙부일구: 솥 모양 해시계, 네 발, 가운데 바늘(영침)
+    if (z <= 2) return ((x===1||x===7) && (y===1||y===7)) ? '#5a4a30' : null;
+    if (z === 3) return r <= 3.6 ? '#7a6a44' : null;
+    if (z === 4 || z === 5) return r <= 4.2 && r > 3 ? '#9a8a5a' : (r <= 3 && z === 4 ? '#c8b98e' : null);
+    if (z === 6) return (x === 4 && y >= 2 && y <= 4) ? '#2a2018' : null;
+    return null; }),
   mapFold: model(6,4,2,(x,y,z)=> z===0 ? '#cfc2a3' : (x===2 || y===1) ? '#a89a78' : '#ddd1b4'),
   chair: model(9,8,13,(x,y,z)=>{ const L='#6a4628', Dk='#4a2e18'; if (z===5) return (x===0||x===8||y===7) ? Dk : L; if (z<5) return ((x<=1||x>=7)&&(y<=1||y>=6)) ? Dk : null; if (y<=1) return (x<=1||x>=7||z===12||z===9) ? (z===12 ? L : Dk) : null; return null; }),
 };
@@ -878,6 +896,7 @@ const OBJ = [
   { id:'brush', x:9, y:-20, buy:{ cost:50, name:'붓걸이' } },
   { id:'desk', get x(){ return S.owned.desk ? 0 : 0; }, get y(){ return S.owned.desk ? 3 : 15; }, m:()=> 'seoan', buy:{ cost:120, name:'서안' }, click:()=>deskClick() },
   { id:'glass', get x(){ return S.owned.glass && S.owned.desk ? -10 : 8; }, get y(){ return S.owned.glass && S.owned.desk ? 3 : 22; }, get z(){ return S.owned.glass && S.owned.desk ? 8 : 0; }, buy:{ cost:260, name:'수정 문진' } },
+  { id:'sundial', x:4, y:-15, buy:{ cost:300, name:'앙부일구' }, show:()=>!!S.rArrived },
   { id:'teapot', x:-31, y:-5, show:()=>reveal('teapot', S.teaArrived), click:()=>showTea() },
   { id:'door', x:27, y:-25.5, show:()=>reveal('door', S.D>=T.door), click:()=>showLibrary() },
   { id:'letter', x:24, y:-11, show:()=>reveal('letter', S.D>=T.letter && !S.replied), click:()=>readLetter(), glow:()=>!S.letterRead },
@@ -1016,9 +1035,13 @@ function offlineWork(){
 }
 function showResearcher(){
   if (isNight()) { openOv('<h3>연구원의 자리</h3>밤이다. 한서진은 돌아갔다.<br>해가 뜨면 온다.'); return; }
+  const rfac = (S.rFear||0) > 0.7 ? 0.25 : (S.rFear||0) > 0.35 ? 0.5 : 1, rItemNow = itemAt('rdesk');
+  const speed = !rItemNow ? '쉬고 있다' : S.owned.sundial
+    ? `1분에 ${fmtP(Math.round(60/R_SEC*rfac))} — ${rfac === 1 ? '평소대로' : rfac === 0.5 ? '평소의 절반' : '평소의 4분의 1'}`
+    : rfac === 1 ? '또박또박 넘긴다' : rfac === 0.5 ? '손이 떨려 느릿느릿 넘긴다' : '책장을 붙잡고 거의 넘기지 못한다';
   const n = diaryCount(), rf = S.rFear || 0, st = rf > 0.7 ? '간이 콩알만 해짐 — 손이 떨려 책장을 거의 넘기지 못한다' : rf > 0.35 ? '간이 콩알만 해짐 — 손이 떨린다' : '평온함';
   const rb = itemAt('rdesk'), o = (id, label) => `<span data-rb="${id}" class="${rb === id ? 'on' : ''}">${label}</span>`;
-  openOv(`<h3>연구원 — 한서진(韓瑞眞)</h3>직업: 해독가<br>상태: ${st}<br>넘긴 것: ${fmtP(S.rPages||0)}<br><div style="font-size:12px;opacity:.6">밤에는 일하지 않는다.</div>`
+  openOv(`<h3>연구원 — 한서진(韓瑞眞)</h3>직업: 해독가<br>상태: ${st}<br>읽는 빠르기: ${speed}<br>넘긴 것: ${fmtP(S.rPages||0)}<br><div style="font-size:12px;opacity:.6">밤에는 일하지 않는다.</div>`
     + (S.teaArrived ? `<div style="text-align:center;margin:8px 0"><button class="btn rec" id="bRTea" style="color:var(--ink);border-color:#00000066">차를 한 잔 내준다</button></div>` : '')
     + `<div style="margin-top:8px">책상 위: ${rb ? INAME[rb] : '<i>비어 있다 — 아무것도 하지 않고 앉아 있다</i>'}</div>`
     + `<div class="opt rec"><span>책장에서 가져다 놓기</span><span class="ch">${o('first', '제목 없는 책')}${o('dongui', '동의보감 三')}${S.mapFound ? o('map', '지도') : ''}${rb ? o('', '치운다') : ''}</span></div>`
@@ -1232,6 +1255,7 @@ const ITEM = {
   lamp:  ['등잔', '불을 켜면 글자가 보인다.<br>한 번에 두 장씩 넘길 수 있다.<br>서고에 무슨 일이 생기면 바람도 없이 불이 꺼진다. 등잔을 누르면 다시 붙인다.<br><br>기름은 줄지 않는다.'],
   brush: ['붓걸이', '푼 글자를 받아 적는다. 해독이 빨라진다.<br>받아 적은 것은 도서관에 남는다.<br><br>붓이 넷. 하나는 쓴 적이 없는데 먹이 묻어 있다.'],
   desk:  ['서안', '궤짝에서 책을 꺼내 책장에 꽂았다. 이제 책장에는 열세 권이 있다. 궤짝은 구석으로 치웠다.<br>{LAMP}서안은 비워 두었다. 책장에서 읽을 것을 가져와 올려야 한다.<br><br>책을 펼쳐 두면 손대지 않아도 넘어간다.<br>책을 덮어 두어도 넘어간다.<br>한 번에 넘기는 장수도 늘어난다.<br><br>창은 닫혀 있다.'],
+  sundial: ['앙부일구(仰釜日晷)', '해 그림자로 때를 재는 솥 모양 해시계.<br>이제 연구원이 얼마나 빨리 넘기는지 정확히 셀 수 있다.<br><br>그림자가 가끔 두 갈래로 갈라진다.'],
   glass: ['수정 문진(水晶文鎭)', '종이를 눌러 두는 문진. 가운데 박힌 수정으로 글자를 크게 볼 수 있다. 해독이 훨씬 빨라진다.<br>책을 펼치면 책 곁에 놓여 있다. 집어 들어 대면 글자가 크게 보인다.<br>크게 보면 아직 풀리지 않은 글자도 조금 읽힌다.<br>내려놓으려면 놓였던 자리를 누른다.<br><br>여백에 다른 손으로 쓴 글씨가 있다. 아주 작다.'],
 };
 function showItem(id){ const body = ITEM[id][1].replace('{LAMP}', S.owned.lamp ? '등잔대는 서안 곁으로 옮겼다. ' : ''); openOv(`<h3>${ITEM[id][0]}</h3>${body}`); }
