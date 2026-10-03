@@ -587,7 +587,7 @@ const OBJ = [
   { id:'lamp', get x(){ return S.owned.lamp && S.owned.desk ? 11 : 11; }, get y(){ return S.owned.lamp && S.owned.desk ? 0 : -1; }, get z(){ return S.owned.lamp && S.owned.desk ? 8 : 0; }, buy:{ cost:15, name:'등잔' } },
   { id:'brush', x:9, y:-20, buy:{ cost:50, name:'붓걸이' } },
   { id:'desk', get x(){ return S.owned.desk ? 0 : 20; }, get y(){ return S.owned.desk ? 3 : 16; }, m:()=> S.owned.desk ? 'seoanBook' : 'seoan', buy:{ cost:120, name:'서안' }, click:()=>openBook() },
-  { id:'glass', get x(){ return S.owned.glass && S.owned.desk ? -9 : 25; }, get y(){ return S.owned.glass && S.owned.desk ? 5 : 5; }, get z(){ return S.owned.glass && S.owned.desk ? 8 : 0; }, buy:{ cost:260, name:'돋보기' } },
+  { id:'glass', get x(){ return S.owned.glass && S.owned.desk ? -9 : -27; }, get y(){ return S.owned.glass && S.owned.desk ? 5 : 3; }, get z(){ return S.owned.glass && S.owned.desk ? 8 : 0; }, buy:{ cost:260, name:'돋보기' } },
   { id:'teapot', x:-9, y:-11, show:()=>S.D>=T.tea, click:()=>brew() },
   { id:'door', x:27, y:-20, show:()=>S.D>=T.door, click:()=>showLibrary() },
   { id:'letter', x:24, y:-11, show:()=>S.D>=T.letter && !S.letterRead, click:()=>readLetter(), glow:()=>true },
