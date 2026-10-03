@@ -169,3 +169,12 @@
   #bookView:not(.lit) #thread .tln { stroke:#e2e4ee; }
   #thread.stir { filter:drop-shadow(0 0 5px #f6e8c0cc); }
   #counter { cursor:pointer; }
+  /* 저절로 접힌 귀: 누가 접어 둔 장 귀퉁이 */
+  #foldEar { position:absolute; right:0; top:0; width:34px; height:34px; z-index:4; display:none; cursor:pointer;
+    background:linear-gradient(45deg, transparent 50%, #c9b991 50%); box-shadow:-2px 2px 5px #0003; }
+  #foldEar.on { display:block; }
+  /* 덮은 뒤 잔상 */
+  #afterimg { position:fixed; left:50%; top:42%; transform:translate(-50%,-50%); writing-mode:vertical-rl; font-size:24px; letter-spacing:6px;
+    color:#e8dcc0; opacity:0; pointer-events:none; z-index:11; text-shadow:0 0 8px #000; white-space:nowrap; }
+  #afterimg.go { animation:afterimg 1.2s ease-out; }
+  @keyframes afterimg { 0% { opacity:0; } 15% { opacity:.32; } 100% { opacity:0; } }

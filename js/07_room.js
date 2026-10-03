@@ -259,7 +259,8 @@ function frame(now){
         const face = st.f[0]*s + st.f[1]*c;                        // 바라보는 쪽이 화면(앞)으로 향한 정도
         const f = Math.max(0.05, Math.abs(face)), bk = face < 0;   // 옆으로 돌면 얇아지고, 등을 보이면 뒷모습
         const img = st.pose === 'sit' ? (bk ? I.SIT_BK : (st.closed && I.SIT_CL) || I.SIT) : walking ? (Math.floor(e/280) % 2 ? (bk ? I.A_BK : I.A) : (bk ? I.B_BK : I.B)) : (bk ? I.A_BK : I.A);
-        const u = SC*0.85*0.27, dh = img.height*u, dw = img.width*u*f;
+        const breath = walking ? 1 : 1 + 0.012*Math.sin(t*1.7 + D.id.length*1.3);   // 숨: 앉거나 서 있을 때 아주 조금 오르내림
+        const u = SC*0.85*0.27, dh = img.height*u*breath, dw = img.width*u*f;
         const lift = walking ? Math.abs(Math.sin(e/280*Math.PI))*SC*0.5 : st.pose === 'sit' ? 4*SC*0.85 : 0;   // 걸음의 들썩임 / 의자 높이
         const fr = D.fear(), tr = fr > 0.35 && !walking ? (Math.random() - 0.5) * SC * 0.7 * fr : 0;   // 겁에 질려 떪
         if (D.shadow){ cx.fillStyle = 'rgba(0,0,0,0.38)'; cx.beginPath(); cx.ellipse(it.sx + 6*DPR, it.sy + 2*DPR, img.width*u*0.55, img.width*u*0.16, 0, 0, Math.PI*2); cx.fill(); }   // 그림자 하나
