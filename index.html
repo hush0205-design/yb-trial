@@ -108,6 +108,21 @@
   #deskGlass.held .obj { opacity:0; }
   #deskGlass.held .spot { opacity:.5; }
 
+  /* 지도 화면: 여러 번 접힌 한 장이 칸칸이 펴짐 */
+  #mapView { position:fixed; inset:0; z-index:12; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    background-color:#3a2414;
+    background-image:repeating-linear-gradient(0deg, #00000000 0 41px, #0000001a 41px 43px, #00000000 43px 97px, #ffffff08 97px 98px),
+      repeating-linear-gradient(0deg, #4a2e1a 0, #3d2615 7px, #46301c 15px, #3a2414 23px); }
+  #mapStage { position:relative; perspective:1800px; }
+  .mtile { position:absolute; background-repeat:no-repeat; backface-visibility:hidden; -webkit-backface-visibility:hidden; transition:transform .42s cubic-bezier(.4,.1,.3,1);
+    box-shadow:inset 0 0 0 0.6px #5a3a1a40; }
+  #mapStage { box-shadow:0 10px 26px #0008; }
+  .mtile.mcol { transform-origin:left center; } .mtile.mrow { transform-origin:center top; }
+  #mapLoupe { position:absolute; width:150px; height:150px; border-radius:50%; display:none; pointer-events:none; z-index:5; background-repeat:no-repeat;
+    border:5px solid #a8873e; outline:1px solid #6a5224; box-shadow:0 10px 24px #000a; }
+  #mapStage.loupe { cursor:none; touch-action:none; }
+  #mapBar { margin-top:18px; display:flex; gap:12px; }
+  .dlist { display:flex; justify-content:space-between; }
   /* 시작·족보·가훈 */
   .screen { position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; background:var(--bg); z-index:20; }
   #title { font-size:30px; letter-spacing:10px; color:#8d8168; margin-bottom:60px; }
@@ -191,6 +206,10 @@
   <div id="bookBar"><button class="sbtn hidden" id="bGlass">돋보기</button><button class="sbtn hidden" id="bClose">책을 덮는다</button></div>
 </div>
 
+<div id="mapView" class="hidden">
+  <div id="mapStage"><div id="mapLoupe"></div></div>
+  <div id="mapBar"><button class="sbtn hidden" id="bMapGlass">수정 문진으로 비춘다</button><button class="sbtn" id="bMapClose">지도를 접는다</button></div>
+</div>
 <div class="screen" id="sStart"><div id="title">□□ — □□□□□</div><button class="btn" id="bOpen">궤짝을 연다</button></div>
 <div class="screen hidden" id="sJokbo">
   <div class="hanji">
@@ -480,6 +499,90 @@ function turnPage(slow, fast){
   animateLeaf(slow ? 2000 : fast ? 230 : 950, finishTurn);
 }
 
+// ───────── 지도 ─────────
+const MAPW = 1600, MAPH = 1000, MAP_NEED = 60;   // MAP_NEED: 연구원이 바다에 생긴 글을 푸는 데 드는 양
+const mapMarks = () => Math.max(0, Math.min(6, (S.mapViews || 0) - 1));
+function vtext(g, str, x, y, size, col, alpha = 1){ g.save(); g.globalAlpha = alpha; g.fillStyle = col; g.font = `${size}px 'Nanum Myeongjo', serif`; g.textAlign = 'center';
+  [...str].forEach((ch, k) => g.fillText(ch, x, y + k*size*1.05)); g.restore(); }
+function drawMap(){
+  const c = document.createElement('canvas'); c.width = MAPW; c.height = MAPH; const g = c.getContext('2d'), r = rng(77);
+  g.fillStyle = '#e6dabd'; g.fillRect(0, 0, MAPW, MAPH);
+  for (let k = 0; k < 900; k++){ g.strokeStyle = `rgba(110,90,60,${0.04 + r()*0.05})`; g.lineWidth = 1; const x = r()*MAPW, y = r()*MAPH; g.beginPath(); g.moveTo(x, y); g.lineTo(x + 6 + r()*20, y + (r()-0.5)*4); g.stroke(); }   // 한지 결
+  const INK = '#2a2118', m = mapMarks();
+  // 해안선: 왼쪽은 육지, 오른쪽은 바다
+  const coast = y => 790 + Math.sin(y/70)*38 + Math.sin(y/23)*12;
+  g.strokeStyle = INK; g.lineWidth = 3.2; g.beginPath(); for (let y = 0; y <= MAPH; y += 6) (y ? g.lineTo : g.moveTo).call(g, coast(y), y); g.stroke();
+  // 산(겹친 산줄기)
+  const mount = (x, y, w, h) => { for (let k = 0; k < 3; k++){ g.strokeStyle = INK; g.lineWidth = 2.2 - k*0.5; g.beginPath(); g.moveTo(x - w + k*12, y + k*6); g.quadraticCurveTo(x, y - h + k*18, x + w - k*12, y + k*6); g.stroke(); }
+    g.fillStyle = 'rgba(60,80,50,.12)'; g.beginPath(); g.moveTo(x - w, y); g.quadraticCurveTo(x, y - h, x + w, y); g.fill(); };
+  [[160,220,70,90],[260,190,60,70],[120,520,80,110],[330,640,70,80],[560,300,65,85],[610,820,80,95],[450,880,60,70]].forEach(a => mount(...a));
+  // 길(10리마다 눈금)
+  g.strokeStyle = '#5a3a24'; g.lineWidth = 2; const road = [[200,340],[360,420],[520,470],[700,520]];
+  g.beginPath(); road.forEach(([x,y],i) => i ? g.lineTo(x,y) : g.moveTo(x,y)); g.stroke();
+  for (let i = 0; i < road.length - 1; i++){ const [x1,y1] = road[i], [x2,y2] = road[i+1]; for (let t = 0.2; t < 1; t += 0.3){ const x = x1 + (x2-x1)*t, y = y1 + (y2-y1)*t; g.beginPath(); g.moveTo(x, y-7); g.lineTo(x, y+7); g.stroke(); } }
+  // 마을
+  [[520,470,'葛頭浦'],[360,420,'鹽峴'],[700,520,'巖項']].forEach(([x,y,n]) => { g.strokeStyle = INK; g.lineWidth = 2; g.beginPath(); g.arc(x, y, 10, 0, Math.PI*2); g.stroke(); vtext(g, n, x + 28, y - 10, 26, INK); });
+  // 우리 서고
+  g.fillStyle = '#7a2a1a'; g.fillRect(186, 324, 28, 22); g.beginPath(); g.moveTo(180, 326); g.lineTo(200, 308); g.lineTo(220, 326); g.fill();
+  vtext(g, hanjaOf(S.sur || '윤') + '氏書庫', 236, 300, 26, '#7a2a1a');
+  // ── 바다: 볼 때마다 하나씩 늘어 있음 ──
+  if (m >= 1){ g.fillStyle = INK; for (let k = 0; k < 40; k++){ const y = 80 + k*22, x = coast(y) + 20 + r()*30; g.fillRect(x, y, 2, 2); }   // 여울
+    [[880,180,14],[905,760,10],[860,420,8]].forEach(([x,y,rr]) => { g.strokeStyle = INK; g.lineWidth = 2; g.beginPath(); g.arc(x, y, rr, 0, Math.PI*2); g.stroke(); }); }   // 작은 섬
+  if (m >= 2){ g.fillStyle = '#3a2e22'; [[935,520],[955,548],[925,560],[980,505],[1000,600]].forEach(([x,y]) => { g.beginPath(); g.ellipse(x, y, 9 + r()*6, 6 + r()*4, r(), 0, Math.PI*2); g.fill(); }); }   // 바위
+  if (m >= 3){ g.strokeStyle = INK; g.lineWidth = 3; g.beginPath(); g.arc(965, 590, 26, Math.PI, 0); g.stroke(); g.fillStyle = '#1a140f'; g.beginPath(); g.arc(965, 590, 18, Math.PI, 0); g.fill(); vtext(g, '窟', 965, 640, 30, INK); }   // 해안 동굴
+  if (m >= 4){ const t = '물이빠지면열린다', mod = Math.min(1, (S.mapStudy||0)/MAP_NEED), gl = glyphs(t, 501);
+    const shown = [...t].map((ch, k) => hash(501, k) < mod ? ch : gl[k]).join('');
+    vtext(g, shown, 1030, 470, 24, INK, 0.85); }   // 생긴 글: 연구원이 풀어야 읽힘
+  if (m >= 5){ g.strokeStyle = '#3a2e22'; g.lineWidth = 1.6; const hx = (cx, cy, rr) => { g.beginPath(); for (let k = 0; k < 6; k++){ const a = Math.PI/3*k + Math.PI/6; (k ? g.lineTo : g.moveTo).call(g, cx + Math.cos(a)*rr, cy + Math.sin(a)*rr); } g.closePath(); g.stroke(); };
+    [[905,650],[925,650],[915,667],[895,667],[935,667],[915,633]].forEach(([x,y]) => hx(x, y, 10)); }   // 자라 등딱지 무늬
+  if (m >= 6){ g.save(); g.globalAlpha = 0.2; g.fillStyle = INK; g.font = "280px 'Nanum Myeongjo', serif"; g.textAlign = 'center'; g.fillText(hanjaOf(S.sur || '윤').slice(0,1), 1240, 620); g.restore(); }   // 바다 한가운데 우리 성씨
+  g.save(); g.fillStyle = INK; g.globalAlpha = 0.85; g.font = "10px 'Nanum Myeongjo', serif"; g.fillText('토끼', 1180, 800); g.restore();   // 수정 문진으로만 보이는 아주 작은 글씨
+  return c;
+}
+const mapView = document.getElementById('mapView'), mapStage = document.getElementById('mapStage'), mapLoupe = document.getElementById('mapLoupe');
+let mapURL = '', mapW = 0, mapH = 0, mapLoupeOn = false;
+function openMap(){
+  const now = Date.now();
+  if (now - (S.mapLastMark || 0) > 20000){ S.mapViews = (S.mapViews || 0) + 1; S.mapLastMark = now; }   // 다시 펼 때마다 바다에 하나씩
+  if (mapMarks() >= 3 && !S.caveAt){ S.caveAt = now; S.caveWork = S.rWork || 0; }
+  save();
+  mapURL = drawMap().toDataURL();
+  mapW = Math.floor(Math.min(innerWidth*0.94, innerHeight*0.7*1.6)); mapH = Math.floor(mapW/1.6);
+  mapStage.style.width = mapW + 'px'; mapStage.style.height = mapH + 'px';
+  mapStage.querySelectorAll('.mtile').forEach(t => t.remove());
+  const tw = mapW/4, th = mapH/2, tiles = [];
+  for (let r = 0; r < 2; r++) for (let c = 0; c < 4; c++){
+    const t = document.createElement('div'); t.className = 'mtile ' + (r ? 'mrow' : 'mcol');
+    Object.assign(t.style, { left: (c*tw - (c ? 0.5 : 0)) + 'px', top: (r*th - (r ? 0.5 : 0)) + 'px', width: (tw + 1) + 'px', height: (th + 1) + 'px', backgroundImage: `url(${mapURL})`, backgroundSize: `${mapW}px ${mapH}px`, backgroundPosition: `${-c*tw}px ${-r*th}px` });
+    t.style.transition = 'none'; t.style.transform = r ? 'rotateX(-179deg)' : (c ? 'rotateY(179deg)' : 'none');   // 접힌 채로
+    mapStage.appendChild(t); tiles.push(t);
+  }
+  mapView.classList.remove('hidden');
+  document.getElementById('bMapGlass').classList.toggle('hidden', !S.owned.glass);
+  void mapStage.offsetWidth;
+  tiles.forEach(t => t.style.transition = '');
+  [1, 2, 3].forEach((c, k) => setTimeout(() => { tiles[c].style.transform = 'none'; rustle(0.35, 0.16); }, 350 + k*420));
+  setTimeout(() => { for (let c = 0; c < 4; c++) tiles[4 + c].style.transform = 'none'; rustle(0.5, 0.2); }, 350 + 3*420 + 120);
+}
+function closeMap(){
+  if (mapLoupeOn) toggleMapLoupe();
+  const tiles = [...mapStage.querySelectorAll('.mtile')];
+  for (let c = 0; c < 4; c++) tiles[4 + c].style.transform = 'rotateX(-179deg)';
+  [3, 2, 1].forEach((c, k) => setTimeout(() => tiles[c].style.transform = 'rotateY(179deg)', 250 + k*200));
+  rustle(0.5, 0.16);
+  setTimeout(() => mapView.classList.add('hidden'), 1100);
+}
+function toggleMapLoupe(){
+  mapLoupeOn = !mapLoupeOn; mapStage.classList.toggle('loupe', mapLoupeOn); mapLoupe.style.display = mapLoupeOn ? 'block' : 'none'; sPlace();
+  document.getElementById('bMapGlass').textContent = mapLoupeOn ? '수정 문진을 내려놓는다' : '수정 문진으로 비춘다';
+  if (mapLoupeOn){ mapLoupe.style.backgroundImage = `url(${mapURL})`; mapLoupe.style.backgroundSize = `${mapW*4}px ${mapH*4}px`; placeMapLoupe(mapW*0.6, mapH*0.6); }
+}
+function placeMapLoupe(x, y){ mapLoupe.style.left = (x - 75) + 'px'; mapLoupe.style.top = (y - 75) + 'px'; mapLoupe.style.backgroundPosition = `${75 - x*4}px ${75 - y*4}px`; }
+const mvL = e => { if (!mapLoupeOn) return; const r = mapStage.getBoundingClientRect(); placeMapLoupe(e.clientX - r.left, e.clientY - r.top); };
+mapStage.addEventListener('pointermove', mvL); mapStage.addEventListener('pointerdown', mvL);
+document.getElementById('bMapGlass').addEventListener('click', e => { e.stopPropagation(); toggleMapLoupe(); });
+document.getElementById('bMapClose').addEventListener('click', e => { e.stopPropagation(); closeMap(); });
+
 // ───────── 책 열고 덮기 ─────────
 const COVER_HTML = () => `<div class="coverFace" style="position:absolute;inset:0">${cover.innerHTML}</div>`;
 const INNER_BG = 'linear-gradient(#e6dcc4, #e6dcc4)';              // 표지 안쪽 면지
@@ -548,6 +651,7 @@ let lastFlip = -1e9;
 function perClick(){ return 1 + (S.owned.lamp?1:0) + (S.owned.desk?1:0); }
 function mult(){ return (1 + (S.owned.brush?0.5:0) + (S.owned.glass?1:0)) * (S.fear > 0.45 ? 0.6 : 1); }
 function addBook(id, v){
+  if (id === 'map'){ S.mapStudy = (S.mapStudy||0) + v; return; }
   if (id === 'dongui' && !S.sideRead.dongui){ S.dD = (S.dD||0) + v; checkDongui(); }
   else S.D += v;
 }
@@ -706,6 +810,7 @@ const M = {
     if ((x<=1||x>=10) && (y<=1||y>=5)) return '#3a2414';
     return null;
   }),
+  mapFold: model(6,4,2,(x,y,z)=> z===0 ? '#cfc2a3' : (x===2 || y===1) ? '#a89a78' : '#ddd1b4'),
   chair: model(9,8,13,(x,y,z)=>{ const L='#6a4628', Dk='#4a2e18'; if (z===5) return (x===0||x===8||y===7) ? Dk : L; if (z<5) return ((x<=1||x>=7)&&(y<=1||y>=6)) ? Dk : null; if (y<=1) return (x<=1||x>=7||z===12||z===9) ? (z===12 ? L : Dk) : null; return null; }),
 };
 // 불이 꺼져 있을 때 처음 생긴 것은 등잔을 다시 켜야 비로소 보임(켜는 순간 '아까 없던 것'이 거기 있음)
@@ -741,6 +846,8 @@ const OBJ = [
   { id:'door', x:27, y:-20, show:()=>reveal('door', S.D>=T.door), click:()=>showLibrary() },
   { id:'letter', x:24, y:-11, show:()=>reveal('letter', S.D>=T.letter && !S.replied), click:()=>readLetter(), glow:()=>!S.letterRead },
   { id:'rdesk', x:27, y:19, rot:0, show:()=>S.chair, click:()=> S.rArrived ? showResearcher() : openOv('<h3>연구원의 자리</h3>작은 책상과 의자. 종이 묶음과 벼루가 놓여 있다.<br><br>아직 아무도 앉지 않았다.') },
+  { id:'map', get x(){ return S.owned.desk ? 7 : -24; }, get y(){ return S.owned.desk ? 3 : 14; }, get z(){ return S.owned.desk ? 8 : 0; }, m:()=>'mapFold', show:()=>S.mapFound, click:()=>openMap(), glow:()=>!S.helpRead && mapMarks() < 6 },
+  { id:'note', x:27, y:19, z:12, m:()=>'letter', show:()=>S.helpNote && !S.helpRead, click:()=>readHelp(), glow:()=>true },
   { id:'chair', x:27, get y(){ return S.rArrived ? sjState().chair : CHAIR_IN; }, rot:0, show:()=>S.chair },
 ];
 let W=0, H=0, DPR=1, SC=4, ang=-0.35, drag=0, t0=performance.now(), steamUntil=0, glitchUntil=0;
@@ -771,7 +878,8 @@ function frame(now){
     }
     if (SJ.show()){ const st = sjState(), rx = st.x*c - st.y*s, ry = st.x*s + st.y*c; list.push({ o:SJ, ghost:false, sx: ox + rx*SC, sy: oy + ry*SC*0.6, ry }); } else SJ.hit = null;
     const deskIt = list.find(it => it.o.id === 'desk' && !it.ghost);
-    if (deskIt) for (const it of list) if (it.o.id === 'glass' && !it.ghost && S.owned.desk) it.ry = deskIt.ry + 0.01;   // 서안 위 물건
+    if (deskIt) for (const it of list) if ((it.o.id === 'glass' || it.o.id === 'map') && !it.ghost && S.owned.desk) it.ry = deskIt.ry + 0.01;   // 서안 위 물건
+    const rdIt = list.find(it => it.o.id === 'rdesk'); if (rdIt) for (const it of list) if (it.o.id === 'note') it.ry = rdIt.ry + 0.01;
     list.sort((p,q)=>p.ry-q.ry);
     for (const it of list){
       if (it.o.doll){
@@ -821,7 +929,17 @@ const DIARY = [
   [240, '흐림. 밤에 넘기지 말라는 구절을 보았다. 우스운 말이지만 오늘은 해 지기 전에 덮었다.'],
   [600, '비. 차가 따뜻해 좋았다. 손이 덜 떨린다.'],
 ];
-const diaryCount = () => DIARY.filter(d => (S.rWork||0) >= d[0]).length;
+const MAP_DIARY = '맑음. 가주께서 지도를 보여 주셨다. 바다 쪽에 굴이 하나 그려져 있었다. 그곳에 가 봐야 한다는 것을 안다. 다만 혼자서는…';
+function diaryList(){
+  const L = DIARY.filter(d => (S.rWork||0) >= d[0]).map(d => d[1]);
+  if (S.caveAt && (S.rWork||0) >= (S.caveWork||0) + 90) L.push(MAP_DIARY);
+  return L;
+}
+const diaryCount = () => diaryList().length;
+function readHelp(){
+  S.helpRead = true; save();
+  openOv('<h3>쪽지</h3><div class="vletter rec" style="height:min(50vh,360px)">가주께.<br>지도의 그 굴에 가 봐야겠습니다.<br>다만 혼자서는 바닷가에 못 가겠습니다.<br>바람 소리만 들어도 발이 떨어지지 않습니다.<br>사람을 더 구해 주실 수 없겠습니까.<div class="sign">한서진 올림.</div></div>', () => { setTimeout(() => document.getElementById('endnote').style.opacity = 1, 1500); });
+}
 function researcherTick(dt){
   if (S.replied && !S.rArrived && S.rDue && Date.now() >= S.rDue){
     S.rArrived = Date.now(); S.rWork = 0; S.rPages = 0; save();
@@ -830,7 +948,7 @@ function researcherTick(dt){
     setTimeout(() => noise(0.5, 320, 0.12, 'lowpass'), WALK_MS + 50);                                       // 의자를 빼는 소리
     setTimeout(() => noise(0.2, 160, 0.25, 'lowpass'), T_STEP + 150);                                       // 앉는 소리
     setTimeout(() => noise(0.45, 300, 0.1, 'lowpass'), T_SIT + 50);                                         // 의자를 당기는 소리
-    setTimeout(() => document.getElementById('endnote').style.opacity = 1, T_PUSH + 2500);
+
   }
   if (!S.rArrived || isNight()) return;
   S.rWork = (S.rWork||0) + dt; S.rAcc = (S.rAcc||0) + dt;
@@ -851,12 +969,15 @@ function showResearcher(){
   const n = diaryCount(), st = S.fear >= 0.35 ? '간이 콩알만 해짐' : '평온함';
   const rb = S.rBook || 'first', o = (id, label) => `<span data-rb="${id}" class="${rb === id ? 'on' : ''}">${label}</span>`;
   openOv(`<h3>연구원 — 한서진(韓瑞眞)</h3>직업: 해독가<br>상태: ${st}<br>넘긴 것: ${fmtP(S.rPages||0)}<br><div style="font-size:12px;opacity:.6">밤에는 일하지 않는다.</div>`
-    + `<div class="opt rec"><span>연구할 책</span><span class="ch">${o('first', '제목 없는 책')}${o('dongui', '동의보감 三')}</span></div>`
+    + `<div class="opt rec"><span>연구할 것</span><span class="ch">${o('first', '제목 없는 책')}${o('dongui', '동의보감 三')}${S.mapFound ? o('map', '지도') : ''}</span></div>`
     + (rb === 'dongui' && S.sideRead.dongui ? '<div style="font-size:12px;opacity:.6">동의보감 三은 다 풀었다. 남은 손은 제목 없는 책에 보탠다.</div>' : '')
-    + `<br><b>일지</b><br>` + (n ? DIARY.slice(0, n).map(d => `<div style="margin:6px 0">${d[1]}</div>`).join('') : '아직 쓴 것이 없다.'));
+    + `<br><b>일지</b>` + (n ? diaryList().map((d, i) => `<div class="rec dlist" data-d="${i}"><span>일지 ${i+1} — ${esc(d.split('.')[0])}</span><span style="opacity:.45;font-size:12px">읽기</span></div>`).join('') : '<br>아직 쓴 것이 없다.'));
+  ovBody.querySelectorAll('.dlist').forEach(el => el.addEventListener('click', ev => { ev.stopPropagation(); const i = +el.dataset.d;
+    openOv(`<h3>한서진의 일지 ${i+1}</h3>${diaryList()[i]}<div class="rec" id="bBackR" style="margin-top:14px;text-align:center">← 목록으로</div>`);
+    document.getElementById('bBackR').addEventListener('click', e2 => { e2.stopPropagation(); showResearcher(); }); }));
   ovBody.querySelectorAll('[data-rb]').forEach(el => el.addEventListener('click', ev => { ev.stopPropagation(); S.rBook = el.dataset.rb; save(); showResearcher(); }));
 }
-const recDiary = () => '<h3>한서진의 일지</h3>' + DIARY.slice(0, diaryCount()).map(d => `<div style="margin:8px 0">${d[1]}</div>`).join('');
+const recDiary = () => '<h3>한서진의 일지</h3>' + diaryList().map(d => `<div style="margin:8px 0">${d}</div>`).join('');
 // 종이 인형(연구원): 갓 쓰고 흰 도포에 청색 세조대를 맨 선비. 늘 화면을 향하지만 방을 돌리면 옆으로 돌아 얇은 선이 됨
 // 선비 종이 인형: 네모난 픽셀 대신 곡선으로 그림(둥근 갓 챙, 갸름한 얼굴, 처진 어깨, 넓게 늘어진 소매, 퍼지는 도포 자락, 버선코)
 function drawSeonbi(pose){
@@ -953,6 +1074,7 @@ function tick(now){
   cnt.textContent = txt;
   updateThread(now);
   researcherTick(dt);
+  if (!S.helpNote && S.caveAt && (S.rWork||0) >= (S.caveWork||0) + 90){ S.helpNote = true; save(); }
   if (!S.jokboDone && S.D >= T.jEnd){ S.jokboDone = true; save();
     setTimeout(() => openOv(`<h3>족보</h3>다 풀었다.<br><br>${esc((S.bon||'') + ' ' + S.sur)}씨 17세손 ${esc(S.sur + S.name)}.<br>18세와 19세는 이름 칸이 비어 있다. 끝난 자리만 적혀 있다.<br>20세 아래로는 아무것도 없다.`), 1200); }
   if (bookOpen && !bookView.classList.contains('hidden')) { threadPh += threadStir ? dt*5.5 : 0; drawThread(threadStir ? 5 : 0); }
@@ -965,6 +1087,7 @@ function roomNews(){
   if (S.teaArrived) n.push('teapot');
   if (S.D >= T.letter && !S.letterRead) n.push('letter');
   if (S.rArrived) n.push('researcher', 'diary:' + diaryCount());
+  if (S.helpNote) n.push('help');
   return n;
 }
 let lastNewsCheck = 0, threadStir = false, threadPh = 0;
@@ -1017,7 +1140,16 @@ function showItem(id){ openOv(`<h3>${ITEM[id][0]}</h3>${ITEM[id][1]}`); }
 function buy(o){ if (S.pages < o.buy.cost) return; S.pages -= o.buy.cost; S.owned[o.id] = true; sPlace(); save(); showItem(o.id); }
 
 // ───────── 기록 ─────────
-function showEmptyChest(){ openOv('<h3>궤짝</h3>책을 꺼내고 구석으로 치웠다. 뚜껑을 열어 보면 비어 있다.<br><br>바닥에 무언가를 오래 눌러 둔 자국이 있다. 책보다 조금 크다.'); }
+function showEmptyChest(){
+  if (S.jokboDone && !S.mapFound){
+    openOv('<h3>궤짝</h3>족보를 다 풀고 나서 다시 들여다보니, 바닥 안감 한쪽이 들떠 있다.<br>무언가를 오래 눌러 둔 자국이 그 밑으로 이어진다.<div style="text-align:center;margin-top:16px"><button class="btn rec" id="bLining" style="color:var(--ink);border-color:#00000066">안감을 들춘다</button></div>');
+    document.getElementById('bLining').addEventListener('click', ev => { ev.stopPropagation(); S.mapFound = true; save(); ov.classList.add('hidden'); sPlace(); openMap(); });
+    return;
+  }
+  if (S.mapFound){ openOv('<h3>궤짝</h3>바닥 안감을 들춘 자리가 그대로 있다. 접힌 종이가 오래 눌려 있던 자국.'); return; }
+  showEmptyChest0();
+}
+function showEmptyChest0(){ openOv('<h3>궤짝</h3>책을 꺼내고 구석으로 치웠다. 뚜껑을 열어 보면 비어 있다.<br><br>바닥에 무언가를 오래 눌러 둔 자국이 있다. 책보다 조금 크다.'); }
 function showGahun(){ openOv(`<h3>家訓</h3><div style="font-size:20px;letter-spacing:6px;text-align:center;padding:20px 0">${['읽되 믿지 마라','모르는 것은 덮어라'][S.gahun]}</div>`); }
 function recJokbo(){ if (S.D >= J0){ let h = `<h3>족보 — ${esc((S.bon||'') + ' ' + S.sur)}씨 17세손 ${esc(S.sur + S.name)}</h3>`; for (let i=11;i<20;i++) h += alienHtml(showText(i)) + '<br>'; return h; }
   return `<h3>族譜 — 첫 장</h3>一世. <span style="letter-spacing:-2px;opacity:.6">▒▒▒</span> — ${alienHtml(glyphs('이 서고를 세우다',40))}<br>…<br>十七世. ${esc(S.sur+S.name)} — 궤짝을 열다.<br>十八世. 　　 — ${alienHtml(glyphs('물가에서', 41))}<br>十九世. 　　 — ${alienHtml(glyphs('문을 잠그고 나오지 않다', 42))}`; }
@@ -1080,6 +1212,7 @@ function showLibrary(){
   if (S.letterRead) recs.push(['편지 — 한서진', letterHtml]);
   if (S.replied) recs.push(['답장', replyHtml]);
   if (S.rArrived && diaryCount()) recs.push(['한서진의 일지', recDiary]);
+  if (S.helpRead) recs.push(['쪽지 — 한서진', () => '<h3>쪽지</h3>가주께. 지도의 그 굴에 가 봐야겠습니다. 다만 혼자서는 바닷가에 못 가겠습니다. 바람 소리만 들어도 발이 떨어지지 않습니다. 사람을 더 구해 주실 수 없겠습니까. — 한서진 올림.']);
   openOv('<h3>도서관</h3>' + recs.map((r,i)=>`<div class="rec" data-i="${i}">${r[0]}</div>`).join(''));
   ovBody.querySelectorAll('.rec').forEach(el => el.addEventListener('click', ev => { ev.stopPropagation(); openOv(recs[+el.dataset.i][1]()); }));
 }
@@ -1110,6 +1243,8 @@ const JUMPS = [
   ['9. 편지를 읽은 뒤 (답장 전)', { opened:true, pages:60, earned:950, D:1320, owned:{ lamp:true, brush:true, desk:true, glass:true }, teaArrived:true, glitchDone:true, letterShadow:true, letterRead:true, revealed:['letter'] }],
   ['10. 연구원이 온 뒤 (일지 1편)', { opened:true, pages:60, earned:980, D:1330, owned:{ lamp:true, brush:true, desk:true, glass:true }, teaArrived:true, glitchDone:true, letterShadow:true, letterRead:true, replied:true, chair:true, rArrived:-1, rWork:70, rPages:8 }],
   ['11. 족보 장을 펼친 무렵 (연구원과 함께)', { opened:true, pages:60, earned:1100, D:1420, owned:{ lamp:true, brush:true, desk:true, glass:true }, teaArrived:true, glitchDone:true, letterShadow:true, letterRead:true, replied:true, chair:true, rArrived:-1, rWork:300, rPages:40 }],
+  ['12. 족보를 다 푼 뒤 (궤짝 바닥에 지도)', { opened:true, pages:60, earned:1500, D:2770, jokboDone:true, owned:{ lamp:true, brush:true, desk:true, glass:true }, teaArrived:true, glitchDone:true, letterShadow:true, letterRead:true, replied:true, chair:true, rArrived:-1, rWork:300, rPages:90 }],
+  ['13. 지도 바다가 다 찬 뒤 (쪽지)', { opened:true, pages:60, earned:1600, D:2770, jokboDone:true, mapFound:true, mapViews:7, mapStudy:999, caveAt:-2, caveWork:0, helpNote:true, owned:{ lamp:true, brush:true, desk:true, glass:true }, teaArrived:true, glitchDone:true, letterShadow:true, letterRead:true, replied:true, chair:true, rArrived:-1, rWork:400, rPages:120 }],
 ];
 function jumpTo(i){
   const keep = { sur:S.sur || '윤', bon:S.bon, name:S.name || '서하', gahun:S.gahun >= 0 ? S.gahun : 0, opt:S.opt };
@@ -1117,6 +1252,8 @@ function jumpTo(i){
   if (!JUMPS[i][1]) { localStorage.setItem(SAVE, JSON.stringify({ stage:'start', opt:S.opt })); location.reload(); return; }   // 처음부터: 설정만 남김
   const fresh = Object.assign({ stage:'room', pages:0, earned:0, D:0, owned:{}, fear:0, opened:false, letterRead:false, chair:false, glitchDone:false, sideRead:{}, ack:[], teaArrived:false, letterShadow:false }, keep, JSON.parse(JSON.stringify(JUMPS[i][1])));
   if (fresh.rArrived === -1) fresh.rArrived = Date.now() - WALK_MS - 1000;
+  if (fresh.caveAt === -2) fresh.caveAt = Date.now() - 600000;
+  fresh.revealed = (fresh.revealed || []).concat(['letter']);
   fresh.revealed = ['door', 'teapot', 'sj'].concat(fresh.revealed || []);
   if (fresh.replied && !fresh.rArrived) fresh.rDue = Date.now() + 6000;
   fresh.lastSeen = Date.now();
@@ -1177,7 +1314,7 @@ document.getElementById('bWrite').onclick = () => {
 };
 document.querySelectorAll('.scroll').forEach(el => el.onclick = () => { S.gahun = +el.dataset.g; sPlace(); enterRoom(); });
 
-window.__yb = { openBook, closeBook, toggleLoupe, hits: () => OBJ.filter(o => o.hit).map(o => ({ id:o.id, x:o.hit.x/DPR, y:(o.hit.y0*0.4 + o.hit.y1*0.6)/DPR })) };
+window.__yb = { openBook, closeBook, toggleLoupe, setMapMark: () => { S.mapLastMark = 0; }, hits: () => OBJ.filter(o => o.hit).map(o => ({ id:o.id, x:o.hit.x/DPR, y:(o.hit.y0*0.4 + o.hit.y1*0.6)/DPR })) };
 resize();
 const away = S.stage === 'room' ? offlineWork() : 0;
 if (away) setTimeout(() => openOv(`<h3>쪽지</h3><div class="vletter rec" style="height:min(46vh,320px)">가주께.<br>안 계신 동안 ${fmtP(away)}을 넘겼습니다.<br>밤에는 일하지 않았습니다.<div class="sign">한서진 올림.</div></div>`), 900);
