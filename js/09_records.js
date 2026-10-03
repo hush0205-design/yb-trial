@@ -77,6 +77,7 @@ function showLibrary(){
   if (S.replied) recs.push(['답장', replyHtml]);
   if (S.rArrived && diaryCount()) recs.push(['한서진의 일지', recDiary]);
   if (S.helpRead) recs.push(['쪽지 — 한서진', () => '<h3>쪽지</h3>가주께. 지도의 그 굴에 가 봐야겠습니다. 다만 혼자서는 바닷가에 못 가겠습니다. 바람 소리만 들어도 발이 떨어지지 않습니다. 사람을 더 구해 주실 수 없겠습니까. — 한서진 올림.']);
+  labRecs(recs);
   if (glHas()) recs.push([S.gl.fresh ? `낱말 장부 — 새로 정리된 것 ${S.gl.fresh}` : '낱말 장부', recGloss]);
   openOv('<h3>도서관</h3>' + recs.map((r,i)=>`<div class="rec" data-i="${i}">${r[0]}</div>`).join(''));
   ovBody.querySelectorAll('.rec').forEach(el => el.addEventListener('click', ev => { ev.stopPropagation(); openOv(recs[+el.dataset.i][1]()); }));

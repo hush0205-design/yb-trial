@@ -32,7 +32,16 @@ function drawMap(){
   // ── 바다: 볼 때마다 하나씩 늘어 있음 ──
   if (m >= 1){ g.fillStyle = INK; for (let k = 0; k < 40; k++){ const y = 80 + k*22, x = coast(y) + 20 + r()*30; g.fillRect(x, y, 2, 2); }   // 여울
     [[880,180,14],[905,760,10],[860,420,8]].forEach(([x,y,rr]) => { g.strokeStyle = INK; g.lineWidth = 2; g.beginPath(); g.arc(x, y, rr, 0, Math.PI*2); g.stroke(); }); }   // 작은 섬
-  if (m >= 2){ g.fillStyle = '#3a2e22'; [[935,520],[955,548],[925,560],[980,505],[1000,600]].forEach(([x,y]) => { g.beginPath(); g.ellipse(x, y, 9 + r()*6, 6 + r()*4, r(), 0, Math.PI*2); g.fill(); }); }   // 바위
+  if (m >= 2){                                                                     // 바위(암초): 옛 지도처럼 뾰족한 봉우리 윤곽에 먹선 몇 줄, 둘레에 물결
+    g.strokeStyle = INK; g.lineCap = 'round';
+    [[930,522,1.1],[962,548,0.8],[918,566,0.7],[985,505,0.9],[1004,596,0.75]].forEach(([x,y,k]) => {
+      const w = 22*k, h = 20*k; g.lineWidth = 2;
+      g.beginPath(); g.moveTo(x - w, y); g.lineTo(x - w*0.45, y - h*0.7); g.lineTo(x - w*0.1, y - h*0.35); g.lineTo(x + w*0.2, y - h); g.lineTo(x + w*0.6, y - h*0.4); g.lineTo(x + w, y); g.stroke();
+      g.lineWidth = 1.1; for (let j = 0; j < 3; j++){ const hx = x - w*0.3 + j*w*0.3; g.beginPath(); g.moveTo(hx, y - h*0.15); g.lineTo(hx + w*0.12, y - h*0.55 + j*h*0.1); g.stroke(); }   // 바위 결
+      g.lineWidth = 1.2; g.beginPath(); g.moveTo(x - w*1.3, y + 5); g.quadraticCurveTo(x - w*0.65, y + 1, x, y + 5); g.quadraticCurveTo(x + w*0.65, y + 9, x + w*1.3, y + 5); g.stroke();   // 물결
+    });
+    g.lineCap = 'butt';
+  }
   if (m >= 3){ g.strokeStyle = INK; g.lineWidth = 3; g.beginPath(); g.arc(965, 590, 26, Math.PI, 0); g.stroke(); g.fillStyle = '#1a140f'; g.beginPath(); g.arc(965, 590, 18, Math.PI, 0); g.fill(); vtext(g, mapLabel('窟', 614, 40, 8), 965, 640, 30, INK); }   // 해안 동굴
   if (m >= 4) vtext(g, mapLabel('물이빠지면열린다', 501, 50, MAP_NEED - 50 + 40), 1030, 470, 24, INK, 0.85);   // 생긴 글: 풀어야 읽힘
   if (m >= 5){ g.strokeStyle = '#3a2e22'; g.lineWidth = 1.6; const hx = (cx, cy, rr) => { g.beginPath(); for (let k = 0; k < 6; k++){ const a = Math.PI/3*k + Math.PI/6; (k ? g.lineTo : g.moveTo).call(g, cx + Math.cos(a)*rr, cy + Math.sin(a)*rr); } g.closePath(); g.stroke(); };

@@ -184,7 +184,7 @@ const OBJ = [
   { id:'shelfMap', x:-26, y:-17, z:26, m:()=>'mapFold', show:()=>S.mapFound && S.loc && S.loc.map === 'shelf', click:()=>showPlace('map'), glow:()=>!S.helpRead && mapMarks() < 6 },
   { id:'ditem', x:0, y:3, get z(){ return 8 + dropZ('desk'); }, m:()=> itemModel(itemAt('desk')), show:()=> !!S.owned.desk && !!itemAt('desk'), click:()=>deskClick() },
   { id:'ritem', x:25, y:19, get z(){ return 11 + dropZ('rdesk'); }, m:()=> itemModel(itemAt('rdesk')), show:()=>S.chair && !!itemAt('rdesk'), click:()=>showResearcher() },
-  { id:'note', get x(){ return S.owned.desk ? 8 : 4; }, get y(){ return S.owned.desk ? 3 : 2; }, get z(){ return 8; }, m:()=>'letter', show:()=> !!S.pendingNote || (S.helpNote && !S.helpRead), click:()=>readNote(), glow:()=>true },
+  { id:'note', get x(){ return S.owned.desk ? 8 : 4; }, get y(){ return S.owned.desk ? 3 : 2; }, get z(){ return 8; }, m:()=>'letter', show:()=> !!S.pendingNote || !!(S.pendingNotes && S.pendingNotes.length) || (S.helpNote && !S.helpRead) || (S.goNote && !S.goRead), click:()=>readNote(), glow:()=>true },
   { id:'chair', x:27, get y(){ return S.rArrived ? sjState().chair : CHAIR_IN; }, rot:0, show:()=>S.chair },
 ];
 let W=0, H=0, DPR=1, SC=4, ang=-0.35, drag=0, t0=performance.now(), steamUntil=0, glitchUntil=0;
@@ -203,9 +203,10 @@ function frame(now){
   const t = (now - t0)/1000, a = ang + Math.sin(t*0.12)*0.1 + drag, c = Math.cos(a), s = Math.sin(a), ox = W/2, oy = H*0.58;
   if (bookView.classList.contains('hidden')){
     cx.fillStyle = '#0b0907'; cx.fillRect(0,0,W,H); cx.imageSmoothingEnabled = false;
-    drawModel(M.floor, ox, oy, a, 1, -1);
+    const lab = S.scene === 'lab';
+    drawModel(lab ? M.labFloor : M.floor, ox, oy, a, 1, -1);
     const list = [];
-    for (const o of OBJ){
+    for (const o of curObjs()){
       const owned = !o.buy || S.owned[o.id];
       if (o.show && !o.show()) { o.hit=null; continue; }
       const ghost = o.buy && !owned;
@@ -213,7 +214,7 @@ function frame(now){
       const rx = o.x*c - o.y*s, ry = o.x*s + o.y*c;
       list.push({ o, ghost, sx: ox + rx*SC, sy: oy + ry*SC*0.6, ry: ry + (o.z||0)*0.8 });
     }
-    if (SJ.show()){ const st = sjState(), rx = st.x*c - st.y*s, ry = st.x*s + st.y*c; list.push({ o:SJ, ghost:false, sx: ox + rx*SC, sy: oy + ry*SC*0.6, ry }); } else SJ.hit = null;
+    for (const dl of ALL_DOLLS()){ if (!curDolls().includes(dl) || !dl.show()){ dl.hit = null; continue; } const st = dl.st(), rx = st.x*c - st.y*s, ry = st.x*s + st.y*c; list.push({ o:dl, ghost:false, sx: ox + rx*SC, sy: oy + ry*SC*0.6, ry }); }
     const deskIt = list.find(it => it.o.id === 'desk' && !it.ghost);
     if (deskIt) for (const it of list) if ((it.o.id === 'glass' || it.o.id === 'ditem' || it.o.id === 'note') && !it.ghost && S.owned.desk) it.ry = deskIt.ry + 0.01;   // 서안 위 물건
     const rdIt = list.find(it => it.o.id === 'rdesk'); if (rdIt) for (const it of list) if (it.o.id === 'ritem') it.ry = rdIt.ry + 0.01;
@@ -221,15 +222,16 @@ function frame(now){
     list.sort((p,q)=>p.ry-q.ry);
     for (const it of list){
       if (it.o.doll){
-        const st = sjState(), walking = st.pose === 'walk', e = Date.now() - (S.rArrived || 0);
+        const D = it.o, st = D.st(), walking = st.pose === 'walk', e = Date.now() - D.arrT(), I = D.img;
         const face = st.f[0]*s + st.f[1]*c;                        // 바라보는 쪽이 화면(앞)으로 향한 정도
         const f = Math.max(0.05, Math.abs(face)), bk = face < 0;   // 옆으로 돌면 얇아지고, 등을 보이면 뒷모습
-        const img = st.pose === 'sit' ? (bk ? DOLL_SIT_BK : DOLL_SIT) : walking ? (Math.floor(e/280) % 2 ? (bk ? DOLL_A_BK : DOLL_A) : (bk ? DOLL_B_BK : DOLL_B)) : (bk ? DOLL_A_BK : DOLL_A);
+        const img = st.pose === 'sit' ? (bk ? I.SIT_BK : (st.closed && I.SIT_CL) || I.SIT) : walking ? (Math.floor(e/280) % 2 ? (bk ? I.A_BK : I.A) : (bk ? I.B_BK : I.B)) : (bk ? I.A_BK : I.A);
         const u = SC*0.85*0.27, dh = img.height*u, dw = img.width*u*f;
         const lift = walking ? Math.abs(Math.sin(e/280*Math.PI))*SC*0.5 : st.pose === 'sit' ? 4*SC*0.85 : 0;   // 걸음의 들썩임 / 의자 높이
-        const tr = (S.rFear||0) > 0.35 && !walking ? (Math.random() - 0.5) * SC * 0.7 * (S.rFear||0) : 0;   // 겁에 질려 떪
+        const fr = D.fear(), tr = fr > 0.35 && !walking ? (Math.random() - 0.5) * SC * 0.7 * fr : 0;   // 겁에 질려 떪
+        if (D.shadow){ cx.fillStyle = 'rgba(0,0,0,0.38)'; cx.beginPath(); cx.ellipse(it.sx + 6*DPR, it.sy + 2*DPR, img.width*u*0.55, img.width*u*0.16, 0, 0, Math.PI*2); cx.fill(); }   // 그림자 하나
         cx.drawImage(img, it.sx - dw/2 + tr, it.sy - lift - dh, dw, dh);
-        if (Date.now() < (S.rSteam||0)){ cx.fillStyle = 'rgba(220,215,200,0.5)'; for (let k=0;k<5;k++){ const ph = (t*1.5 + k/5) % 1; cx.fillRect(it.sx + 10*DPR + Math.sin(t*3+k)*3*DPR, it.sy - 14*SC*0.85 - ph*30*DPR, SC*0.7, SC*0.7); } }   // 내준 찻잔의 김
+        if (Date.now() < D.steam()){ cx.fillStyle = 'rgba(220,215,200,0.5)'; for (let k=0;k<5;k++){ const ph = (t*1.5 + k/5) % 1; cx.fillRect(it.sx + 10*DPR + Math.sin(t*3+k)*3*DPR, it.sy - 14*SC*0.85 - ph*30*DPR, SC*0.7, SC*0.7); } }   // 내준 찻잔의 김
         if (f < 0.2){ cx.fillStyle = '#1a1410'; cx.fillRect(it.sx - SC*0.2, it.sy - lift - dh, SC*0.4, dh); }
         it.o.hit = { x: it.sx, y0: it.sy - lift, y1: it.sy - lift - dh, r: 22*DPR, ghost:false };
         continue;
@@ -251,10 +253,11 @@ function frame(now){
     const dl = daylight();
     if (dl > 0){ const wx = 15*c - (-26)*s, wy = 15*s + (-26)*c, gx = ox + wx*SC, gy = oy + wy*SC*0.6 + 30*DPR;
       const wg = cx.createRadialGradient(gx, gy, 0, gx, gy, 140*DPR); wg.addColorStop(0, `rgba(240,225,190,${0.10*dl})`); wg.addColorStop(1, 'rgba(240,225,190,0)'); cx.fillStyle = wg; cx.fillRect(gx-140*DPR, gy-140*DPR, 280*DPR, 280*DPR); }
-    const lit = S.owned.lamp && !S.lampOut ? 1 : 0, out = S.owned.lamp && S.lampOut;
+    const lit = lab || (S.owned.lamp && !S.lampOut) ? 1 : 0, out = !lab && S.owned.lamp && S.lampOut;
     const g = cx.createRadialGradient(ox, oy-20*DPR, Math.min(W,H)*(out ? 0.04 : 0.18+0.12*lit), ox, oy, Math.max(W,H)*(out ? 0.38 : 0.62));
     g.addColorStop(0, out ? 'rgba(8,6,4,0.55)' : 'rgba(8,6,4,0)'); g.addColorStop(1,'rgba(8,6,4,' + (out ? 0.97 : 0.92) + ')'); cx.fillStyle = g; cx.fillRect(0,0,W,H);
     const since = now - relitAt;
+    const sc = now - sceneAt; if (sc < 700){ cx.fillStyle = `rgba(0,0,0,${1 - sc/700})`; cx.fillRect(0,0,W,H); }   // 문을 지나 다른 방으로
     if (since < 900){ const k = since < 120 || (since > 260 && since < 380) || (since > 520 && since < 600) ? 0.85 : 0; if (k){ cx.fillStyle = `rgba(8,6,4,${k})`; cx.fillRect(0,0,W,H); } }   // 다시 붙인 불의 깜빡임
   }
   tick(now); requestAnimationFrame(frame);

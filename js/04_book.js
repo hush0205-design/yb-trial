@@ -3,7 +3,7 @@
 const ov = document.getElementById('overlay'), ovBody = document.getElementById('ovBody');
 const ovQueue = [];
 function queueOv(html){ if (ov.classList.contains('hidden')) openOv(html); else ovQueue.push(html); }
-function openOv(html, onClose){ ovBody.innerHTML = html + '<div class="close">닫기</div>'; ov.classList.remove('hidden'); if (typeof glossify === 'function') glossify(ovBody); ov._onClose = onClose; ov._t = performance.now(); }
+function openOv(html, onClose){ ovBody.innerHTML = html + '<div class="close">닫기</div>'; ov.classList.remove('hidden'); if (typeof glossify === 'function') glossify(ovBody); if (typeof tlogOv === 'function') tlogOv(html); ov._onClose = onClose; ov._t = performance.now(); }
 // 터치 직후 따라오는 클릭이 방금 연 창(과 그 안의 항목)을 누르지 않게: 잡기 단계에서 먼저 막음
 ov.addEventListener('click', e => { if (performance.now() - (ov._t||0) < 450) { e.stopPropagation(); e.preventDefault(); } }, true);
 ov.addEventListener('click', e => {

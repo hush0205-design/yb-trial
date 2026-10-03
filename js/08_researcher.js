@@ -18,11 +18,13 @@ function diaryList(){
 const diaryCount = () => diaryList().length;
 function readNote(){                                    // 서안 위 쪽지: 자리 비운 동안의 쪽지 먼저, 그다음 부탁 쪽지
   if (S.pendingNote){ const h = S.pendingNote; S.pendingNote = null; save(); openOv(h); return; }
-  readHelp();
+  if (S.pendingNotes && S.pendingNotes.length){ const h = S.pendingNotes.shift(); save(); openOv(h); return; }
+  if (S.helpNote && !S.helpRead){ readHelp(); return; }
+  if (S.goNote && !S.goRead) readGo();
 }
 function readHelp(){
   S.helpRead = true; save();
-  openOv('<h3>쪽지</h3><div class="vletter rec" style="height:min(50vh,360px)">가주께.<br>지도의 그 굴에 가 봐야겠습니다.<br>다만 혼자서는 바닷가에 못 가겠습니다.<br>바람 소리만 들어도 발이 떨어지지 않습니다.<br>사람을 더 구해 주실 수 없겠습니까.<div class="sign">한서진 올림.</div></div>', () => { setTimeout(() => document.getElementById('endnote').style.opacity = 1, 1500); });
+  openOv('<h3>쪽지</h3><div class="vletter rec" style="height:min(50vh,360px)">가주께.<br>지도의 그 굴에 가 봐야겠습니다.<br>다만 혼자서는 바닷가에 못 가겠습니다.<br>바람 소리만 들어도 발이 떨어지지 않습니다.<br>사람을 더 구해 주실 수 없겠습니까.<br><br>방을 붙일 종이를 문 곁에 두었습니다.<div class="sign">한서진 올림.</div></div>');
 }
 function researcherTick(dt){
   if (S.replied && !S.rArrived && S.rDue && Date.now() >= S.rDue){
@@ -100,11 +102,12 @@ function showResearcher(){
 const recDiary = () => '<h3>한서진의 일지</h3>' + diaryList().map(d => `<div style="margin:8px 0">${d}</div>`).join('');
 // 종이 인형(연구원): 갓 쓰고 흰 도포에 청색 세조대를 맨 선비. 늘 화면을 향하지만 방을 돌리면 옆으로 돌아 얇은 선이 됨
 // 선비 종이 인형: 네모난 픽셀 대신 곡선으로 그림(둥근 갓 챙, 갸름한 얼굴, 처진 어깨, 넓게 늘어진 소매, 퍼지는 도포 자락, 버선코)
-function drawSeonbi(pose, back){
+function drawSeonbi(pose, back, o = {}){
+  const RB = o.robe || ['#f3eee2', '#e7e0cf', '#c9c0ab'], BL = o.belt || '#3e5288', BL2 = o.belt2 || '#2c3c6a';
   const W = 48, H = pose === 'sit' ? 78 : 98;
   const c = document.createElement('canvas'); c.width = W; c.height = H; const g = c.getContext('2d');
   const sit = pose === 'sit', sway = pose === 'a' ? -1.2 : pose === 'b' ? 1.2 : 0;
-  const robe = g.createLinearGradient(6, 0, 44, 0); robe.addColorStop(0, '#f3eee2'); robe.addColorStop(0.55, '#e7e0cf'); robe.addColorStop(1, '#c9c0ab');
+  const robe = g.createLinearGradient(6, 0, 44, 0); robe.addColorStop(0, RB[0]); robe.addColorStop(0.55, RB[1]); robe.addColorStop(1, RB[2]);
   const line = '#8f8775';
   const path = (pts, fill, stroke) => { g.beginPath(); pts(g); g.closePath(); if (fill){ g.fillStyle = fill; g.fill(); } if (stroke){ g.strokeStyle = stroke; g.lineWidth = 0.8; g.stroke(); } };
   // 넓은 소매(뒤쪽에 먼저)
@@ -124,17 +127,17 @@ function drawSeonbi(pose, back){
   path(p => { p.moveTo(20, 38); p.lineTo(23, 38); p.quadraticCurveTo(26, 46, 31, 52); p.lineTo(28.5, 53); p.quadraticCurveTo(23, 47, 20, 38); }, '#fbf8f1', '#b8af9a');
   path(p => { p.moveTo(28, 38); p.lineTo(25.5, 38); p.quadraticCurveTo(22, 44, 19, 48); p.lineTo(20.5, 49.5); p.quadraticCurveTo(24, 45, 28, 38); }, '#f6f2e8', '#b8af9a');
   // 세조대: 가슴께를 두른 청색 띠와 늘어진 술
-  g.strokeStyle = '#3e5288'; g.lineWidth = 2.2; g.beginPath(); g.moveTo(14.5, 53); g.quadraticCurveTo(24, 56.5, 34, 53); g.stroke();
-  g.strokeStyle = '#2c3c6a'; g.lineWidth = 0.7; g.beginPath(); g.moveTo(15, 54.5); g.quadraticCurveTo(24, 58, 33.5, 54.5); g.stroke();
-  g.fillStyle = '#3e5288'; g.beginPath(); g.arc(27, 56, 1.6, 0, Math.PI*2); g.fill();
-  g.strokeStyle = '#3e5288'; g.lineWidth = 1.1; [[26.3, 70 + (sit ? -4 : 0)], [28, 67 + (sit ? -4 : 0)]].forEach(([x,y]) => { g.beginPath(); g.moveTo(27, 57); g.quadraticCurveTo(x + 0.6, (57+y)/2, x, y); g.stroke(); });
-  g.fillStyle = '#2c3c6a'; g.fillRect(25.5, sit ? 65 : 69, 2, 3); g.fillRect(27.2, sit ? 62 : 66, 2, 3);
+  g.strokeStyle = BL; g.lineWidth = 2.2; g.beginPath(); g.moveTo(14.5, 53); g.quadraticCurveTo(24, 56.5, 34, 53); g.stroke();
+  g.strokeStyle = BL2; g.lineWidth = 0.7; g.beginPath(); g.moveTo(15, 54.5); g.quadraticCurveTo(24, 58, 33.5, 54.5); g.stroke();
+  g.fillStyle = BL; g.beginPath(); g.arc(27, 56, 1.6, 0, Math.PI*2); g.fill();
+  g.strokeStyle = BL; g.lineWidth = 1.1; [[26.3, 70 + (sit ? -4 : 0)], [28, 67 + (sit ? -4 : 0)]].forEach(([x,y]) => { g.beginPath(); g.moveTo(27, 57); g.quadraticCurveTo(x + 0.6, (57+y)/2, x, y); g.stroke(); });
+  g.fillStyle = BL2; g.fillRect(25.5, sit ? 65 : 69, 2, 3); g.fillRect(27.2, sit ? 62 : 66, 2, 3);
   // 맞잡은 손(공수)이 소매 끝에 살짝
   g.fillStyle = '#e2c19a'; g.beginPath(); g.ellipse(14, 70.5, 2.6, 1.6, 0.3, 0, Math.PI*2); g.fill(); g.beginPath(); g.ellipse(34, 70.5, 2.6, 1.6, -0.3, 0, Math.PI*2); g.fill();
   } else {
     // 뒷모습: 등솔기, 등 뒤로 돌아간 세조대, 뒤트임
     g.strokeStyle = '#cfc6b0'; g.lineWidth = 1; g.beginPath(); g.moveTo(24, 39); g.lineTo(24 + sway*0.5, hem - 1); g.stroke();
-    g.strokeStyle = '#3e5288'; g.lineWidth = 2.2; g.beginPath(); g.moveTo(14.5, 53); g.quadraticCurveTo(24, 50.5, 34, 53); g.stroke();
+    g.strokeStyle = BL; g.lineWidth = 2.2; g.beginPath(); g.moveTo(14.5, 53); g.quadraticCurveTo(24, 50.5, 34, 53); g.stroke();
     if (!sit){ g.strokeStyle = '#b9b09a'; g.lineWidth = 0.9; g.beginPath(); g.moveTo(24 + sway*0.5, hem - 18); g.lineTo(24 + sway*0.5, hem); g.stroke(); }
   }
   // 버선과 신(버선코가 들림)
@@ -156,7 +159,8 @@ function drawSeonbi(pose, back){
   g.fillStyle = '#d9b48c'; g.beginPath(); g.ellipse(16.4, 28, 1.6, 2.6, 0, 0, Math.PI*2); g.fill(); g.beginPath(); g.ellipse(31.6, 28, 1.6, 2.6, 0, 0, Math.PI*2); g.fill();
   g.fillStyle = skin; g.beginPath(); g.moveTo(17, 23); g.quadraticCurveTo(16.5, 33, 24, 36.5); g.quadraticCurveTo(31.5, 33, 31, 23); g.closePath(); g.fill();
   g.strokeStyle = '#3a2a20'; g.lineWidth = 0.9; g.beginPath(); g.moveTo(18.8, 25.2); g.quadraticCurveTo(20.6, 24.4, 22.4, 25); g.moveTo(25.6, 25); g.quadraticCurveTo(27.4, 24.4, 29.2, 25.2); g.stroke();   // 눈썹
-  g.fillStyle = '#1a1410'; g.beginPath(); g.ellipse(20.7, 27.4, 1.3, 0.65, 0, 0, Math.PI*2); g.fill(); g.beginPath(); g.ellipse(27.3, 27.4, 1.3, 0.65, 0, 0, Math.PI*2); g.fill();   // 눈
+  if (o.closed){ g.strokeStyle = '#2a1e16'; g.lineWidth = 0.8; g.beginPath(); g.moveTo(19.4, 27.6); g.quadraticCurveTo(20.7, 28.3, 22, 27.6); g.moveTo(26, 27.6); g.quadraticCurveTo(27.3, 28.3, 28.6, 27.6); g.stroke(); }   // 감은 눈
+  else { g.fillStyle = '#1a1410'; g.beginPath(); g.ellipse(20.7, 27.4, 1.3, 0.65, 0, 0, Math.PI*2); g.fill(); g.beginPath(); g.ellipse(27.3, 27.4, 1.3, 0.65, 0, 0, Math.PI*2); g.fill(); }   // 눈
   g.strokeStyle = '#b48a66'; g.lineWidth = 0.8; g.beginPath(); g.moveTo(24, 27.6); g.quadraticCurveTo(23.2, 30.5, 24.6, 31); g.stroke();   // 코
   g.strokeStyle = '#8f5446'; g.lineWidth = 0.9; g.beginPath(); g.moveTo(22.3, 33); g.quadraticCurveTo(24, 33.7, 25.7, 33); g.stroke();   // 입
   g.strokeStyle = '#2a201a'; g.lineWidth = 0.7; g.beginPath(); g.moveTo(21.8, 32.2); g.quadraticCurveTo(24, 31.5, 26.2, 32.2); g.stroke();   // 옅은 콧수염
@@ -199,7 +203,8 @@ function sjPath(e){
   const t = (e - T_SIT) / (T_PUSH - T_SIT);
   return { x: 27, y: lerp(CHAIR_OUT + 1.2, CHAIR_IN + 1.2, t), pose:'sit', f:[0, 1], chair: lerp(CHAIR_OUT, CHAIR_IN, t) };
 }
-const SJ = { id:'sj', get x(){ return sjState().x; }, get y(){ return sjState().y; }, doll:true, show:()=>reveal('sj', S.rArrived) && (!isNight() || nightVisiting()), click:()=>showResearcher() };
+const SJ = { id:'sj', get x(){ return sjState().x; }, get y(){ return sjState().y; }, doll:true, st:()=>sjState(), fear:()=>S.rFear||0, steam:()=>S.rSteam||0, arrT:()=>S.rArrived||0,
+  img:{ A:DOLL_A, B:DOLL_B, SIT:DOLL_SIT, A_BK:DOLL_A_BK, B_BK:DOLL_B_BK, SIT_BK:DOLL_SIT_BK }, show:()=>reveal('sj', S.rArrived) && (!isNight() || nightVisiting()), click:()=>showResearcher() };
 let lastTick = performance.now(), lastAuto = performance.now();
 function tick(now){
   const dt = Math.min(0.5, (now - lastTick)/1000); lastTick = now;
@@ -217,6 +222,7 @@ function tick(now){
   cnt.textContent = txt;
   updateThread(now);
   researcherTick(dt);
+  labTick(dt);
   if (!S.helpNote && S.caveAt && (S.rWork||0) >= (S.caveWork||0) + 90){ S.helpNote = true; save(); }
   if (!S.jokboDone && S.D >= T.jEnd){ S.jokboDone = true; save();
     setTimeout(() => queueOv(`<h3>족보</h3>다 풀었다.<br><br>${esc((S.bon||'') + ' ' + S.sur)}씨 17세손 ${esc(S.sur + S.name)}.<br>18세와 19세는 이름 칸이 비어 있다. 끝난 자리만 적혀 있다.<br>20세 아래로는 아무것도 없다.<br><br>그때 구석의 궤짝에서 무언가 들썩이는 소리가 났다.`), 1200);
@@ -235,6 +241,7 @@ function roomNews(){
   if (S.pendingNote) n.push('note:' + S.pendingNote.length);
   if ((S.rFear||0) > 0.6) n.push('rfear');
   if (S.jokboDone && !S.mapFound) n.push('chest');
+  n.push(...labNews());
   return n;
 }
 let lastNewsCheck = 0, threadStir = false, threadPh = 0;
@@ -311,7 +318,7 @@ const ITEM = {
   glass: ['수정 문진(水晶文鎭)', '종이를 눌러 두는 문진. 가운데 박힌 수정으로 글자를 크게 볼 수 있다. 해독이 훨씬 빨라진다.<br>책을 펼치면 책 곁에 놓여 있다. 집어 들어 대면 글자가 크게 보인다.<br>크게 보면 아직 풀리지 않은 글자도 조금 읽힌다.<br>내려놓으려면 놓였던 자리를 누른다.<br><br>여백에 다른 손으로 쓴 글씨가 있다. 아주 작다.'],
 };
 function showItem(id){ const body = ITEM[id][1].replace('{LAMP}', S.owned.lamp ? '등잔대는 서안 곁으로 옮겼다. ' : ''); openOv(`<h3>${ITEM[id][0]}</h3>${body}`); }
-function buy(o){ if (S.pages < o.buy.cost) return; S.pages -= o.buy.cost; S.owned[o.id] = true;
+function buy(o){ if (S.pages < o.buy.cost) return; S.pages -= o.buy.cost; S.owned[o.id] = true; tlog('들임: ' + o.buy.name);
   if (o.id === 'desk'){ ensureLoc(); ITEMS.forEach(k => { if (S.loc[k] === 'desk') S.loc[k] = 'shelf'; }); }
   sPlace(); save(); showItem(o.id); }
 
