@@ -99,6 +99,8 @@
     background:var(--paper); border:5px solid #a8873e; outline:1px solid #6a5224; box-shadow:0 0 0 2px #0009, 0 10px 24px #000a, inset 0 0 18px #0004; }
   #lz { position:absolute; left:0; top:0; transform-origin:0 0; display:flex; }
   #book.loupe { cursor:none; touch-action:none; }
+  #bookView.tremble #stage { animation:tremble .19s steps(2) infinite; }
+  @keyframes tremble { 0% { transform:translate(0.6px, -0.4px) rotate(0.06deg); } 50% { transform:translate(-0.5px, 0.5px) rotate(-0.05deg); } 100% { transform:translate(0.3px, 0.2px); } }
   #deskGlass { position:absolute; z-index:1; width:170px; height:60px; cursor:pointer; transform:rotate(86deg) scale(.78); }
   #deskGlass .spot { opacity:0; transition:opacity .3s; }
   #deskGlass.held .obj { opacity:0; }
@@ -638,7 +640,7 @@ const OBJ = [
   { id:'brush', x:9, y:-20, buy:{ cost:50, name:'붓걸이' } },
   { id:'desk', get x(){ return S.owned.desk ? 0 : 0; }, get y(){ return S.owned.desk ? 3 : 15; }, m:()=> S.owned.desk ? 'seoanBook' : 'seoan', buy:{ cost:120, name:'서안' }, click:()=>openBook() },
   { id:'glass', get x(){ return S.owned.glass && S.owned.desk ? -10 : -24; }, get y(){ return S.owned.glass && S.owned.desk ? 3 : 8; }, get z(){ return S.owned.glass && S.owned.desk ? 8 : 0; }, buy:{ cost:260, name:'수정 문진' } },
-  { id:'teapot', x:-31, y:-5, show:()=>S.D>=T.tea, click:()=>brew() },
+  { id:'teapot', x:-31, y:-5, show:()=>S.teaArrived, click:()=>brew() },
   { id:'door', x:27, y:-20, show:()=>S.D>=T.door, click:()=>showLibrary() },
   { id:'letter', x:24, y:-11, show:()=>S.D>=T.letter && !S.letterRead, click:()=>readLetter(), glow:()=>true },
   { id:'rdesk', x:27, y:19, rot:0, show:()=>S.chair, click:()=>openOv('<h3>연구원의 자리</h3>작은 책상과 의자. 종이 묶음과 벼루가 놓여 있다.<br><br>아직 아무도 앉지 않았다.') },
@@ -699,6 +701,9 @@ function tick(now){
   if (S.stage !== 'room') return;
   if (S.D >= T.fearOn && now > steamUntil) S.fear = Math.min(0.8, S.fear + dt*0.025*(S.sideRead.dongui ? 0.6 : 1));
   document.getElementById('fear').style.opacity = S.fear.toFixed(2);
+  const shaking = S.fear >= 0.35;
+  bookView.classList.toggle('tremble', shaking);
+  if (shaking && !S.teaArrived && S.D >= T.tea){ S.teaArrived = true; save(); }
   let txt = String(S.pages);
   if (!S.glitchDone && S.D >= T.glitch){ S.glitchDone = true; glitchUntil = now + 200; save(); }
   if (now < glitchUntil && txt.length){ const k = txt.length-1; txt = txt.slice(0,k) + ((+txt[k]+3)%10); }
@@ -711,7 +716,7 @@ function roomNews(){
   const n = [];
   for (const o of OBJ) if (o.buy && !S.owned[o.id] && S.pages >= o.buy.cost) n.push('buy:' + o.id);
   if (S.D >= T.door) n.push('door');
-  if (S.D >= T.tea) n.push('teapot');
+  if (S.teaArrived) n.push('teapot');
   if (S.D >= T.letter && !S.letterRead) n.push('letter');
   return n;
 }
@@ -729,7 +734,7 @@ function updateThread(now){
   if (now - lastNewsCheck < 500) return; lastNewsCheck = now;
   const ack = S.ack || [];
   const fresh = roomNews().filter(k => !ack.includes(k));
-  const urgent = S.D >= T.tea && S.fear > 0.4;            // 손이 떨릴 만큼 무서우면 실도 떨림
+  const urgent = S.teaArrived && S.fear > 0.4;            // 손이 떨릴 만큼 무서우면 실도 떨림
   threadStir = bookOpen && (fresh.length > 0 || urgent);
   if (bookOpen && S.D >= T.letter && !S.letterShadow){   // 편지가 놓일 때: 문 앞을 지나가는 그림자 하나
     S.letterShadow = true; save();
