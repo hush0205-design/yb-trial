@@ -99,6 +99,10 @@
     background:var(--paper); border:4px solid #8a7a4a; box-shadow:0 0 0 2px #0009, 0 10px 24px #000a, inset 0 0 18px #0004; }
   #lz { position:absolute; left:0; top:0; transform-origin:0 0; display:flex; }
   #book.loupe { cursor:none; touch-action:none; }
+  #deskGlass { position:absolute; z-index:1; width:120px; height:64px; cursor:pointer; }
+  #deskGlass .spot { opacity:0; transition:opacity .3s; }
+  #deskGlass.held .obj { opacity:0; }
+  #deskGlass.held .spot { opacity:.5; }
 
   /* 시작·족보·가훈 */
   .screen { position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; background:var(--bg); z-index:20; }
@@ -149,6 +153,21 @@
       <div id="passShadow"></div>
     </div>
     <div id="cover" class="coverFace"><div class="slip">□□</div><div class="bind"></div></div>
+    <svg id="deskGlass" class="hidden" viewBox="0 0 120 64">
+      <defs><filter id="gblur" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="1.6"/></filter>
+        <radialGradient id="lens" cx="40%" cy="35%" r="70%"><stop offset="0" stop-color="#e8f0f2" stop-opacity=".55"/><stop offset=".6" stop-color="#9fb4b8" stop-opacity=".28"/><stop offset="1" stop-color="#3a4a4c" stop-opacity=".45"/></radialGradient></defs>
+      <g class="obj">
+        <ellipse cx="36" cy="36" rx="27" ry="25" fill="#000" opacity=".45" filter="url(#gblur)" transform="translate(2,4)"/>
+        <rect x="58" y="29" width="50" height="9" rx="4" fill="#000" opacity=".4" filter="url(#gblur)" transform="translate(2,5) rotate(12 58 33)"/>
+        <rect x="58" y="28" width="50" height="9" rx="4" fill="#5a3a20" transform="rotate(12 58 33)"/>
+        <rect x="58" y="29" width="50" height="2" rx="1" fill="#7a5530" transform="rotate(12 58 33)"/>
+        <circle cx="34" cy="32" r="25" fill="url(#lens)" stroke="#a8873e" stroke-width="5"/>
+        <circle cx="34" cy="32" r="25" fill="none" stroke="#6a5224" stroke-width="1"/>
+        <path d="M20 22 Q26 14 36 13" stroke="#ffffff" stroke-opacity=".5" stroke-width="2" fill="none" stroke-linecap="round"/>
+      </g>
+      <g class="spot"><circle cx="34" cy="32" r="25" fill="none" stroke="#c8b98e" stroke-width="1.2" stroke-dasharray="3 4"/></g>
+      <rect class="hitg" x="0" y="0" width="120" height="64" fill="transparent"/>
+    </svg>
     <svg id="thread" width="150" height="70" viewBox="0 0 150 70">
       <defs><filter id="tblur" x="-20%" y="-50%" width="140%" height="200%"><feGaussianBlur stdDeviation="0.9"/></filter></defs>
       <path class="tsh" fill="none" stroke="#000" stroke-opacity=".55" stroke-width="3.2" stroke-linecap="round" transform="translate(0.6,1.6)" filter="url(#tblur)"/>
@@ -159,7 +178,7 @@
     </svg>
   </div>
   <div id="dimL" class="lightL"></div><div id="warmL" class="lightL"></div>
-  <div id="bookBar"><button class="sbtn" id="bGlass">돋보기</button><button class="sbtn hidden" id="bClose">책을 덮는다</button></div>
+  <div id="bookBar"><button class="sbtn hidden" id="bGlass">돋보기</button><button class="sbtn hidden" id="bClose">책을 덮는다</button></div>
 </div>
 
 <div class="screen" id="sStart"><div id="title">□□ — □□□□□</div><button class="btn" id="bOpen">궤짝을 연다</button></div>
@@ -291,7 +310,9 @@ function layoutBook(){
   const fs = Math.max(13, Math.min(19, FH/40));
   book.style.setProperty('--fs', fs + 'px'); book.style.setProperty('--lh', Math.round(fs*1.8) + 'px'); book.style.setProperty('--pt', Math.round(FH*0.15) + 'px');
   cover.style.width = FW + 'px'; cover.style.height = FH + 'px'; cover.style.left = '0px'; cover.style.top = '0px';
-  const th = document.getElementById('thread'); const spineX = FW - Math.round(FW*0.035);   // 한 면이면 묶은 쪽이 화면 오른쪽 끝이라 실이 왼쪽으로 눕고, 두 면이면 오른쪽으로 누움
+  const th = document.getElementById('thread'); const dg = document.getElementById('deskGlass');
+  if (single){ dg.style.left = '4px'; dg.style.top = (FH + 18) + 'px'; } else { dg.style.left = '-132px'; dg.style.top = Math.round(FH*0.58) + 'px'; }
+  const spineX = FW - Math.round(FW*0.035);   // 한 면이면 묶은 쪽이 화면 오른쪽 끝이라 실이 왼쪽으로 눕고, 두 면이면 오른쪽으로 누움
   th.style.left = (single ? spineX - 130 : spineX - 20) + 'px'; th.style.top = (FH - 6) + 'px'; th.style.transform = single ? 'scaleX(-1)' : ''; drawThread(0);   // 실은 묶은 선(한 면이면 오른쪽 끝, 두 면이면 가운데)에서 늘어짐
   facesEl.innerHTML = ''; faces = [];
   for (const k of (single ? ['all'] : ['fear', 'ledger'])){ const f = document.createElement('div'); f.className = 'face'; f.dataset.kind = k; f.style.width = FW + 'px'; f.style.height = FH + 'px'; facesEl.appendChild(f); faces.push(f); }
@@ -326,7 +347,7 @@ function renderFaces(){
   faces.forEach((f,i) => { f.innerHTML = faceInner(f.dataset.kind, S.D, false) + (i === 0 ? EAR : ''); f.style.backgroundImage = stain(S.earned*2 + i); });
   snapshot();
   book.classList.toggle('lit', !!S.owned.lamp); bookView.classList.toggle('lit', !!S.owned.lamp); bookView.classList.toggle('chest', !S.owned.desk);
-  document.getElementById('bGlass').classList.toggle('hidden', !S.owned.glass);
+  document.getElementById('deskGlass').classList.toggle('hidden', !S.owned.glass);
   if (loupeOn) buildLoupe();
 }
 
@@ -442,10 +463,11 @@ function buildLoupe(){
 function placeLoupe(){ loupe.style.left = (loupeX - LR) + 'px'; loupe.style.top = (loupeY - LR) + 'px'; lz.style.transform = `translate(${LR - loupeX*LZ}px, ${LR - loupeY*LZ}px) scale(${LZ})`; }
 function toggleLoupe(){
   loupeOn = !loupeOn; book.classList.toggle('loupe', loupeOn); loupe.style.display = loupeOn ? 'block' : 'none'; sPlace();
-  document.getElementById('bGlass').textContent = loupeOn ? '돋보기를 내려놓는다' : '돋보기';
+  document.getElementById('deskGlass').classList.toggle('held', loupeOn);
   if (loupeOn){ loupeX = book.clientWidth*0.6; loupeY = book.clientHeight*0.3; buildLoupe(); }
 }
 document.getElementById('bGlass').addEventListener('click', e => { e.stopPropagation(); toggleLoupe(); });
+document.getElementById('deskGlass').addEventListener('click', e => { e.stopPropagation(); if (bookOpen && !coverBusy) toggleLoupe(); });
 const moveLoupe = e => { if (!loupeOn) return; const r = book.getBoundingClientRect(); loupeX = e.clientX - r.left; loupeY = e.clientY - r.top; placeLoupe(); };
 book.addEventListener('pointermove', moveLoupe); book.addEventListener('pointerdown', moveLoupe);
 
@@ -691,7 +713,7 @@ const ITEM = {
   lamp:  ['등잔', '불을 켜면 글자가 보인다.<br>한 번에 두 장씩 넘길 수 있다.<br><br>기름은 줄지 않는다.'],
   brush: ['붓걸이', '푼 글자를 받아 적는다. 해독이 빨라진다.<br>받아 적은 것은 도서관에 남는다.<br><br>붓이 넷. 하나는 쓴 적이 없는데 먹이 묻어 있다.'],
   desk:  ['서안', '궤짝에서 책을 꺼내 서안에 올렸다. 궤짝은 구석으로 치웠다.<br>등잔도 서안 위로 올렸다. 서안을 누르면 책을 펼친다.<br><br>책을 펼쳐 두면 손대지 않아도 넘어간다.<br>책을 덮어 두어도 넘어간다.<br>한 번에 넘기는 장수도 늘어난다.<br><br>창은 닫혀 있다.'],
-  glass: ['돋보기', '해독이 훨씬 빨라진다.<br>책을 펼치면 곁에 놓인다. 집어 들어 대면 글자가 크게 보인다.<br>크게 보면 아직 풀리지 않은 글자도 조금 읽힌다.<br><br>여백에 다른 손으로 쓴 글씨가 있다. 아주 작다.'],
+  glass: ['돋보기', '해독이 훨씬 빨라진다.<br>책을 펼치면 책 곁에 놓여 있다. 집어 들어 대면 글자가 크게 보인다.<br>크게 보면 아직 풀리지 않은 글자도 조금 읽힌다.<br>내려놓으려면 놓였던 자리를 누른다.<br><br>여백에 다른 손으로 쓴 글씨가 있다. 아주 작다.'],
 };
 function showItem(id){ openOv(`<h3>${ITEM[id][0]}</h3>${ITEM[id][1]}`); }
 function buy(o){ if (S.pages < o.buy.cost) return; S.pages -= o.buy.cost; S.owned[o.id] = true; sPlace(); save(); showItem(o.id); }
