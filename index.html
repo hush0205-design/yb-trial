@@ -25,14 +25,14 @@
   /* 책 화면 */
   #bookView { position:fixed; inset:0; z-index:12; display:flex; flex-direction:column; align-items:center; justify-content:center; isolation:isolate;
     background-color:#3a2414;
-    background-image:repeating-linear-gradient(90deg, #00000000 0 37px, #0000001a 37px 39px, #00000000 39px 83px, #ffffff08 83px 84px),
-      repeating-linear-gradient(90deg, #4a2e1a 0, #3d2615 9px, #46301c 17px, #3a2414 26px); }
+    background-image:repeating-linear-gradient(0deg, #00000000 0 41px, #0000001a 41px 43px, #00000000 43px 97px, #ffffff08 97px 98px),
+      repeating-linear-gradient(0deg, #4a2e1a 0, #3d2615 7px, #46301c 15px, #3a2414 23px); }
 
   #stage { position:relative; display:flex; align-items:center; justify-content:center; }
   #book { position:relative; perspective:2200px; }
   #faces { display:flex; position:absolute; inset:0; }
   .face { position:relative; flex:0 0 auto; background-color:var(--paper); overflow:hidden; color:var(--ink);
-    box-shadow:inset 0 0 40px #5a3a1a22, 0 0 0 1px #00000055, 0 16px 34px #000b; }
+    box-shadow:inset 0 0 40px #5a3a1a22, 0 0 0 1px #00000055, 0 2px 3px #000a, 0 6px 14px #0007; }
   .face::before, .pc::before { content:''; position:absolute; inset:0; pointer-events:none; opacity:.55;
     background:repeating-linear-gradient(83deg, #0000 0 3px, #6a5a3a0d 3px 4px), repeating-linear-gradient(-9deg, #0000 0 7px, #ffffff1c 7px 8px); }
   .rule { position:absolute; top:calc(var(--pt) - 8px); bottom:14px; left:12px; right:12px; border:4px double #6a4a2a88; pointer-events:none; }
@@ -54,7 +54,8 @@
   #ear.ready { opacity:1; }
   .lightL { position:fixed; inset:0; pointer-events:none; z-index:8; mix-blend-mode:multiply; transition:opacity 2.5s; }
   #bookBar { position:relative; z-index:9; }
-  #dimL { opacity:1; background:radial-gradient(ellipse 60% 50% at 70% 26%, rgb(160,164,184) 0%, rgb(96,98,114) 30%, rgb(32,32,40) 64%, rgb(12,12,16) 100%); }
+  #dimL { opacity:1; background:radial-gradient(ellipse 34% 16% at 52% 84%, rgba(120,122,140,.75) 0%, rgba(120,122,140,0) 100%),
+    radial-gradient(ellipse 60% 50% at 70% 26%, rgb(160,164,184) 0%, rgb(96,98,114) 30%, rgb(32,32,40) 64%, rgb(12,12,16) 100%); }
   #warmL { opacity:0; background:radial-gradient(ellipse 70% 75% at 50% 62%, rgb(255,246,226) 0%, rgb(236,214,176) 38%, rgb(150,116,80) 72%, rgb(60,42,28) 100%); }
   #bookView.lit #dimL { opacity:0; }
   #bookView.lit #warmL { opacity:1; animation:flick 3.3s infinite; }
@@ -64,8 +65,7 @@
   #passShadow.go { animation:pass 2.4s ease-in-out; }
   @keyframes pass { 0% { opacity:0; background-position:-80% 0; } 20% { opacity:.9; } 80% { opacity:.9; } 100% { opacity:0; background-position:180% 0; } }
   /* 책을 묶은 실의 끝: 서고에 무슨 일이 생기면 떨림 */
-  #thread { position:absolute; z-index:9; overflow:visible; opacity:.6; }
-  #bookView.lit #thread { opacity:.95; }   /* 어두울 땐 달빛에 희미하게(빛 층 위에 그려 어둠에 묻히지 않게) */
+  #thread { position:absolute; z-index:7; overflow:visible; }
   #thread .hit { cursor:pointer; pointer-events:stroke; }
   #thread:hover { opacity:1; }
   #bookBar { margin-top:96px; display:flex; gap:12px; min-height:34px; }
@@ -145,11 +145,13 @@
       <div id="passShadow"></div>
     </div>
     <div id="cover" class="coverFace"><div class="slip">□□</div><div class="bind"></div></div>
-    <svg id="thread" width="120" height="110" viewBox="0 0 120 110">
-      <path class="tsh" fill="none" stroke="#000" stroke-opacity=".45" stroke-width="3" stroke-linecap="round" transform="translate(2,3)"/>
-      <path class="tln" fill="none" stroke="#e8e0cc" stroke-width="2" stroke-linecap="round"/>
-      <g class="tas"><rect x="-4" y="0" width="8" height="13" rx="2" fill="#d8cfb6"/><path d="M-3 4 v9 M-1 4 v9 M1 4 v9 M3 4 v9" stroke="#b8ae94" stroke-width=".6"/></g>
-      <path class="hit" fill="none" stroke="transparent" stroke-width="26" stroke-linecap="round"/>
+    <svg id="thread" width="150" height="70" viewBox="0 0 150 70">
+      <defs><filter id="tblur" x="-20%" y="-50%" width="140%" height="200%"><feGaussianBlur stdDeviation="0.9"/></filter></defs>
+      <path class="tsh" fill="none" stroke="#000" stroke-opacity=".55" stroke-width="3.2" stroke-linecap="round" transform="translate(0.6,1.6)" filter="url(#tblur)"/>
+      <path class="tln" fill="none" stroke="#cdbf9c" stroke-width="2.2" stroke-linecap="round"/>
+      <path class="ttw" fill="none" stroke="#8f8264" stroke-width="2.2" stroke-dasharray="1.2 2.6" stroke-linecap="butt"/>
+      <g class="tas"><ellipse cx="1" cy="1.5" rx="7" ry="3.2" fill="#000" opacity=".4" filter="url(#tblur)"/><path d="M0 0 L11 -2.5 L12 3.5 Z" fill="#c9bb98"/><path d="M2 0 L11 -1.2 M2 0.8 L11.5 1 M2 1.6 L11.8 2.6" stroke="#9a8d6c" stroke-width=".5"/></g>
+      <path class="hit" fill="none" stroke="transparent" stroke-width="28" stroke-linecap="round"/>
     </svg>
   </div>
   <div id="dimL" class="lightL"></div><div id="warmL" class="lightL"></div>
@@ -285,7 +287,8 @@ function layoutBook(){
   const fs = Math.max(13, Math.min(19, FH/40));
   book.style.setProperty('--fs', fs + 'px'); book.style.setProperty('--lh', Math.round(fs*1.8) + 'px'); book.style.setProperty('--pt', Math.round(FH*0.15) + 'px');
   cover.style.width = FW + 'px'; cover.style.height = FH + 'px'; cover.style.left = '0px'; cover.style.top = '0px';
-  const th = document.getElementById('thread'); th.style.left = (FW - Math.round(FW*0.035) - 60) + 'px'; th.style.top = (FH - 8) + 'px'; drawThread(0);   // 실은 묶은 선(한 면이면 오른쪽 끝, 두 면이면 가운데)에서 늘어짐
+  const th = document.getElementById('thread'); const spineX = FW - Math.round(FW*0.035);   // 한 면이면 묶은 쪽이 화면 오른쪽 끝이라 실이 왼쪽으로 눕고, 두 면이면 오른쪽으로 누움
+  th.style.left = (single ? spineX - 130 : spineX - 20) + 'px'; th.style.top = (FH - 6) + 'px'; th.style.transform = single ? 'scaleX(-1)' : ''; drawThread(0);   // 실은 묶은 선(한 면이면 오른쪽 끝, 두 면이면 가운데)에서 늘어짐
   facesEl.innerHTML = ''; faces = [];
   for (const k of (single ? ['all'] : ['fear', 'ledger'])){ const f = document.createElement('div'); f.className = 'face'; f.dataset.kind = k; f.style.width = FW + 'px'; f.style.height = FH + 'px'; facesEl.appendChild(f); faces.push(f); }
   facesEl.classList.toggle('horiz', !!S.opt.horiz);
@@ -600,10 +603,11 @@ let lastNewsCheck = 0, threadStir = false, threadPh = 0;
 function drawThread(amp){
   const th = document.getElementById('thread'); if (!th) return;
   const w = Math.sin(threadPh), w2 = Math.sin(threadPh*1.7 + 1);
-  const x0 = 60, y0 = 2, x1 = 52 + amp*w, y1 = 34, x2 = 74 + amp*w2*1.3, y2 = 62, x3 = 58 + amp*w*0.8, y3 = 90;
-  const d = `M${x0},${y0} C${x0},${y0+14} ${x1-10},${y1-8} ${x1},${y1} S${x2+8},${y2-14} ${x2},${y2} S${x3+6},${y3-12} ${x3},${y3}`;
-  th.querySelectorAll('.tsh,.tln,.hit').forEach(p => p.setAttribute('d', d));
-  th.querySelector('.tas').setAttribute('transform', `translate(${x3},${y3}) rotate(${-10 + amp*w*3})`);
+  // 묶은 자리(책 아래 끝)에서 나와 책상 위에 옆으로 비스듬히 누움. 꿈틀거릴 땐 가운데가 들썩임
+  const x0 = 20, y0 = 2, x1 = 46, y1 = 22 + amp*w*0.6, x2 = 88, y2 = 30 + amp*w2, x3 = 128 + amp*w*0.4, y3 = 40;
+  const d = `M${x0},${y0} C${x0+4},${y0+12} ${x1-14},${y1-2} ${x1},${y1} S${x2-16},${y2-6} ${x2},${y2} S${x3-14},${y3-8} ${x3},${y3}`;
+  th.querySelectorAll('.tsh,.tln,.ttw,.hit').forEach(p => p.setAttribute('d', d));
+  th.querySelector('.tas').setAttribute('transform', `translate(${x3},${y3}) rotate(${18 + amp*w*4})`);
 }
 function updateThread(now){
   if (now - lastNewsCheck < 500) return; lastNewsCheck = now;
