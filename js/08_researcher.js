@@ -95,7 +95,7 @@ function showResearcher(){
     : rfac === 1 ? '또박또박 넘긴다' : rfac === 0.5 ? '손이 떨려 느릿느릿 넘긴다' : '책장을 붙잡고 거의 넘기지 못한다';
   const n = diaryCount(), rf = S.rFear || 0, st = rf > 0.7 ? '간이 콩알만 해짐 — 손이 떨려 책장을 거의 넘기지 못한다' : rf > 0.35 ? '간이 콩알만 해짐 — 손이 떨린다' : '평온함';
   const rb = itemAt('rdesk'), o = (id, label) => `<span data-rb="${id}" class="${rb === id ? 'on' : ''}">${label}</span>`;
-  openOv(`<h3>연구원 — 한서진(韓瑞眞)</h3>직업: 해독가<br>상태: ${st}<br>읽는 빠르기: ${speed}<br>넘긴 것: ${fmtP(S.rPages||0)}<br><div style="font-size:12px;opacity:.6">밤에는 일하지 않는다.</div>`
+  openOv(`<h3>연구원 — 한서진(韓瑞眞)</h3>직업: 해독가<br>상태: ${st}${typeof whyHtml === 'function' ? whyHtml('sj') : '<br>'}읽는 빠르기: ${speed}<br>넘긴 것: ${fmtP(S.rPages||0)}<br><div style="font-size:12px;opacity:.6">밤에는 일하지 않는다.</div>`
     + (S.teaArrived ? `<div style="text-align:center;margin:8px 0"><button class="btn rec" id="bRTea" style="color:var(--ink);border-color:#00000066">차를 한 잔 내준다</button></div>` : '')
     + `<div style="margin-top:8px">책상 위: ${rb ? INAME[rb] : '<i>비어 있다 — 아무것도 하지 않고 앉아 있다</i>'}</div>`
     + `<div class="opt rec"><span>책장에서 가져다 놓기</span><span class="ch">${o('first', '제목 없는 책')}${o('dongui', '동의보감 三')}${S.mapFound ? o('map', '지도') : ''}${rb ? o('', '치운다') : ''}</span></div>`

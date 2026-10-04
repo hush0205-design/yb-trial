@@ -286,7 +286,7 @@ function showStaff(k){
   const st = rf > 0.7 ? '간이 콩알만 해짐 — 식은땀을 흘리며 책장을 거의 넘기지 못한다' : rf > 0.35 ? '간이 콩알만 해짐 — 이마에 땀이 맺히고 손이 떨린다' : '평온함';
   const o = (id, label) => `<span data-cp="${id}" class="${s.item === id ? 'on' : ''}">${label}</span>`;
   const dl = staffDiary(k), tea = Date.now() < (s.calm||0) ? '<div style="font-size:12px;opacity:.6">책상에 찻잔이 놓여 있다. 아직 따뜻하다.</div>' : '';
-  openOv(`<h3>${isGen(k) ? '연구원' : '반장'} — ${P.name}(${P.hj})</h3>직업: ${P.job}<br>상태: ${st}<br>읽는 빠르기: ${speed}<br>넘긴 것: ${fmtP(s.pages||0)}<br><div style="font-size:12px;opacity:.6">${P.note}</div>${tea}`
+  openOv(`<h3>${isGen(k) ? '연구원' : '반장'} — ${P.name}(${P.hj})</h3>직업: ${P.job}<br>상태: ${st}${typeof whyHtml === 'function' ? whyHtml(k) : '<br>'}읽는 빠르기: ${speed}<br>넘긴 것: ${fmtP(s.pages||0)}<br><div style="font-size:12px;opacity:.6">${P.note}</div>${tea}`
     + (S.teaArrived ? `<div style="text-align:center;margin:8px 0"><button class="btn rec" id="bSTea" style="color:var(--ink);border-color:#00000066">차를 한 잔 내준다</button></div>` : '')
     + `<div class="opt rec"><span>읽을 사본</span><span class="ch">${o('first', '제목 없는 책')}${o('dongui', '동의보감 三')}${S.mapFound ? o('map', '지도') : ''}</span></div>`
     + `<div style="font-size:12px;opacity:.6">서고의 책을 베껴 둔 사본이라, 같은 책을 여럿이 읽을 수 있다.${s.auto && !s.manual ? ' 지금 것은 한서진이 나누어 준 것이다.' : ''}</div>`
@@ -304,6 +304,7 @@ function readGo(){
   if (typeof tlog === 'function') tlog('체험판 끝 쪽지');
 }
 function labRecs(recs){
+  if (typeof whyRecs === 'function') whyRecs(recs);
   if (S.bangAt) recs.push(['방(榜)', bangHtml]);
   for (const k of ['smw', 'ojr']){ const s = S.st[k]; if (!s) continue;
     if (s.read) recs.push([`편지 — ${STAFF[k].name}`, () => letterOf(k)]);
@@ -329,6 +330,8 @@ const anyScared = () => (S.rFear||0) > 0.5 || allKeys().some(k => working(k) && 
 let lastTeaRound = 0;
 function labTick(dt){
   if (typeof errTick === 'function') errTick();
+  if (typeof whyTick === 'function') whyTick();
+  if (typeof flipTick === 'function') flipTick();
   if (!S.bangAt) return;
   const now = Date.now(), smw = stOf('smw'), ojr = stOf('ojr');
   if (!curApplicant()){
