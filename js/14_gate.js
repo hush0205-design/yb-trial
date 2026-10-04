@@ -44,7 +44,7 @@ M.mungap = mungapModel(false); M.mungapOpen = mungapModel(true);
 // 문갑에 새 기록이 있나: 기록 목록·일지 수·낱말 정리 수로 '본 적 있는 상태'를 비교
 const libSig = () => buildRecs().map(r => r[0].replace(/ — 새로.*$/, '')).join('|') + '#' + diaryCount() + '#' + ['smw', 'ojr'].map(k => staffDiary(k).length).join(',') + '#' + (S.gl.fresh||0);
 const libNew = () => S.D >= T.door && libSig() !== S.libSig;
-OBJ.push({ id:'mungap', x:17, y:-22, rot:0, m:()=> libNew() ? 'mungapOpen' : 'mungap', show:()=> S.D >= T.door, click:()=>showLibrary() });
+OBJ.push({ id:'mungap', x:16, y:-22, rot:0, m:()=> libNew() ? 'mungapOpen' : 'mungap', show:()=> S.D >= T.door, click:()=>showLibrary() });
 { const d = OBJ.find(o => o.id === 'door'); d.click = () => goScene('gate'); }
 
 // 대문 화면

@@ -34,7 +34,7 @@ function errPos(w){
   const t = e / d, l = Math.hypot(st.b[0] - st.a[0], st.b[1] - st.a[1]) || 1;
   return { x: lerp(st.a[0], st.b[0], t), y: lerp(st.a[1], st.b[1], t), pose:'walk', f: [(st.b[0] - st.a[0]) / l, (st.b[1] - st.a[1]) / l], chair: out };
 }
-function errCarry(D){ const n = errNow(dKey(D)); return n && n.st.carry && n.st.k !== 'up' && n.st.k !== 'down' ? n.st.carry : null; }
+function errCarry(D){ const w = dKey(D), n = errNow(w); if (!n || !n.st.carry || n.st.k === 'up' || n.st.k === 'down') return null; if (n.st.act === 'potPut' && S.errs[w].acted === n.i) return null; return n.st.carry; }
 { const sj0 = sjState; sjState = function(){ return errPos('sj') || sj0(); }; }
 
 // 심부름 끝에 일어나는 일
@@ -54,56 +54,63 @@ function errTick(){
     const er = S.errs[w]; let e = Date.now() - er.t0, i = 0, changed = false;
     for (; i < er.steps.length; i++){ const d = stepDur(er.steps[i]); if (e < d) break; e -= d;
       if (i >= (er.done || 0)){ const st = er.steps[i]; er.done = i + 1; changed = true;
-        if (st.act) ERR_ACT[st.act](st.arg);
+        if (st.act && er.acted !== i) ERR_ACT[st.act](st.arg);
         const nx = er.steps[i + 1];
         if (nx && nx.sc !== st.sc && (S.scene === st.sc || S.scene === nx.sc)) noise(0.3, 240, 0.07, 'lowpass');   // 문 여닫는 소리
       } }
+    const cs = er.steps[i];                                      // 내려놓는 일은 멈춰 선 직후에(서 있다가 한참 뒤에 생기지 않게)
+    if (cs && cs.k === 'wait' && cs.act && er.acted !== i && e >= Math.min(350, stepDur(cs)*0.3)){ er.acted = i; ERR_ACT[cs.act](cs.arg); changed = true; }
     if (i >= er.steps.length){ delete S.errs[w]; changed = true; }
     if (changed) save();
   }
 }
 
-// 오정림: 처음 자리를 잡으면 서고의 찻주전자를 가지러 감
+// 오정림: 처음 자리를 잡으면 서고의 찻주전자를 가지러 감 → 다탁에 놓고 그 자리에서 바로 차를 따라 돌림(앉았다 다시 일어나지 않게)
 function potErrand(){
-  const d = S.st.ojr.desk, sd = homeSide('ojr');
-  S.errs.ojr = { t0: Date.now(), steps: [
+  const sd = homeSide('ojr');
+  const steps = [
     { k:'up', sc:'lab' },
     ...walkPts('lab', [sd, [sd[0], LC], [LAB_DOOR[0], LC], LAB_DOOR]),
     ...walkPts('seogo', [SG_DOOR, SG_IN]),
-    waitAt('seogo', SG_IN, [0.27, -0.96], 1500, 'potTake'),
+    waitAt('seogo', SG_IN, [0.27, -0.96], 1200, 'potTake'),
     ...walkPts('seogo', [SG_IN, SG_DOOR], 'teapot'),
     ...walkPts('lab', [LAB_DOOR, [LAB_DOOR[0], LC], TEA_STAND], 'teapot'),
-    waitAt('lab', TEA_STAND, [0.8, -0.6], 1500, 'potPut', null, 'teapot'),
-    ...walkPts('lab', [TEA_STAND, [sd[0], LC], sd]),
-    { k:'down', sc:'lab' } ] };
-  save(); if (typeof tlog === 'function') tlog('오정림이 찻주전자를 가지러 감');
+    waitAt('lab', TEA_STAND, [0.8, -0.6], 1200, 'potPut', null, 'teapot'),
+    ...serveSteps(true) ];
+  S.errs.ojr = { t0: Date.now(), steps }; lastTeaRound = Date.now(); save();
+  if (typeof tlog === 'function') tlog('오정림이 찻주전자를 가지러 감');
 }
-// 오정림: 떨고 있는 사람과 비어 있는 가주 서안에 차를 날라 줌
-function teaRound(){
-  const now = Date.now();
+// 다탁 앞에서 시작: 차를 따르고 → 떨고 있는 사람·빈 가주 서안에 날라 주고 → 제자리에 앉음
+function serveSteps(first){
+  const now = Date.now(), sd = homeSide('ojr'), steps = [];
   const labT = allKeys().filter(k => k !== 'ojr' && working(k) && (S.st[k].fear||0) > 0.4 && LAB_DESKS[S.st[k].desk]).sort((a, b) => LAB_DESKS[S.st[a].desk][0] - LAB_DESKS[S.st[b].desk][0]);
   const sjSeated = !!S.rArrived && !isNight() && !nightVisiting() && now - S.rArrived > T_PUSH && !S.errs.sj;
-  const sjT = sjSeated && (S.rFear||0) > 0.4, myT = !!S.owned.desk && !S.myCup && now - (S.myCupAt||0) > 300000;
-  if (!labT.length && !sjT && !myT) return;
-  const sd = homeSide('ojr'), steps = [{ k:'up', sc:'lab' }];
-  let cur = sd;
+  const sjT = sjSeated && (S.rFear||0) > 0.4, myT = !!S.owned.desk && !S.myCup && (first || now - (S.myCupAt||0) > 300000);
+  let cur = TEA_STAND;
   const go = (sc, pts, carry) => { steps.push(...walkPts(sc, [cur, ...pts], carry)); cur = pts[pts.length - 1]; };
-  go('lab', [[sd[0], LC], [TEA_STAND[0], LC], TEA_STAND]);
-  steps.push(waitAt('lab', TEA_STAND, [0.8, -0.6], 1800, 'pour'));
-  for (const k of labT){ const [dx, dy] = LAB_DESKS[S.st[k].desk], px = dx + 7.5;
-    go('lab', [[cur[0], LC], [px, LC], [px, dy - 1]], 'tray');
-    steps.push(waitAt('lab', cur, [-1, 0], 1100, 'tea', k, 'tray')); }
-  if (sjT || myT){
-    go('lab', [[cur[0], LC], [LAB_DOOR[0], LC], LAB_DOOR], 'tray'); cur = SG_DOOR;
-    go('seogo', [SG_IN, SG_HUB, [SG_HUB[0], SGC]], 'tray');
-    if (myT){ go('seogo', [[MY_STAND[0], SGC], MY_STAND], 'tray'); steps.push(waitAt('seogo', MY_STAND, [0, 1], 1200, 'myCup', null, 'tray')); go('seogo', [[MY_STAND[0], SGC]], 'tray'); }
-    if (sjT){ go('seogo', [[SJ_STAND[0] - 1, SGC], SJ_STAND], 'tray'); steps.push(waitAt('seogo', SJ_STAND, [-0.9, 0.4], 1200, 'teaSJ', null, 'tray')); go('seogo', [[SJ_STAND[0] - 1, SGC]]); }
-    go('seogo', [[SG_HUB[0], SGC], SG_HUB, SG_IN, SG_DOOR]); cur = LAB_DOOR;
-    go('lab', [[LAB_DOOR[0], LC]]);
+  if (labT.length || sjT || myT){
+    steps.push(waitAt('lab', TEA_STAND, [0.8, -0.6], 1800, 'pour'));
+    for (const k of labT){ const [dx, dy] = LAB_DESKS[S.st[k].desk], px = dx + 7.5;
+      go('lab', [[cur[0], LC], [px, LC], [px, dy - 1]], 'tray');
+      steps.push(waitAt('lab', cur, [-1, 0], 900, 'tea', k, 'tray')); }
+    if (sjT || myT){
+      go('lab', [[cur[0], LC], [LAB_DOOR[0], LC], LAB_DOOR], 'tray'); cur = SG_DOOR;
+      go('seogo', [SG_IN, SG_HUB, [SG_HUB[0], SGC]], 'tray');
+      if (myT){ go('seogo', [[MY_STAND[0], SGC], MY_STAND], 'tray'); steps.push(waitAt('seogo', MY_STAND, [0, 1], 900, 'myCup', null, 'tray')); go('seogo', [[MY_STAND[0], SGC]], 'tray'); }
+      if (sjT){ go('seogo', [[SJ_STAND[0] - 1, SGC], SJ_STAND], 'tray'); steps.push(waitAt('seogo', SJ_STAND, [-0.9, 0.4], 900, 'teaSJ', null, 'tray')); go('seogo', [[SJ_STAND[0] - 1, SGC]]); }
+      go('seogo', [[SG_HUB[0], SGC], SG_HUB, SG_IN, SG_DOOR]); cur = LAB_DOOR;
+      go('lab', [[LAB_DOOR[0], LC]]);
+    }
   }
   go('lab', [[cur[0], LC], [sd[0], LC], sd]);
   steps.push({ k:'down', sc:'lab' });
-  S.errs.ojr = { t0: now, steps }; save();
+  return steps;
+}
+function teaRound(){
+  const steps = serveSteps(false);
+  if (steps.length <= 3) return;                                 // 날라 줄 사람이 없으면 앉아 있음
+  const sd = homeSide('ojr');
+  S.errs.ojr = { t0: Date.now(), steps: [{ k:'up', sc:'lab' }, ...walkPts('lab', [sd, [sd[0], LC], [TEA_STAND[0], LC], TEA_STAND]), ...steps] }; save();
 }
 // 한서진: 별채 사람들 책상에 읽을 사본을 가져다 놓음
 function bookRound(changes){

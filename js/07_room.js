@@ -192,7 +192,7 @@ const OBJ = [
   { id:'scroll', x:-6, y:-24, rot:0, z:6, show:()=>S.gahun>=0, click:()=>showGahun() },
   { id:'chest', glow2:()=> S.jokboDone && !S.mapFound, get x(){ return S.owned.desk ? -30 : 0; }, get y(){ return S.owned.desk ? 19 : 2; }, get rot(){ return S.owned.desk ? 0.35 : 0.05; }, m:()=> S.owned.desk ? 'chestClosed' : 'chest', click:()=> S.owned.desk ? showEmptyChest() : deskClick(), glow:()=>!S.opened && !S.owned.desk },
   { id:'lamp', get x(){ return S.owned.lamp && S.owned.desk ? -18 : -12; }, get y(){ return S.owned.lamp && S.owned.desk ? 0 : -3; }, click:()=>lampClick(), buy:{ cost:15, name:'등잔' } },
-  { id:'brush', x:9, y:-20, buy:{ cost:50, name:'붓걸이' } },
+  { id:'brush', x:2.5, y:-20, buy:{ cost:50, name:'붓걸이' } },
   { id:'desk', get x(){ return S.owned.desk ? 0 : 0; }, get y(){ return S.owned.desk ? 3 : 15; }, m:()=> 'seoan', buy:{ cost:120, name:'서안' }, click:()=>deskClick() },
   { id:'glass', get x(){ return S.owned.glass && S.owned.desk ? -10 : 8; }, get y(){ return S.owned.glass && S.owned.desk ? 3 : 22; }, get z(){ return S.owned.glass && S.owned.desk ? 8 : 0; }, buy:{ cost:260, name:'수정 문진' } },
   { id:'sundial', x:4, y:-15, buy:{ cost:300, name:'앙부일구' }, show:()=>!!S.obsOpen || !!S.owned.sundial },   // 관측소가 열리면 생김(관측소는 아직 없음 — 기획서 14-1). 이미 들인 사람은 그대로
@@ -215,6 +215,14 @@ function resize(){ const r = cv.getBoundingClientRect(); DPR = Math.min(2, windo
   W = cv.width = Math.floor(r.width*DPR); H = cv.height = Math.floor(r.height*DPR);
   SC = Math.max(2, Math.floor(Math.min(W/96, H/78))); }
 window.addEventListener('resize', resize);
+// 종이 인형의 두께: 그림 모양대로 오린 마분지 옆면(그림자 색 실루엣)을 뒤쪽으로 몇 겹 겹쳐 찍음
+const EDGE_C = new Map();
+function edgeOf(img){
+  let e = EDGE_C.get(img); if (e) return e;
+  e = document.createElement('canvas'); e.width = img.width; e.height = img.height;
+  const g = e.getContext('2d'); g.drawImage(img, 0, 0); g.globalCompositeOperation = 'source-in'; g.fillStyle = '#5e5240'; g.fillRect(0, 0, e.width, e.height);
+  EDGE_C.set(img, e); return e;
+}
 const cupAlpha = until => Math.min(1, (until - Date.now())/4000);
 function drawModel(m, sx, sy, a, alpha, z0=0){
   // 층마다 save/restore로 변환을 쌓던 것을 변환 행렬 한 번 계산 + setTransform으로 바꿈(돌릴 때 끊김 줄이기)
@@ -270,6 +278,9 @@ function frame(now){
         const carry = () => { const sc0 = SC; SC = sc0*0.55;                                       // 사람 손에 맞게 작게, 손 높이에
           drawModel(M[cm], it.sx + (st.f[0]*c - st.f[1]*s)*sc0*1.3, it.sy + (st.f[0]*s + st.f[1]*c)*sc0*0.6*1.3, a, 1, 17 + (walking ? Math.abs(Math.sin(e/280*Math.PI))*0.9 : 0)); SC = sc0; };
         if (cm && bk) carry();
+        { const ed = edgeOf(img), sg = bk ? 1 : -1, TH = 1.1;                                       // 보이는 면의 반대쪽(카메라에서 먼 쪽)으로 두께
+          const ex = sg*(st.f[0]*c - st.f[1]*s)*SC*TH, ey = sg*(st.f[0]*s + st.f[1]*c)*SC*0.6*TH, nk = Math.max(1, Math.ceil(Math.hypot(ex, ey)));
+          for (let k = nk; k >= 1; k--) cx.drawImage(ed, it.sx - dw/2 + tr + ex*k/nk, it.sy - lift - dh + ey*k/nk, dw, dh); }
         cx.drawImage(img, it.sx - dw/2 + tr, it.sy - lift - dh, dw, dh);
         if (cm && !bk) carry();
         if (Date.now() < D.steam()){ cx.fillStyle = 'rgba(220,215,200,0.5)'; for (let k=0;k<5;k++){ const ph = (t*1.5 + k/5) % 1; cx.fillRect(it.sx + 10*DPR + Math.sin(t*3+k)*3*DPR, it.sy - 14*SC*0.85 - ph*30*DPR, SC*0.7, SC*0.7); } }   // 내준 찻잔의 김
