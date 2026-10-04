@@ -1,6 +1,6 @@
 'use strict';
 // ───────── 대문과 문갑 (기획서 14-2) ─────────
-// 서고 뒷벽 문 = 마당·대문으로 나가는 문. 기록은 서고 안 문갑(서류 넣는 서랍장)에.
+// 서고 뒷벽 문 = 뒷마당을 돌아 대문 밖으로 나가는 문. 대문 화면은 바깥(골목)에서 본 모습 — 들어갈 땐 대문으로. 기록은 서고 안 문갑(서류 넣는 서랍장)에.
 // 방(榜)은 대문에 붙이고 뗄 수 있음. 지원서가 오면 그 사람이 대문 앞에 서 있음.
 
 // 흙 마당
@@ -11,7 +11,7 @@ M.gate = model(26,4,32,(x,y,z)=>{
   if (z >= 21) return y <= 1 ? '#4a2e18' : null;                                  // 처마 밑 도리
   if (x <= 1 || x >= 24) return '#5b3c25';                                         // 기둥
   if (y === 2){
-    if (x === 12 || x === 13) return '#2c1c11';                                    // 두 문짝이 맞닿은 선
+    if (x === 12 || x === 13) return z >= 3 && z <= 18 ? '#7a5a30' : '#2c1c11';     // 두 문짝 틈으로 안쪽 불빛이 샘
     if (z % 5 === 2 && x % 4 === 2) return '#9a7a3a';                              // 놋쇠 못
     return '#4a2f1b';
   }
@@ -20,6 +20,11 @@ M.gate = model(26,4,32,(x,y,z)=>{
 M.wall = model(24,2,13,(x,y,z)=>{ if (z >= 11) return z === 12 ? '#2b2b2e' : '#3a3a3e'; if (z <= 5) return (x + z) % 3 ? '#6b6457' : '#575046'; return '#b9ad92'; });
 // 대문에 붙인 방 한 장
 M.bangPaper = model(5,1,6,(x,y,z)=> (x === 0 || x === 4 || z === 0 || z === 5) ? '#cfc3a3' : (x % 2 === 1 && z > 1 && z < 5 ? '#3a2a1a' : '#e8dfc8'));
+// 방을 떼어 낸 자리: 네 귀퉁이에 찢긴 종이와 풀 자국
+M.bangTorn = model(5,1,6,(x,y,z)=>{
+  if ((z === 5 && x !== 2) || (z === 4 && (x === 0 || x === 4)) || (z === 0 && x <= 1) || (z === 0 && x === 4) || (z === 1 && x === 0)) return (x + z) % 2 ? '#cfc3a3' : '#bfb08c';
+  if ((x === 2 && z === 3) || (x === 1 && z === 2) || (x === 3 && z === 1) || (x === 3 && z === 4)) return '#62482c';
+  return null; });
 // 문갑: 낮은 서랍장, 서랍 여섯에 놋쇠 고리 / 새 기록이 있으면 서랍 하나가 열려 있음
 function mungapModel(open){
   return model(12, open ? 8 : 6, 9, (x,y,z)=>{
@@ -44,12 +49,15 @@ OBJ.push({ id:'mungap', x:17, y:-22, rot:0, m:()=> libNew() ? 'mungapOpen' : 'mu
 
 // 대문 화면
 const GATE_OBJ = [
-  { id:'gate', x:0, y:-22, rot:0, m:()=>'gate', click:()=>openOv(`<h3>대문</h3>${S.bangAt && !S.bangOff ? '방이 붙어 있다.' : '닫혀 있다.'}${curApplicant() ? '<br>대문 앞에 누가 서 있다.' : ''}<br><br>문 너머로 갈두포 쪽 바람이 분다.`) },
+  { id:'gate', x:0, y:-22, rot:0, m:()=>'gate', click:()=>{
+    openOv(`<h3>대문</h3>우리 서고의 대문. 문짝 틈으로 안쪽 불빛이 샌다.<br>${S.bangAt && !S.bangOff ? '방이 붙어 있다.' : S.bangAt ? '방을 떼어 낸 자리가 남아 있다.' : ''}${curApplicant() ? '<br>대문 앞에 누가 서 있다.' : ''}<br><br>골목 끝에서 갈두포 쪽 바람이 분다.`
+      + '<div style="text-align:center;margin-top:14px"><button class="btn rec" id="bGateIn" style="color:var(--ink);border-color:#00000066">대문을 열고 들어간다</button></div>');
+    document.getElementById('bGateIn').addEventListener('click', ev => { ev.stopPropagation(); ov.classList.add('hidden'); goScene('seogo'); }); } },
   { id:'wallL', x:-25, y:-22, rot:0, m:()=>'wall', click:()=>openOv('<h3>담</h3>오래된 담. 기와 몇 장이 바다 쪽으로 쓸려 있다.') },
   { id:'wallR', x:25, y:-22, rot:0, m:()=>'wall', click:()=>openOv('<h3>담</h3>오래된 담. 기와 몇 장이 바다 쪽으로 쓸려 있다.') },
-  { id:'gBang', x:4, y:-19.5, z:9, rot:0, m:()=>'bangPaper', show:()=> !!S.bangAt && !S.bangOff, click:()=>showGateBang() },
-  { id:'gBangSpot', x:4, y:-19.5, z:9, rot:0, m:()=>'bangPaper', show:()=> !!S.bangAt && !!S.bangOff, alpha:()=>0.3, click:()=>showGateBang() },
-  { id:'gBack', x:-37.5, y:8, rot:Math.PI/2, m:()=>'door', click:()=>goScene('seogo') },
+  // 방은 대문 바로 다음에 그림(앞에 선 사람 위로 뜨지 않게), 대문 뒤쪽에서 볼 땐 안 보임
+  { id:'gBang', x:4, y:-19.5, z:9, rot:0, on:()=>'gate', m:()=>'bangPaper', show:()=> !!S.bangAt && !S.bangOff && Math.cos(viewA) > 0.05, click:()=>showGateBang() },
+  { id:'gBangSpot', x:4, y:-19.5, z:9, rot:0, on:()=>'gate', m:()=>'bangTorn', show:()=> !!S.bangAt && !!S.bangOff && Math.cos(viewA) > 0.05, click:()=>showGateBang() },
 ];
 const GATE_DOLLS = {};
 function gateDollFor(k){
@@ -65,7 +73,7 @@ const gateDolls = () => { const k = curApplicant(); return k && !(STAFF[k] && ST
 function showGateBang(){
   const btn = (id, label) => `<button class="btn rec" id="${id}" style="color:var(--ink);border-color:#00000066;margin:4px">${label}</button>`;
   if (S.bangOff){
-    openOv('<h3>방을 떼어 낸 자리</h3>풀 자국만 남아 있다.<div style="text-align:center;margin-top:14px">' + btn('bRepost', '다시 붙인다') + '</div>');
+    openOv('<h3>방을 떼어 낸 자리</h3>귀퉁이마다 찢긴 종이가 붙어 있고, 가운데엔 풀 자국이 얼룩져 있다.<div style="text-align:center;margin-top:14px">' + btn('bRepost', '다시 붙인다') + '</div>');
     document.getElementById('bRepost').addEventListener('click', ev => { ev.stopPropagation(); S.bangOff = false; S.genNext = Math.max(S.genNext || 0, Date.now() + 120000); save(); ov.classList.add('hidden'); noise(0.25, 900, 0.06); });
     return;
   }
