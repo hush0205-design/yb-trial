@@ -242,6 +242,7 @@ function frame(now){
       if (o.show && !o.show()) { o.hit=null; continue; }
       const ghost = o.buy && !owned;
       if (ghost && S.earned < o.buy.cost*0.5) { o.hit=null; continue; }
+      if (ghost && !reveal('g_' + o.id, true)) { o.hit=null; continue; }   // 불이 꺼진 동안 나타난 살 물건은 다시 켜야 보임
       const rx = o.x*c - o.y*s, ry = o.x*s + o.y*c;
       list.push({ o, ghost, sx: ox + rx*SC, sy: oy + ry*SC*0.6, ry: ry + (o.z||0)*0.8 });
     }

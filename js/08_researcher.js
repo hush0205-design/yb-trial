@@ -283,6 +283,7 @@ function tick(now){
 }
 function roomNews(){
   const n = [];
+  for (const o of OBJ) if (o.buy && !S.owned[o.id] && S.earned >= o.buy.cost*0.5 && (!o.show || o.show())) n.push('see:' + o.id);   // 살 물건이 처음 나타남 → 불이 꺼짐
   for (const o of OBJ) if (o.buy && !S.owned[o.id] && S.pages >= o.buy.cost) n.push('buy:' + o.id);
   if (S.D >= T.door) n.push('door');
   if (S.teaArrived) n.push('teapot');
@@ -315,7 +316,7 @@ function updateThread(now){
   threadStir = bookOpen && (fresh.length > 0 || urgent || now < twitchUntil);
   const thEl = document.getElementById('thread'); if (thEl) thEl.classList.toggle('stir', threadStir);
   const blown = S.blown || [];
-  const newly = fresh.filter(k => !blown.includes(k));
+  const newly = fresh.filter(k => !blown.includes(k) && !k.startsWith('buy:'));   // '살 수 있게 됨'은 실만 떨리고 불은 끄지 않음
   if (bookOpen && S.owned.lamp && !S.lampOut && newly.length){   // 책을 읽는 동안 생긴 일에만
     S.lampOut = true; S.blown = blown.concat(newly); save(); applyLight();
     noise(0.6, 600, 0.12, 'lowpass');                                  // 훅 — 불이 꺼지는 바람 소리
