@@ -215,14 +215,6 @@ function resize(){ const r = cv.getBoundingClientRect(); DPR = Math.min(2, windo
   W = cv.width = Math.floor(r.width*DPR); H = cv.height = Math.floor(r.height*DPR);
   SC = Math.max(2, Math.floor(Math.min(W/96, H/78))); }
 window.addEventListener('resize', resize);
-// 종이 인형의 두께: 그림 모양대로 오린 마분지 옆면(그림자 색 실루엣)을 뒤쪽으로 몇 겹 겹쳐 찍음
-const EDGE_C = new Map();
-function edgeOf(img){
-  let e = EDGE_C.get(img); if (e) return e;
-  e = document.createElement('canvas'); e.width = img.width; e.height = img.height;
-  const g = e.getContext('2d'); g.drawImage(img, 0, 0); g.globalCompositeOperation = 'source-in'; g.fillStyle = '#5e5240'; g.fillRect(0, 0, e.width, e.height);
-  EDGE_C.set(img, e); return e;
-}
 const cupAlpha = until => Math.min(1, (until - Date.now())/4000);
 function drawModel(m, sx, sy, a, alpha, z0=0){
   // 층마다 save/restore로 변환을 쌓던 것을 변환 행렬 한 번 계산 + setTransform으로 바꿈(돌릴 때 끊김 줄이기)
@@ -267,7 +259,7 @@ function frame(now){
       if (it.o.doll){
         const D = it.o, st = D.st(), walking = st.pose === 'walk', e = Date.now() - D.arrT(), fr0 = D.fear(), I = (D.imgL && D.imgL[fr0 > 0.7 ? 2 : fr0 > 0.35 ? 1 : 0]) || D.img;   // 겁먹으면 표정이 바뀌고 땀
         const face = st.f[0]*s + st.f[1]*c;                        // 바라보는 쪽이 화면(앞)으로 향한 정도
-        const f = Math.max(0.05, Math.abs(face)), bk = face < 0;   // 옆으로 돌면 얇아지고, 등을 보이면 뒷모습
+        const f = 1, bk = face < 0;   // 옆모습 없음: 늘 앞이나 뒤를 보임(옆으로 걸을 때 얇아지던 것 없앰, 10/4 선생님)
         const img = st.pose === 'sit' ? (bk ? I.SIT_BK : (st.closed && I.SIT_CL) || I.SIT) : walking ? (Math.floor(e/280) % 2 ? (bk ? I.A_BK : I.A) : (bk ? I.B_BK : I.B)) : (bk ? I.A_BK : I.A);
         const breath = walking ? 1 : 1 + 0.012*Math.sin(t*1.7 + D.id.length*1.3);   // 숨: 앉거나 서 있을 때 아주 조금 오르내림
         const u = SC*0.85*0.27, dh = img.height*u*breath, dw = img.width*u*f;
@@ -278,13 +270,9 @@ function frame(now){
         const carry = () => { const sc0 = SC; SC = sc0*0.55;                                       // 사람 손에 맞게 작게, 손 높이에
           drawModel(M[cm], it.sx + (st.f[0]*c - st.f[1]*s)*sc0*1.3, it.sy + (st.f[0]*s + st.f[1]*c)*sc0*0.6*1.3, a, 1, 17 + (walking ? Math.abs(Math.sin(e/280*Math.PI))*0.9 : 0)); SC = sc0; };
         if (cm && bk) carry();
-        { const ed = edgeOf(img), sg = bk ? 1 : -1, TH = 1.1;                                       // 보이는 면의 반대쪽(카메라에서 먼 쪽)으로 두께
-          const ex = sg*(st.f[0]*c - st.f[1]*s)*SC*TH, ey = sg*(st.f[0]*s + st.f[1]*c)*SC*0.6*TH, nk = Math.max(1, Math.ceil(Math.hypot(ex, ey)));
-          for (let k = nk; k >= 1; k--) cx.drawImage(ed, it.sx - dw/2 + tr + ex*k/nk, it.sy - lift - dh + ey*k/nk, dw, dh); }
         cx.drawImage(img, it.sx - dw/2 + tr, it.sy - lift - dh, dw, dh);
         if (cm && !bk) carry();
         if (Date.now() < D.steam()){ cx.fillStyle = 'rgba(220,215,200,0.5)'; for (let k=0;k<5;k++){ const ph = (t*1.5 + k/5) % 1; cx.fillRect(it.sx + 10*DPR + Math.sin(t*3+k)*3*DPR, it.sy - 14*SC*0.85 - ph*30*DPR, SC*0.7, SC*0.7); } }   // 내준 찻잔의 김
-        if (f < 0.2){ cx.fillStyle = '#1a1410'; cx.fillRect(it.sx - SC*0.2, it.sy - lift - dh, SC*0.4, dh); }
         it.o.hit = { x: it.sx, y0: it.sy - lift, y1: it.sy - lift - dh, r: 22*DPR, ghost:false };
         continue;
       }
