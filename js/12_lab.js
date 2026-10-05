@@ -407,7 +407,7 @@ function labOffline(){
   for (const k of allKeys()){
     const s = S.st[k]; if (!s || !s.arr || s.gone) continue;
     const sec = k === 'smw' ? nightSec : DEF(k).night ? daySec + nightSec : daySec; if (sec <= 0) continue;
-    const n = Math.floor(sec / DEF(k).sec * 0.3); if (!n) continue;
+    const n = Math.floor(sec / DEF(k).sec * OFF_RATE); if (!n) continue;   // 비운 동안은 10%(08의 OFF_RATE). 필사(아래)는 시간 일이라 30% 그대로
     const rested = k === 'smw' ? daySec > 0 : (!DEF(k).night && nightSec > 0);
     s.work = (s.work||0) + sec; s.fear = Math.max((s.fear||0) * (rested ? 0.5 : 1), Math.min(FEAR_AT[2], FEAR_AT[2] * sec / 1800)); if (isCopy(s.item)){ copyWork(k, s, sec*0.3); continue; }   // 자리 비운 동안의 필사(겁은 비운 시간만큼, 30분이면 2단계)
     S.pages += n; S.earned += n; addBook(s.item || 'first', n*mult()); s.pages = (s.pages||0) + n;

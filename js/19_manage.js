@@ -61,7 +61,8 @@ function morningTick(){
   const ks = allKeys().filter(k => arrived(k) && S.st[k] && !S.st[k].gone);
   const scared = ks.filter(k => isGen(k)).sort((a, b) => (S.st[b].fear||0) - (S.st[a].fear||0))[0];
   const fast = ks.filter(k => isGen(k)).sort((a, b) => DEF(a).sec - DEF(b).sec)[0];
-  const L = ['가주께. 아침 보고 올립니다.', `어제 서고와 별채에서 넘긴 것이 ${fmtP(pages)}입니다.`];
+  const L = ['가주께. 아침 보고 올립니다.'];
+  if (S.awayNoted !== dayKey()) L.push(`어제 서고와 별채에서 넘긴 것이 ${fmtP(pages)}입니다.`);   // 오늘 아침 '안 계신 동안' 쪽지가 이미 숫자를 말했으면 되풀이하지 않음(10/6 선생님)
   if (d.home.length) L.push(`${josa([...new Set(d.home)].join('·'), '이', '가')} 겁에 질려 집에 다녀왔습니다.`);
   if (d.quit.length) L.push(`${josa([...new Set(d.quit)].join('·'), '은', '는')} 그만두고 떠났습니다.`);
   if (scared && fearStage(S.st[scared].fear) >= 2) L.push(`${josa(DEF(scared).name, '이', '가')} 아직 떨고 있습니다. 쉬게 하시거나 덜 무서운 것을 맡기심이 어떨지요.`);

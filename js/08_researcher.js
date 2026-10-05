@@ -74,6 +74,7 @@ function researcherTick(dt){
 }
 // 자리를 비운 동안: 낮 시간만 세어(최대 8시간) 넘김
 const NIGHT_SEC = 60;   // 밤에 서안의 책이 혼자 한 장 넘어가는 간격
+const OFF_RATE = 0.1;   // 자리를 비운 동안 연구원이 읽는 빠르기 = 켜 둔 채 볼 때의 10%(10/6 선생님: 30%는 하룻밤에 21권이라 너무 컸음). 별채도 같음(12_lab)
 function offlineWork(){
   const res = { r:0, night:0 };
   if (!S.lastSeen || Date.now() - S.lastSeen < 180e3) return res;   // 3분 미만은 비운 것으로 치지 않음(전엔 이 가드가 맨 끝에 있어 새로고침마다 한서진 겁이 0.3으로 뛰었음, 10/6)
@@ -82,7 +83,7 @@ function offlineWork(){
   for (let t = from; t < now; t += 60e3){ const d = Math.min(60, (now - t)/1000); if (isNight(new Date(t))) nightSec += d; else daySec += d; }
   const rItem = itemAt('rdesk');
   if (S.rArrived && rItem && daySec > 0){
-    const n = Math.floor(daySec / R_SEC * 0.3);
+    const n = Math.floor(daySec / R_SEC * OFF_RATE);
     S.rFear = Math.max((S.rFear||0) * (nightSec > 0 ? 0.5 : 1), Math.min(FEAR_AT[2], FEAR_AT[2] * daySec / 1800));   // 자리를 비운 동안 혼자 읽으며 겁이 쌓임(비운 시간만큼, 30분이면 2단계. 밤에 집에 다녀왔으면 먼저 절반)
     S.rWork = (S.rWork||0) + daySec; S.pages += n; S.earned += n; addBook(rItem, n*mult()); S.rPages = (S.rPages||0) + n; res.r = n;
   }

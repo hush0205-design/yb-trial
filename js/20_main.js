@@ -148,6 +148,7 @@ window.BOOTING = true;                                    // 비운 동안의 �
 const away = S.stage === 'room' ? offlineWork() : { r:0, night:0 };
 const labAway = S.stage === 'room' ? labOffline() : [];
 window.BOOTING = false;
+if (away.r || labAway.length){ S.awayNoted = dayKey(); save(); }      // 오늘 아침 비움 쪽지가 숫자를 말함 → 아침 보고는 총량을 되풀이하지 않음
 if (labAway.length){ S.pendingNotes = (S.pendingNotes || []).concat(labAway); save(); }
 if (away.r || away.night) setTimeout(() => {
   if (S.rArrived) { S.pendingNote = `<h3>쪽지</h3><div class="vletter rec" style="height:min(50vh,360px)">가주께.<br>${away.r ? `안 계신 동안 ${fmtP(away.r)}을 넘겼습니다.<br>` : ''}밤에는 일하지 않았습니다.${away.night ? `<br><br>아침에 와 보니 서안의 책이<br>${fmtP(away.night)} 넘어가 있었습니다.<br>저는 밤에 오지 않았습니다.` : ''}<div class="sign">한서진 올림.</div></div>`; save(); }
