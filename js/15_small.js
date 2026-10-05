@@ -51,7 +51,7 @@ function wipeDust(){ S.dust = 0; save(); noise(0.5, 2400, 0.03);
 { const dc0 = deskClick; deskClick = () => { if (S.dust && S.owned.desk) return wipeDust(); dc0(); }; }   // 서안을 눌러도 먼저 먼지부터
 
 // 저절로 접힌 귀: 한서진이 온 뒤 하루에 한 번, 책을 펴면 장 귀퉁이가 접혀 있음 → 펴면 여백의 다른 손 글씨(시조의 흔적)
-const MARGIN = ['네가 읽는 동안 나도 쓴다.', '두려움을 다 마시지 마라.', '끝은 읽는 이가 쓴다.', '바다는 서두르지 않는다.', '빈 칸은 네 것이다.', '열셋째 장에서 붓을 놓았다.'];
+const MARGIN = ['네가 읽는 동안 나도 쓴다.', '두려움을 다 마시지 마라.', '끝은 읽는 이가 쓴다.', '바다는 서두르지 않는다.', '빈 칸은 네 것이다.', '마지막 장 앞에서 붓을 놓았다.'];
 const foldEl = document.createElement('div'); foldEl.id = 'foldEar'; book.appendChild(foldEl);
 setInterval(() => {
   const want = bookOpen && !!S.rArrived && S.foldDay !== dayKey() && (S.margins || []).length < MARGIN.length;
@@ -65,7 +65,7 @@ foldEl.addEventListener('click', e => {
 });
 { const br0 = buildRecs; buildRecs = () => { const r = br0(); if (S.margins && S.margins.length) r.push(['여백에서 찾은 글씨', () => '<h3>여백에서 찾은 글씨</h3><div style="font-size:12px;opacity:.6;margin-bottom:6px">접혀 있던 장의 여백. 같은 손이다.</div>' + S.margins.map(l => `<div style="color:#6a2a16;font-style:italic;margin:6px 0">${l}</div>`).join('')]); return r; }; }
 
-// 열세 번째 찻잔: 오정림이 온 뒤, 아무도 안 앉은 별채 책상에 반쯤 빈 찻잔 + 오정림 일지 한 편
+// 남는 찻잔(전 이름 '열세 번째 찻잔' — 10/6 숫자로 세지 않기로): 오정림이 온 뒤, 아무도 안 앉은 별채 책상에 반쯤 빈 찻잔 + 오정림 일지 한 편
 LAB_OBJ.push({ id:'ghostCup', get x(){ const d = ghostDesk(); return d ? LAB_DESKS[d][0] + 3.5 : 0; }, get y(){ const d = ghostDesk(); return d ? LAB_DESKS[d][1] + 1.5 : 0; }, z:11, rot:0, m:()=>'cup',
   on:()=> ghostDesk(), onOrder:0.02, show:()=> arrived('ojr') && !!ghostDesk(),
   click:()=>openOv('<h3>찻잔</h3>아무도 앉지 않은 책상에 찻잔이 놓여 있다.<br>반쯤 비었다. 아직 따뜻하다.') });
