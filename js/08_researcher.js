@@ -281,7 +281,7 @@ function tick(now){
 }
 function roomNews(){
   const n = [];
-  for (const o of OBJ) if (o.buy && !S.owned[o.id] && S.pages >= o.buy.cost && (!o.show || o.show())) n.push('see:' + o.id);   // 살 수 있게 되는 순간 → 불이 꺼짐
+  for (const o of OBJ) if (o.buy && !S.owned[o.id] && readTotal() >= o.buy.cost && (!o.show || o.show())) n.push('see:' + o.id);   // 살 수 있게 되는 순간 → 불이 꺼짐
   for (const o of OBJ) if (o.buy && !S.owned[o.id] && canBuy(o)) n.push('buy:' + o.id);
   if (S.D >= T.door) n.push('door');
   if (S.teaArrived) n.push('teapot');

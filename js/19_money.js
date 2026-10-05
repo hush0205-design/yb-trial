@@ -14,7 +14,8 @@ function fmtM(n){
 // 값(푼) — 숫자는 만들면서 맞춤
 const PRICE = { lamp:30, brush:50, desk:80, glass:100, sundial:200, ld1:100, ld2:150, ld3:200, ld4:300, ld5:500 };
 const priceOf = o => PRICE[o.id] != null ? PRICE[o.id] : 0;
-const canBuy = o => S.pages >= o.buy.cost && (S.money||0) >= priceOf(o);
+const readTotal = () => Math.max(S.earned || 0, S.pages || 0);   // 문턱 = 지금까지 읽은 총량(쓴 쪽과 상관없이, 10/6 선생님)
+const canBuy = o => readTotal() >= o.buy.cost && (S.money||0) >= priceOf(o);
 askBuy = function(o){
   const c = priceOf(o), ok = canBuy(o);
   openOv(`<h3>${o.buy.name}</h3>값: ${fmtM(c)}<br>궤짝의 엽전: ${fmtM(S.money)}`
