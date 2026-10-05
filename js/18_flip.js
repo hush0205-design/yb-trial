@@ -50,7 +50,7 @@ const ghostOpen = k => Date.now() - (GHOST[k]||0) < 2400;
 for (const o of LAB_OBJ.filter(o => o.id.startsWith('i_'))){
   const d = o.id.slice(2), owner = () => deskOwner(d), m0 = o.m;
   o.x = LAB_DESKS[d][0] - 2; o.y = LAB_DESKS[d][1] + 1;
-  o.m = () => { const k = owner(), it = k && S.st[k].item; return (it === 'first' || it === 'dongui') && ((seatedStaff(k) && !bookShut(k, S.st[k].fear)) || ghostOpen(k)) ? 'open_' + it : m0(); };
+  o.m = () => { const k = owner(), it0 = k && S.st[k].item, it = it0 && it0.startsWith('c_') ? (it0 === 'c_dongui' ? 'dongui' : 'first') : it0; return (it === 'first' || it === 'dongui') && ((seatedStaff(k) && !bookShut(k, S.st[k].fear)) || ghostOpen(k)) ? 'open_' + it : m0(); };
   LAB_OBJ.push({ id:'pg_' + d, x:o.x, y:o.y, z:11, rot:0, on:()=>d, onOrder:0.015, m:()=> flipM(FLIPT[owner()]),
     show:()=>{ const k = owner(); return !!k && o.m().startsWith('open_') && flipFrame(FLIPT[k]) >= 0; }, click:()=>showStaff(owner()) });
 }

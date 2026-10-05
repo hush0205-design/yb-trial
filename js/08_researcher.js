@@ -30,7 +30,7 @@ function readHelp(){
 // 연구원 공포가 차는 빠르기(1초에): 오정림이 오기 전엔 4~5분이면 땀, 온 뒤엔 8분쯤. 읽는 것에 따라 다름(장부 0.5·족보 1·동의보감 0.8·지도 1.3)
 function readFear(item){
   const base = S.st && S.st.ojr && S.st.ojr.arr ? 0.00075 : 0.0013;
-  const k = item === 'map' ? 1.3 : item === 'dongui' ? 0.8 : (S.D >= J0 ? 1 : 0.5);
+  const k = item === 'map' ? 1.3 : item === 'dongui' ? 0.8 : item === 'c_dongui' ? 0.4 : (item && item.startsWith('c_')) ? 0.1 : (S.D >= J0 ? 1 : 0.5);   // 필사는 덜 무서움
   return base * k;
 }
 function researcherTick(dt){
@@ -268,7 +268,7 @@ function tick(now){
   let txt = fmtP(S.pages);
   if (!S.glitchDone && S.D >= T.glitch){ S.glitchDone = true; glitchUntil = now + 200; save(); }
   if (now < glitchUntil){ const m = txt.match(/\d(?=\D*$)/); if (m){ const k = m.index; txt = txt.slice(0,k) + ((+txt[k]+3)%10) + txt.slice(k+1); } }   // 숫자 한 자리가 잠깐 틀림
-  cnt.textContent = txt;
+  cnt.textContent = S.steward ? txt + ' · ' + fmtM(S.money) : txt;   // 돈은 돈 관리하는 사람이 생기면 윗줄에
   updateThread(now);
   researcherTick(dt);
   labTick(dt);
@@ -282,7 +282,7 @@ function tick(now){
 function roomNews(){
   const n = [];
   for (const o of OBJ) if (o.buy && !S.owned[o.id] && S.pages >= o.buy.cost && (!o.show || o.show())) n.push('see:' + o.id);   // 살 수 있게 되는 순간 → 불이 꺼짐
-  for (const o of OBJ) if (o.buy && !S.owned[o.id] && S.pages >= o.buy.cost) n.push('buy:' + o.id);
+  for (const o of OBJ) if (o.buy && !S.owned[o.id] && canBuy(o)) n.push('buy:' + o.id);
   if (S.D >= T.door) n.push('door');
   if (S.teaArrived) n.push('teapot');
   if (S.D >= T.letter && !S.letterRead) n.push('letter');

@@ -101,7 +101,7 @@ Object.assign(ERR_ACT, {
     const s = S.st[k], P = DEF(k);
     if (isGen(k) && n >= 3){
       s.gone = true; s.quit = Date.now(); S.genNext = Date.now() + 180000;   // 3분 뒤부터 새 지원자
-      pushNote(homeNote(['이 서고 일은 더 못 하겠습니다.', '받은 끼니 값은 갚을 길이 없습니다.', '책상 위의 사본은 덮어 두었습니다.'], `${P.name}(${P.hj}) 올림.`));
+      pushNote(homeNote(s.wageQuit ? ['녹봉이 사흘째 밀렸습니다.', '식구들 끼니가 걱정되어 더는 못 있겠습니다.', '책상 위의 사본은 덮어 두었습니다.'] : ['이 서고 일은 더 못 하겠습니다.', '받은 끼니 값은 갚을 길이 없습니다.', '책상 위의 사본은 덮어 두었습니다.'], `${P.name}(${P.hj}) 올림.`));
       if (typeof tlog === 'function') tlog('그만둠: ' + P.name);
       return;
     }

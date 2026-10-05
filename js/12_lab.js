@@ -306,10 +306,10 @@ function showStaff(k){
   openOv(`<h3>${isGen(k) ? '연구원' : '반장'} — ${P.name}(${P.hj})</h3>직업: ${P.job}<br>상태: ${st}${typeof whyHtml === 'function' ? whyHtml(k) : '<br>'}읽는 빠르기: ${speed}<br>넘긴 것: ${fmtP(s.pages||0)}<br><div style="font-size:12px;opacity:.6">${P.note}</div>${tea}`
     + (S.teaArrived && P.tea === false ? '<div style="font-size:12px;opacity:.6;margin:6px 0">차는 마시지 않는다. 오정림이 놓고 간 잔도 돌려보낸다.</div>' : '') + (S.teaArrived && P.tea !== false ? `<div style="text-align:center;margin:8px 0"><button class="btn rec" id="bSTea" style="color:var(--ink);border-color:#00000066">차를 한 잔 내준다</button></div>` : '')
     + `<div class="opt rec"><span>읽을 사본</span><span class="ch">${o('first', '제목 없는 책')}${o('dongui', '동의보감 三')}${S.mapFound ? o('map', '지도') : ''}</span></div>`
-    + `<div style="font-size:12px;opacity:.6">서고의 책을 베껴 둔 사본이라, 같은 책을 여럿이 읽을 수 있다.${s.auto && !s.manual ? ' 지금 것은 한서진이 나누어 준 것이다.' : ''}</div>`
+    + copyOpts(s, o) + `<div style="font-size:12px;opacity:.6">서고의 책을 베껴 둔 사본이라, 같은 책을 여럿이 읽을 수 있다.${s.auto && !s.manual ? ' 지금 것은 한서진이 나누어 준 것이다.' : ''}</div>`
     + (isGen(k) ? '' : `<br><b>일지</b>` + (dl.length ? dl.map((d, i) => `<div class="rec dlist" data-d="${i}"><span>일지 ${i+1} — ${esc(d.split('.')[0])}</span><span style="opacity:.45;font-size:12px">읽기</span></div>`).join('') : '<br>아직 쓴 것이 없다.')));
   const bt = document.getElementById('bSTea'); if (bt) bt.addEventListener('click', ev => { ev.stopPropagation(); ov.classList.add('hidden'); s.steam = Date.now() + 3000; s.calm = Date.now() + 243000; save(); sBoil(); });
-  ovBody.querySelectorAll('[data-cp]').forEach(el => el.addEventListener('click', ev => { ev.stopPropagation(); s.item = el.dataset.cp; s.manual = true; s.auto = false; s.manDay = dayKey(); save(); sPlace(); showStaff(k); }));
+  ovBody.querySelectorAll('[data-cp]').forEach(el => el.addEventListener('click', ev => { ev.stopPropagation(); if (!setStaffItem(k, el.dataset.cp)) return; s.manual = true; s.auto = false; s.manDay = dayKey(); save(); sPlace(); showStaff(k); }));
   ovBody.querySelectorAll('.dlist').forEach(el => el.addEventListener('click', ev => { ev.stopPropagation(); const i = +el.dataset.d;
     openOv(`<h3>${P.name}의 일지 ${i+1}</h3>${staffDiary(k)[i]}<div class="rec" id="bBackS" style="margin-top:14px;text-align:center">← 목록으로</div>`);
     document.getElementById('bBackS').addEventListener('click', e2 => { e2.stopPropagation(); showStaff(k); }); }));
@@ -323,6 +323,7 @@ function readGo(){
 function labRecs(recs){
   if (typeof whyRecs === 'function') whyRecs(recs);
   if (typeof sideRecs === 'function') sideRecs(recs);
+  if ((S.ledger || []).length && typeof ledgerHtml === 'function') recs.push(['치부책 — 궤짝의 엽전', ledgerHtml]);
   if (S.bangAt) recs.push(['방(榜)', bangHtml]);
   for (const k of ['smw', 'ojr']){ const s = S.st[k]; if (!s) continue;
     if (s.read) recs.push([`편지 — ${STAFF[k].name}`, () => letterOf(k)]);
@@ -338,7 +339,7 @@ function labNews(){
   if (S.helpRead && !S.bangAt) n.push('bang');
   if (S.bangAt) n.push('labdoor');
   for (const k of allKeys()){ const s = S.st[k]; if (!s) continue; if (s.at && !s.gone) n.push('al:' + k); if (s.arr) n.push('arr:' + k); }
-  for (const d of DESK_IDS) if (!S.owned[d] && S.pages >= DESK_COST[d] && S.bangAt) n.push('buy:' + d);
+  for (const d of DESK_IDS) if (!S.owned[d] && S.bangAt && canBuy(LAB_OBJ.find(o => o.id === d))) n.push('buy:' + d);
   if (S.goNote) n.push('go');
   return n;
 }
@@ -350,6 +351,7 @@ let lastTeaRound = 0;
 function labTick(dt){
   if (typeof errTick === 'function') errTick();
   if (typeof whyTick === 'function') whyTick();
+  if (typeof payTick === 'function'){ payTick(); dealerTick(); }
   if (typeof homeTick === 'function') homeTick();
   if (typeof morningTick === 'function') morningTick();
   if (typeof flipTick === 'function') flipTick();
@@ -378,10 +380,12 @@ function labTick(dt){
     else if (s && s.rest){ s.rest = false; s.fear = (s.fear||0) * 0.5; }
     if (!s || !working(k) || S.errs[k]) continue;                                          // 심부름 가 있는 동안은 읽지 않음
     if (now < (s.steam||0)) s.fear = Math.max(0, (s.fear||0) - dt*0.25);
-    else s.fear = Math.min(1, (s.fear||0) + dt*readFear(s.item || 'first')*DEF(k).fearK*(now < (s.calm||0) ? 0.3 : 1));
+    else s.fear = Math.min(1, (s.fear||0) + dt*readFear(s.item || 'first')*DEF(k).fearK*(now < (s.calm||0) ? 0.3 : 1)*owePenalty(k));   // 녹봉이 밀리면 더 빨리
     if (s.fear >= 0.3) S.sweatSec = (S.sweatSec||0) + dt;                                   // 별채에서 누군가 땀 흘린 시간(오정림이 듣게 되는 소문)
     const fac = fearFac(s.fear) * visitBoost() * manBoost(s);   // 가주 순회·가주가 직접 맡김
-    s.work = (s.work||0) + dt; s.acc = (s.acc||0) + dt*fac;
+    s.work = (s.work||0) + dt;
+    if (isCopy(s.item)){ copyWork(k, s, dt*fac); continue; }   // 필사 중: 쪽 대신 사본
+    s.acc = (s.acc||0) + dt*fac;
     while (s.acc >= DEF(k).sec){ s.acc -= DEF(k).sec; S.pages += 1; S.earned += 1; addBook(s.item || 'first', mult()); s.pages = (s.pages||0) + 1; }
   }
   // 다원지기: 자리를 잡으면 서고의 찻주전자를 가지러 가고, 그 뒤로는 1분 30초마다 떨고 있는 사람·빈 가주 서안에 차를 날라 줌(16_errand)
@@ -407,7 +411,8 @@ function labOffline(){
     const sec = k === 'smw' ? nightSec : DEF(k).night ? daySec + nightSec : daySec; if (sec <= 0) continue;
     const n = Math.floor(sec / DEF(k).sec * 0.3); if (!n) continue;
     const rested = k === 'smw' ? daySec > 0 : (!DEF(k).night && nightSec > 0);
-    s.work = (s.work||0) + sec; s.fear = Math.max((s.fear||0) * (rested ? 0.5 : 1), 0.3); S.pages += n; S.earned += n; addBook(s.item || 'first', n*mult()); s.pages = (s.pages||0) + n;
+    s.work = (s.work||0) + sec; s.fear = Math.max((s.fear||0) * (rested ? 0.5 : 1), 0.3); if (isCopy(s.item)){ copyWork(k, s, sec*0.3); continue; }   // 자리 비운 동안의 필사
+    S.pages += n; S.earned += n; addBook(s.item || 'first', n*mult()); s.pages = (s.pages||0) + n;
     if (isGen(k)) { gen += n; continue; }
     out.push(k === 'smw'
       ? '<h3>쪽지</h3>' + vlet(['가주께.', `밤사이 ${fmtP(n)}을 넘겼습니다.`, '하늘은 맑았습니다.', isNight() ? '이상 없음. ✶' : '해가 뜨기에 눈을 감았습니다. ✶'], '서명우 올림.', 'min(44vh,320px)')

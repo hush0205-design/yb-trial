@@ -277,12 +277,12 @@ function frame(now){
         continue;
       }
       const mk = it.o.m ? it.o.m() : it.o.id, m = mk === '__win' ? winModel() : M[mk];
-      let alpha = it.ghost ? (S.pages >= it.o.buy.cost ? 0.42 : 0.18) : 1;
+      let alpha = it.ghost ? (canBuy(it.o) ? 0.42 : 0.18) : 1;
       if ((it.o.glow && it.o.glow()) || (it.o.glow2 && it.o.glow2())) alpha = 0.72 + 0.28*Math.sin(t*3);
       if (it.o.alpha) alpha = it.o.alpha();
       drawModel(m, it.sx, it.sy, a + (it.o.rot||0), alpha, it.o.z||0);
       it.o.hit = { x: it.sx, y0: it.sy - (it.o.z||0)*SC*0.85, y1: it.sy - (m.h + (it.o.z||0) + (it.ghost ? 8 : 0))*SC*0.85, r: Math.max(Math.max(m.w, m.d)*SC*0.5, 28*DPR), ghost: it.ghost };
-      if (it.ghost) labels.push({ t:`${it.o.buy.name} ${fmtP(it.o.buy.cost)}`, x: it.sx, y: it.sy - (m.h+4)*SC*0.85, c: S.pages >= it.o.buy.cost ? '#cfc3a8' : '#6d6350' });
+      if (it.ghost) labels.push({ t:`${it.o.buy.name} ${fmtM(priceOf(it.o))}`, x: it.sx, y: it.sy - (m.h+4)*SC*0.85, c: canBuy(it.o) ? '#cfc3a8' : '#6d6350' });   // 값은 돈(쪽은 나타나는 문턱)
       if (it.o.id==='lamp' && !it.ghost && S.lampOut){ cx.fillStyle = 'rgba(120,110,100,.35)'; for (let k=0;k<3;k++){ const ph=(t*0.6+k/3)%1; cx.fillRect(it.sx + Math.sin(t*2+k)*3*DPR, it.sy - 24*SC*0.85 - ph*30*DPR, SC*0.6, SC*0.6); } }   // 꺼진 심지의 연기
       if (it.o.id==='lamp' && !it.ghost && !S.lampOut){ const fy = it.sy - 24*SC*0.85, fl = 0.6+0.4*Math.sin(t*11)*Math.sin(t*7.3);
         cx.fillStyle = '#ffd27a'; cx.fillRect(it.sx - SC*0.5, fy - SC*1.6, SC, SC*1.6); cx.fillStyle = '#e8a040'; cx.fillRect(it.sx - SC*0.5, fy - SC*0.6, SC, SC*0.6);

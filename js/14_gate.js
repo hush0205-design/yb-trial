@@ -68,7 +68,7 @@ function gateDollFor(k){
     show:()=> curApplicant() === k, click:()=>readApplicant(k) });
 }
 // 대문 앞에 서는 사람: 지원서를 들고 온 사람(편지만 보내는 사람은 오지 않음)
-const gateDolls = () => { const k = curApplicant(); return k && !(STAFF[k] && STAFF[k].later) ? [gateDollFor(k)] : []; };
+const gateDolls = () => { const k = curApplicant(); return [...(k && !(STAFF[k] && STAFF[k].later) ? [gateDollFor(k)] : []), ...(typeof dealerDolls === 'function' ? dealerDolls() : [])]; };   // 지원자 + 세책점 거간
 
 function showGateBang(){
   const btn = (id, label) => `<button class="btn rec" id="${id}" style="color:var(--ink);border-color:#00000066;margin:4px">${label}</button>`;

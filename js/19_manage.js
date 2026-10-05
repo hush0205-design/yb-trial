@@ -65,6 +65,7 @@ function morningTick(){
   if (d.quit.length) L.push(`${josa([...new Set(d.quit)].join('·'), '은', '는')} 그만두고 떠났습니다.`);
   if (scared && fearStage(S.st[scared].fear) >= 2) L.push(`${josa(DEF(scared).name, '이', '가')} 아직 떨고 있습니다. 쉬게 하시거나 덜 무서운 것을 맡기심이 어떨지요.`);
   if (fast && fast !== scared && !S.sideRead.dongui) L.push(`손이 빠른 ${DEF(fast).name}에게 동의보감을 맡기면 좋겠습니다.`);
+  if (typeof oweTotal === 'function' && oweTotal()) L.push(`밀린 녹봉이 ${fmtM(oweTotal())}입니다. 궤짝에서 내주셔야 합니다.`);
   L.push('누구에게 무엇을 읽힐지 직접 정해 주시면', '다들 그날은 힘이 나서 손이 빨라집니다.');
   pushNote('<h3>쪽지</h3>' + vlet(L, '한서진 올림.', 'min(56vh,420px)'));
   S.dayStat = { day: dayKey(), earned0: S.earned || 0, home: [], quit: [] }; save();
