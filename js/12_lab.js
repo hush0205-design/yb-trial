@@ -115,7 +115,8 @@ function labPath(e, d){
 }
 function staffState(k){
   const s = S.st[k], p = (typeof errPos === 'function' && errPos(k)) || labPath(Date.now() - s.arr, s.desk);
-  if (k === 'smw' && p.pose === 'sit' && !isNight()) p.closed = true;     // 해가 높으면 눈을 감음
+  if (k === 'smw' && p.pose === 'sit' && !isNight()) p.closed = true;
+  if (p.pose === 'sit' && !S.errs[k] && typeof fearStage === 'function' && fearStage(s.fear) === 5){ p.y -= SIT_BACK; p.chair -= SIT_BACK; }   // 5단계: 의자를 뒤로 빼고 앉음     // 해가 높으면 눈을 감음
   return p;
 }
 
@@ -297,11 +298,9 @@ function showStaff(k){
   const P = DEF(k), s = stOf(k);
   if (!arrived(k)){ openOv(`<h3>별채 책상</h3>${P.name}의 자리를 마련해 두었다. 아직 오지 않았다.`); return; }
   if (!present(k)){ openOv(`<h3>${P.name}의 자리</h3>밤이다. ${josa(P.name, '은', '는')} 집에 갔다.<br>해가 뜨면 온다.`); return; }
-  const rf = s.fear || 0, fac = rf > 0.7 ? 0.25 : rf > 0.35 ? 0.5 : 1, perMin = 60 / P.sec * fac;
-  const speed = !working(k) ? (k === 'smw' ? '눈을 감고 쉬고 있다 — 해가 높다' : '쉬고 있다') : S.owned.sundial
-    ? `1분에 ${fmtP(Math.round(perMin))} — ${fac === 1 ? '평소대로' : fac === 0.5 ? '평소의 절반' : '평소의 4분의 1'}`
-    : fac === 1 ? '또박또박 넘긴다' : fac === 0.5 ? '손이 떨려 느릿느릿 넘긴다' : '책장을 붙잡고 거의 넘기지 못한다';
-  const st = rf > 0.7 ? '간이 콩알만 해짐 — 식은땀을 흘리며 책장을 거의 넘기지 못한다' : rf > 0.35 ? '간이 콩알만 해짐 — 이마에 땀이 맺히고 손이 떨린다' : '평온함';
+  const rf = s.fear || 0;
+  const speed = !working(k) ? (k === 'smw' ? '눈을 감고 쉬고 있다 — 해가 높다' : '쉬고 있다') : fearSpeedTxt(rf, S.owned.sundial, 60 / P.sec);
+  const st = fearState(rf);
   const o = (id, label) => `<span data-cp="${id}" class="${s.item === id ? 'on' : ''}">${label}</span>`;
   const dl = staffDiary(k), tea = Date.now() < (s.calm||0) ? '<div style="font-size:12px;opacity:.6">책상에 찻잔이 놓여 있다. 아직 따뜻하다.</div>' : '';
   openOv(`<h3>${isGen(k) ? '연구원' : '반장'} — ${P.name}(${P.hj})</h3>직업: ${P.job}<br>상태: ${st}${typeof whyHtml === 'function' ? whyHtml(k) : '<br>'}읽는 빠르기: ${speed}<br>넘긴 것: ${fmtP(s.pages||0)}<br><div style="font-size:12px;opacity:.6">${P.note}</div>${tea}`
@@ -331,7 +330,7 @@ function labRecs(recs){
     if (staffDiary(k).length) recs.push([`${STAFF[k].name}의 일지`, () => `<h3>${STAFF[k].name}의 일지</h3>` + staffDiary(k).map(d => `<div style="margin:8px 0">${d}</div>`).join('')]);
   }
   const g = genKeys().filter(k => S.st[k].read);
-  if (g.length) recs.push(['지원서 묶음', () => '<h3>지원서 묶음</h3>' + g.map(k => `<div style="margin:8px 0"><b>${DEF(k).name}(${DEF(k).hj})</b>${S.st[k].gone ? ` <span style="opacity:.5;font-size:12px">— ${S.st[k].quit ? '그만둠' : '돌려보냄'}</span>` : ''}<br>${DEF(k).lines.join(' ')}</div>`).join('')]);
+  if (g.length) recs.push(['지원서 묶음', () => '<h3>지원서 묶음</h3>' + g.map(k => `<div style="margin:8px 0"><b>${DEF(k).name}(${DEF(k).hj})</b>${S.st[k].gone ? ` <span style="opacity:.5;font-size:12px">— ${S.st[k].fired ? '내보냄' : S.st[k].quit ? '그만둠' : '돌려보냄'}</span>` : ''}<br>${DEF(k).lines.join(' ')}</div>`).join('')]);
   if (S.goRead) recs.push(['쪽지 — 한서진 (사람이 늘었습니다)', () => '<h3>쪽지</h3>가주께. 사람이 늘었습니다. 새로 온 이들도 손이 제법입니다. 정림 씨가 차를 맡아 주니 이제 바닷가에 가 볼 수 있겠습니다. 날을 잡아 주십시오. — 한서진']);
 }
 function labNews(){
@@ -343,6 +342,7 @@ function labNews(){
   if (S.goNote) n.push('go');
   return n;
 }
+const anyShrunk = () => (S.rFear||0) >= 0.6 || allKeys().some(k => working(k) && (S.st[k].fear||0) >= 0.6);
 const anyScared = () => (S.rFear||0) > 0.5 || allKeys().some(k => working(k) && (S.st[k].fear||0) > 0.5);
 
 // 매 순간: 지원서·편지 도착 → 연구원 도착 → 일 → 다원지기의 차 → 마지막 쪽지
@@ -378,8 +378,8 @@ function labTick(dt){
     if (!s || !working(k) || S.errs[k]) continue;                                          // 심부름 가 있는 동안은 읽지 않음
     if (now < (s.steam||0)) s.fear = Math.max(0, (s.fear||0) - dt*0.25);
     else s.fear = Math.min(1, (s.fear||0) + dt*readFear(s.item || 'first')*DEF(k).fearK*(now < (s.calm||0) ? 0.3 : 1));
-    if (s.fear > 0.35) S.sweatSec = (S.sweatSec||0) + dt;                                   // 별채에서 누군가 땀 흘린 시간(오정림이 듣게 되는 소문)
-    const fac = s.fear > 0.7 ? 0.25 : s.fear > 0.35 ? 0.5 : 1;
+    if (s.fear >= 0.3) S.sweatSec = (S.sweatSec||0) + dt;                                   // 별채에서 누군가 땀 흘린 시간(오정림이 듣게 되는 소문)
+    const fac = fearFac(s.fear);
     s.work = (s.work||0) + dt; s.acc = (s.acc||0) + dt*fac;
     while (s.acc >= DEF(k).sec){ s.acc -= DEF(k).sec; S.pages += 1; S.earned += 1; addBook(s.item || 'first', mult()); s.pages = (s.pages||0) + 1; }
   }
@@ -387,9 +387,9 @@ function labTick(dt){
   if (working('ojr') && !S.errs.ojr){
     if (!S.potTaken && !S.teaArrived){ S.potTaken = S.potPut = now; save(); }               // 서고에 찻주전자가 없던 때 온 경우: 자기 것을 들고 옴
     else if (!S.potTaken){ if (now - ojr.arr > T_PUSH + 6000) potErrand(); }
-    else if (S.potPut && now - lastTeaRound > 90000){ lastTeaRound = now; teaRound(); }
+    else if (S.potPut && now - lastTeaRound > (anyShrunk() ? 45000 : 90000)){ lastTeaRound = now; teaRound(); }   // 간이 오그라든(4단계) 사람이 있으면 더 자주
   }
-  if (S.rArrived && !isNight() && (S.rFear||0) > 0.35) S.sweatSec = (S.sweatSec||0) + dt;
+  if (S.rArrived && !isNight() && (S.rFear||0) >= 0.3) S.sweatSec = (S.sweatSec||0) + dt;
   if (now - lastAssign > 10000){ lastAssign = now; autoAssign(); }
   if (!S.goNote && ojr.arr && now - ojr.arr > 180000){ S.goNote = true; save(); }
 }

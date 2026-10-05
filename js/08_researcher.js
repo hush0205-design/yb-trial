@@ -58,7 +58,7 @@ function researcherTick(dt){
   if (!S.rArrived || isNight() || (S.errs && S.errs.sj)) return;   // 심부름·집에 간 동안은 읽지 않음
   if (Date.now() < (S.rSteam||0)) S.rFear = Math.max(0, (S.rFear||0) - dt*0.25);                  // 차를 마시는 동안 가라앉음
   else if (itemAt('rdesk')) S.rFear = Math.min(1, (S.rFear||0) + dt*readFear(itemAt('rdesk'))*(Date.now() < (S.rCalm||0) ? 0.3 : 1));   // 읽을수록 무서워짐
-  const rf = S.rFear || 0, fac = rf > 0.7 ? 0.25 : rf > 0.35 ? 0.5 : 1;                         // 떨면 손이 느려짐
+  const rf = S.rFear || 0, fac = fearFac(rf);                         // 떨면 손이 느려짐
   if (itemAt('rdesk')) S.rWork = (S.rWork||0) + dt;
   S.rAcc = (S.rAcc||0) + dt*fac;
   const rItem = itemAt('rdesk');
@@ -89,11 +89,9 @@ function offlineWork(){
 }
 function showResearcher(){
   if (isNight() && !nightVisiting()) { openOv('<h3>연구원의 자리</h3>밤이다. 한서진은 돌아갔다.<br>해가 뜨면 온다.'); return; }
-  const rfac = (S.rFear||0) > 0.7 ? 0.25 : (S.rFear||0) > 0.35 ? 0.5 : 1, rItemNow = itemAt('rdesk');
-  const speed = !rItemNow ? '쉬고 있다' : S.owned.sundial
-    ? `1분에 ${fmtP(Math.round(60/R_SEC*rfac))} — ${rfac === 1 ? '평소대로' : rfac === 0.5 ? '평소의 절반' : '평소의 4분의 1'}`
-    : rfac === 1 ? '또박또박 넘긴다' : rfac === 0.5 ? '손이 떨려 느릿느릿 넘긴다' : '책장을 붙잡고 거의 넘기지 못한다';
-  const n = diaryCount(), rf = S.rFear || 0, st = rf > 0.7 ? '간이 콩알만 해짐 — 손이 떨려 책장을 거의 넘기지 못한다' : rf > 0.35 ? '간이 콩알만 해짐 — 손이 떨린다' : '평온함';
+  const rItemNow = itemAt('rdesk');
+  const speed = !rItemNow ? '쉬고 있다' : fearSpeedTxt(S.rFear, S.owned.sundial, 60/R_SEC);
+  const n = diaryCount(), rf = S.rFear || 0, st = fearState(rf);
   const rb = itemAt('rdesk'), o = (id, label) => `<span data-rb="${id}" class="${rb === id ? 'on' : ''}">${label}</span>`;
   openOv(`<h3>연구원 — 한서진(韓瑞眞)</h3>직업: 해독가<br>상태: ${st}${typeof whyHtml === 'function' ? whyHtml('sj') : '<br>'}읽는 빠르기: ${speed}<br>넘긴 것: ${fmtP(S.rPages||0)}<br><div style="font-size:12px;opacity:.6">밤에는 일하지 않는다.</div>`
     + (S.teaArrived ? `<div style="text-align:center;margin:8px 0"><button class="btn rec" id="bRTea" style="color:var(--ink);border-color:#00000066">차를 한 잔 내준다</button></div>` : '')

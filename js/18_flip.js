@@ -50,13 +50,13 @@ const ghostOpen = k => Date.now() - (GHOST[k]||0) < 2400;
 for (const o of LAB_OBJ.filter(o => o.id.startsWith('i_'))){
   const d = o.id.slice(2), owner = () => deskOwner(d), m0 = o.m;
   o.x = LAB_DESKS[d][0] - 2; o.y = LAB_DESKS[d][1] + 1;
-  o.m = () => { const k = owner(), it = k && S.st[k].item; return (it === 'first' || it === 'dongui') && (seatedStaff(k) || ghostOpen(k)) ? 'open_' + it : m0(); };
+  o.m = () => { const k = owner(), it = k && S.st[k].item; return (it === 'first' || it === 'dongui') && ((seatedStaff(k) && !bookShut(k, S.st[k].fear)) || ghostOpen(k)) ? 'open_' + it : m0(); };
   LAB_OBJ.push({ id:'pg_' + d, x:o.x, y:o.y, z:11, rot:0, on:()=>d, onOrder:0.015, m:()=> flipM(FLIPT[owner()]),
     show:()=>{ const k = owner(); return !!k && o.m().startsWith('open_') && flipFrame(FLIPT[k]) >= 0; }, click:()=>showStaff(owner()) });
 }
 { const t = LAB_OBJ.filter(o => o.id.startsWith('t_')); for (const o of t) o.x += 1; }   // 찻잔은 펼친 책 옆으로 조금 비켜
 // 한서진 책상
 { const o = OBJ.find(o => o.id === 'ritem'), m0 = o.m;
-  o.m = () => { const it = itemAt('rdesk'); return (it === 'first' || it === 'dongui') && (seatedSJ() || ghostOpen('sj')) && !dropZ('rdesk') ? 'open_' + it : m0(); };
+  o.m = () => { const it = itemAt('rdesk'); return (it === 'first' || it === 'dongui') && ((seatedSJ() && !bookShut('sj', S.rFear)) || ghostOpen('sj')) && !dropZ('rdesk') ? 'open_' + it : m0(); };
   OBJ.push({ id:'pgR', x:o.x, y:o.y, z:11, rot:0, on:()=>'rdesk', onOrder:0.015, m:()=> flipM(FLIPT.sj),
     show:()=> !!S.chair && o.m().startsWith('open_') && flipFrame(FLIPT.sj) >= 0, click:()=>showResearcher() }); }

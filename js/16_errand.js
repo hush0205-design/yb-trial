@@ -83,12 +83,12 @@ function potErrand(){
 // 다탁 앞에서 시작: 차를 따르고 → 떨고 있는 사람·빈 가주 서안에 날라 주고 → 제자리에 앉음
 function serveSteps(first){
   const now = Date.now(), sd = homeSide('ojr'), steps = [];
-  const labT = allKeys().filter(k => k !== 'ojr' && working(k) && DEF(k).tea !== false && (S.st[k].fear||0) > 0.4 && LAB_DESKS[S.st[k].desk]).sort((a, b) => LAB_DESKS[S.st[a].desk][0] - LAB_DESKS[S.st[b].desk][0]);
+  const labT = allKeys().filter(k => k !== 'ojr' && working(k) && DEF(k).tea !== false && (S.st[k].fear||0) >= 0.3 && LAB_DESKS[S.st[k].desk]).sort((a, b) => LAB_DESKS[S.st[a].desk][0] - LAB_DESKS[S.st[b].desk][0]);
   const sjSeated = !!S.rArrived && !isNight() && !nightVisiting() && now - S.rArrived > T_PUSH && !S.errs.sj;
-  const sjT = sjSeated && (S.rFear||0) > 0.4, myT = !!S.owned.desk && !S.myCup && (first || now - (S.myCupAt||0) > 300000);
+  const sjT = sjSeated && (S.rFear||0) >= 0.3, myT = !!S.owned.desk && !S.myCup && (first || now - (S.myCupAt||0) > 300000);
   let cur = TEA_STAND;
   const go = (sc, pts, carry) => { steps.push(...walkPts(sc, [cur, ...pts], carry)); cur = pts[pts.length - 1]; };
-  const selfT = (S.st.ojr.fear||0) > 0.4;                         // 자기가 떨려도 다탁에 가서 한 잔
+  const selfT = (S.st.ojr.fear||0) >= 0.3;                         // 자기가 떨려도 다탁에 가서 한 잔
   if (labT.length || sjT || myT || selfT){
     steps.push(waitAt('lab', TEA_STAND, [0.8, -0.6], 1800, 'pour'));
     for (const k of labT){ const [dx, dy] = LAB_DESKS[S.st[k].desk], px = dx + 7.5;
