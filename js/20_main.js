@@ -46,30 +46,50 @@ function showJumps(){
   openOv('<h3>시험용: 구간으로 바로 가기</h3>' + JUMPS.map((j,i) => `<div class="rec jmp" data-i="${i}">${j[0]}</div>`).join(''));
   ovBody.querySelectorAll('.jmp').forEach(el => el.addEventListener('click', ev => { ev.stopPropagation(); jumpTo(+el.dataset.i); }));
 }
+// 개발자 메뉴: 시험해 줄 사람에게는 감추고, 비밀번호를 넣어야 열림(이 기기에서 한 번 열면 계속 열림)
+const DEV_KEY = 'yb_dev', DEV_H = 7974987;                        // 비밀번호는 그대로 적지 않고 셈한 값만 둠
+const devHash = t => Array.from(t).reduce((h, c) => (h*31 + c.charCodeAt(0)) % 9999991, 7);
+const devOn = () => localStorage.getItem(DEV_KEY) === '1';
+function askDev(){
+  openOv('<h3>개발자 메뉴</h3>비밀번호를 넣어 주세요.<div style="text-align:center;margin-top:12px"><input id="devPw" type="password" inputmode="numeric" autocomplete="off" style="font-size:18px;padding:6px 10px;width:10em;text-align:center"></div>'
+    + '<div id="devMsg" style="text-align:center;font-size:13px;opacity:.7;min-height:1.2em;margin-top:6px"></div><div style="text-align:center;margin-top:8px"><button class="btn rec" id="bDevOk" style="color:var(--ink);border-color:#00000066">연다</button></div>');
+  const inp = document.getElementById('devPw'), go = ev => { if (ev) ev.stopPropagation();
+    if (devHash(inp.value.trim()) === DEV_H){ localStorage.setItem(DEV_KEY, '1'); showSettings(); }
+    else { document.getElementById('devMsg').textContent = '맞지 않습니다.'; inp.value = ''; } };
+  inp.addEventListener('click', ev => ev.stopPropagation());
+  inp.addEventListener('keydown', ev => { ev.stopPropagation(); if (ev.key === 'Enter') go(ev); });
+  document.getElementById('bDevOk').addEventListener('click', go);
+  setTimeout(() => inp.focus(), 50);
+}
 function showSettings(){
-  const o = S.opt;
+  const o = S.opt, dev = devOn();
   openOv(`<h3>설정</h3>
     <div class="opt rec"><span>글 방향</span><span class="ch"><span data-k="horiz" data-v="0" class="${!o.horiz?'on':''}">세로</span><span data-k="horiz" data-v="1" class="${o.horiz?'on':''}">가로</span></span></div>
     <div class="opt rec"><span>밤낮</span><span class="ch"><span data-k="gameTime" data-v="0" class="${!o.gameTime?'on':''}">실제 시각</span><span data-k="gameTime" data-v="1" class="${o.gameTime?'on':''}">게임 시간</span></span></div>
     <div style="font-size:12px;opacity:.6;margin:-4px 0 6px">게임 시간: 실제 5분이 게임 속 1시간. 두 시간에 하루가 지난다.</div>
     <div class="opt rec"><span>소리</span><span class="ch"><span data-k="mute" data-v="0" class="${!o.mute?'on':''}">켬</span><span data-k="mute" data-v="1" class="${o.mute?'on':''}">끔</span></span></div>
-    <div class="opt rec"><span>시험용: 누르고 있으면 빨리 넘기기</span><span class="ch"><span data-k="fast" data-v="0" class="${!o.fast?'on':''}">끔</span><span data-k="fast" data-v="1" class="${o.fast?'on':''}">켬</span></span></div>
-    <div class="opt rec"><span>시험용: 낮밤 고정</span><span class="ch">${[['', '끔'], ['13', '낮'], ['19.5', '해 질 녘'], ['23', '밤'], ['5.5', '새벽']].map(([v, l]) => `<span data-fh="${v}" class="${(o.forceHour == null ? '' : String(o.forceHour)) === v ? 'on' : ''}">${l}</span>`).join('')}</span></div>
-    <div class="opt rec"><span>시험 기록 (해 본 사람이 보내 주는 용)</span><span class="ch"><span id="bLog">보기</span></span></div>
-    <div class="opt rec"><span>시험용: 구간으로 바로 가기</span><span class="ch"><span id="bJump">고르기</span></span></div>
-    <div class="opt rec"><span>처음부터</span><span class="ch"><span id="bReset">기록을 지운다</span></span></div>`);
+    <div class="opt rec"><span>시험 기록 (보내 주시는 용)</span><span class="ch"><span id="bLog">보기</span></span></div>
+    <div class="opt rec"><span>처음부터</span><span class="ch"><span id="bReset">기록을 지운다</span></span></div>`
+    + (dev ? `<div style="font-size:12px;opacity:.55;margin-top:14px">개발자 메뉴</div>
+    <div class="opt rec"><span>누르고 있으면 빨리 넘기기</span><span class="ch"><span data-k="fast" data-v="0" class="${!o.fast?'on':''}">끔</span><span data-k="fast" data-v="1" class="${o.fast?'on':''}">켬</span></span></div>
+    <div class="opt rec"><span>낮밤 고정</span><span class="ch">${[['', '끔'], ['13', '낮'], ['19.5', '해 질 녘'], ['23', '밤'], ['5.5', '새벽']].map(([v, l]) => `<span data-fh="${v}" class="${(o.forceHour == null ? '' : String(o.forceHour)) === v ? 'on' : ''}">${l}</span>`).join('')}</span></div>
+    <div class="opt rec"><span>구간으로 바로 가기</span><span class="ch"><span id="bJump">고르기</span></span></div>
+    <div class="opt rec"><span>개발자 메뉴 잠그기</span><span class="ch"><span id="bDevLock">잠근다</span></span></div>`
+          : `<div style="text-align:right;margin-top:14px"><span class="rec" id="bDev" style="font-size:12px;opacity:.45">개발자 메뉴</span></div>`));
   ovBody.querySelectorAll('.ch span[data-k]').forEach(el => el.addEventListener('click', ev => {
     ev.stopPropagation(); S.opt[el.dataset.k] = el.dataset.v === '1'; save();
     if (!bookView.classList.contains('hidden')) layoutBook(); showSettings();
   }));
-  document.getElementById('bJump').addEventListener('click', ev => { ev.stopPropagation(); showJumps(); });
-  ovBody.querySelectorAll('[data-fh]').forEach(el => el.addEventListener('click', ev => { ev.stopPropagation(); S.opt.forceHour = el.dataset.fh === '' ? null : +el.dataset.fh; save(); showSettings(); }));
   document.getElementById('bLog').addEventListener('click', ev => { ev.stopPropagation(); showTlog(); });
   document.getElementById('bReset').addEventListener('click', ev => {
     ev.stopPropagation();
     openOv('<h3>처음부터</h3>지금까지의 기록이 모두 지워집니다.<div style="text-align:center;margin-top:18px"><button class="btn rec" id="bReset2" style="color:var(--ink);border-color:#00000066">지우고 처음부터</button></div>');
     document.getElementById('bReset2').addEventListener('click', e2 => { e2.stopPropagation(); resetting = true; localStorage.removeItem(SAVE); location.reload(); });
   });
+  if (!dev){ document.getElementById('bDev').addEventListener('click', ev => { ev.stopPropagation(); askDev(); }); return; }
+  document.getElementById('bJump').addEventListener('click', ev => { ev.stopPropagation(); showJumps(); });
+  ovBody.querySelectorAll('[data-fh]').forEach(el => el.addEventListener('click', ev => { ev.stopPropagation(); S.opt.forceHour = el.dataset.fh === '' ? null : +el.dataset.fh; save(); showSettings(); }));
+  document.getElementById('bDevLock').addEventListener('click', ev => { ev.stopPropagation(); localStorage.removeItem(DEV_KEY); S.opt.fast = false; S.opt.forceHour = null; save(); showSettings(); });
 }
 document.getElementById('setBtn').addEventListener('click', showSettings);
 // 컴퓨터: Esc로 창 닫기 → 지도 접기 → 책 덮기
