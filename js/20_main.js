@@ -160,6 +160,6 @@ setInterval(() => { if (S.stage === 'room') {
   S.lastSeen = Date.now();
   const dk = dayKey(); if (S.onDay !== dk){ S.onDay = dk; S.onSec = 0; }           // 오늘 서고에 있은 시간(초)
   S.onSec = (S.onSec||0) + 2;
-  if (!(S.seenDays || []).includes(dk)) S.seenDays = ((S.seenDays || []).concat([dk])).slice(-10);   // 들어왔던 날들(녹봉 밀림 셈에 씀)
+  if (!(S.seenDays || []).includes(dk)) S.seenDays = ((S.seenDays || []).concat([dk])).slice(-10);   // 들어왔던 날들(지금은 기록만 — 녹봉 밀림은 달력 날짜로 셈, 10/6)
   save(); } }, 2000);
 requestAnimationFrame(frame);
