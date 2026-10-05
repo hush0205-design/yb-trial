@@ -42,8 +42,8 @@ const ERR_ACT = {
   potTake(){ S.potTaken = Date.now(); if (S.scene === 'seogo') noise(0.15, 700, 0.04); },
   potPut(){ S.potPut = Date.now(); if (S.scene === 'lab') sPlace(); },
   pour(){ if (S.scene === 'lab') sBoil(); const s = S.st.ojr; if (s && (s.fear||0) > 0.3){ s.steam = Date.now() + 3000; s.calm = Date.now() + 243000; } },   // 따르면서 자기 잔도 한 모금
-  tea(k){ const s = S.st[k]; if (!s || !working(k) || DEF(k).tea === false) return; s.teaN = (s.teaN||0) + 1; s.steam = Date.now() + 3000; s.calm = Date.now() + 243000; if (S.scene === 'lab') sPlace(); },
-  teaSJ(){ if (!S.rArrived || isNight()) return; S.rSteam = Date.now() + 3000; S.rCalm = Date.now() + 243000; if (S.scene === 'seogo') sPlace(); },
+  tea(k){ const s = S.st[k]; if (!s || !working(k) || DEF(k).tea === false || (s.fear||0) >= OJR_MAX) return; s.teaN = (s.teaN||0) + 1; s.steam = Date.now() + 3000; s.calm = Date.now() + 243000; if (S.scene === 'lab') sPlace(); },
+  teaSJ(){ if (!S.rArrived || isNight() || (S.rFear||0) >= OJR_MAX) return; S.rSteam = Date.now() + 3000; S.rCalm = Date.now() + 243000; if (S.scene === 'seogo') sPlace(); },
   myCup(){ S.myCup = true; if (S.scene === 'seogo') sPlace(); },
   give([k, it]){ const s = S.st[k]; if (!s || s.manual || s.gone) return; s.item = it; s.auto = true; if (S.scene === 'lab') sPlace();
     if (!S.autoNoteDone){ S.autoNoteDone = true;
@@ -83,9 +83,9 @@ function potErrand(){
 // 다탁 앞에서 시작: 차를 따르고 → 떨고 있는 사람·빈 가주 서안에 날라 주고 → 제자리에 앉음
 function serveSteps(first){
   const now = Date.now(), sd = homeSide('ojr'), steps = [];
-  const labT = allKeys().filter(k => k !== 'ojr' && working(k) && DEF(k).tea !== false && (S.st[k].fear||0) >= 0.3 && LAB_DESKS[S.st[k].desk]).sort((a, b) => LAB_DESKS[S.st[a].desk][0] - LAB_DESKS[S.st[b].desk][0]);
+  const labT = allKeys().filter(k => k !== 'ojr' && working(k) && DEF(k).tea !== false && (S.st[k].fear||0) >= 0.3 && (S.st[k].fear||0) < OJR_MAX && LAB_DESKS[S.st[k].desk]).sort((a, b) => LAB_DESKS[S.st[a].desk][0] - LAB_DESKS[S.st[b].desk][0]);
   const sjSeated = !!S.rArrived && !isNight() && !nightVisiting() && now - S.rArrived > T_PUSH && !S.errs.sj;
-  const sjT = sjSeated && (S.rFear||0) >= 0.3, myT = !!S.owned.desk && !S.myCup && (first || now - (S.myCupAt||0) > 300000);
+  const sjT = sjSeated && (S.rFear||0) >= 0.3 && (S.rFear||0) < OJR_MAX, myT = !!S.owned.desk && !S.myCup && (first || now - (S.myCupAt||0) > 300000);
   let cur = TEA_STAND;
   const go = (sc, pts, carry) => { steps.push(...walkPts(sc, [cur, ...pts], carry)); cur = pts[pts.length - 1]; };
   const selfT = (S.st.ojr.fear||0) >= 0.3;                         // 자기가 떨려도 다탁에 가서 한 잔

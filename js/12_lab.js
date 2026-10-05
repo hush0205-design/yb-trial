@@ -309,7 +309,7 @@ function showStaff(k){
     + `<div style="font-size:12px;opacity:.6">서고의 책을 베껴 둔 사본이라, 같은 책을 여럿이 읽을 수 있다.${s.auto && !s.manual ? ' 지금 것은 한서진이 나누어 준 것이다.' : ''}</div>`
     + (isGen(k) ? '' : `<br><b>일지</b>` + (dl.length ? dl.map((d, i) => `<div class="rec dlist" data-d="${i}"><span>일지 ${i+1} — ${esc(d.split('.')[0])}</span><span style="opacity:.45;font-size:12px">읽기</span></div>`).join('') : '<br>아직 쓴 것이 없다.')));
   const bt = document.getElementById('bSTea'); if (bt) bt.addEventListener('click', ev => { ev.stopPropagation(); ov.classList.add('hidden'); s.steam = Date.now() + 3000; s.calm = Date.now() + 243000; save(); sBoil(); });
-  ovBody.querySelectorAll('[data-cp]').forEach(el => el.addEventListener('click', ev => { ev.stopPropagation(); s.item = el.dataset.cp; s.manual = true; s.auto = false; save(); sPlace(); showStaff(k); }));
+  ovBody.querySelectorAll('[data-cp]').forEach(el => el.addEventListener('click', ev => { ev.stopPropagation(); s.item = el.dataset.cp; s.manual = true; s.auto = false; s.manDay = dayKey(); save(); sPlace(); showStaff(k); }));
   ovBody.querySelectorAll('.dlist').forEach(el => el.addEventListener('click', ev => { ev.stopPropagation(); const i = +el.dataset.d;
     openOv(`<h3>${P.name}의 일지 ${i+1}</h3>${staffDiary(k)[i]}<div class="rec" id="bBackS" style="margin-top:14px;text-align:center">← 목록으로</div>`);
     document.getElementById('bBackS').addEventListener('click', e2 => { e2.stopPropagation(); showStaff(k); }); }));
@@ -351,6 +351,7 @@ function labTick(dt){
   if (typeof errTick === 'function') errTick();
   if (typeof whyTick === 'function') whyTick();
   if (typeof homeTick === 'function') homeTick();
+  if (typeof morningTick === 'function') morningTick();
   if (typeof flipTick === 'function') flipTick();
   if (!S.bangAt) return;
   if (typeof sideTick === 'function') sideTick(dt);
@@ -379,7 +380,7 @@ function labTick(dt){
     if (now < (s.steam||0)) s.fear = Math.max(0, (s.fear||0) - dt*0.25);
     else s.fear = Math.min(1, (s.fear||0) + dt*readFear(s.item || 'first')*DEF(k).fearK*(now < (s.calm||0) ? 0.3 : 1));
     if (s.fear >= 0.3) S.sweatSec = (S.sweatSec||0) + dt;                                   // 별채에서 누군가 땀 흘린 시간(오정림이 듣게 되는 소문)
-    const fac = fearFac(s.fear);
+    const fac = fearFac(s.fear) * visitBoost() * manBoost(s);   // 가주 순회·가주가 직접 맡김
     s.work = (s.work||0) + dt; s.acc = (s.acc||0) + dt*fac;
     while (s.acc >= DEF(k).sec){ s.acc -= DEF(k).sec; S.pages += 1; S.earned += 1; addBook(s.item || 'first', mult()); s.pages = (s.pages||0) + 1; }
   }
@@ -387,7 +388,7 @@ function labTick(dt){
   if (working('ojr') && !S.errs.ojr){
     if (!S.potTaken && !S.teaArrived){ S.potTaken = S.potPut = now; save(); }               // 서고에 찻주전자가 없던 때 온 경우: 자기 것을 들고 옴
     else if (!S.potTaken){ if (now - ojr.arr > T_PUSH + 6000) potErrand(); }
-    else if (S.potPut && now - lastTeaRound > (anyShrunk() ? 45000 : 90000)){ lastTeaRound = now; teaRound(); }   // 간이 오그라든(4단계) 사람이 있으면 더 자주
+    else if (S.potPut && now - lastTeaRound > 90000){ lastTeaRound = now; teaRound(); }
   }
   if (S.rArrived && !isNight() && (S.rFear||0) >= 0.3) S.sweatSec = (S.sweatSec||0) + dt;
   if (now - lastAssign > 10000){ lastAssign = now; autoAssign(); }
