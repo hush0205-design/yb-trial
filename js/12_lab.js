@@ -49,28 +49,45 @@ const STAFF = {
            [600, '아궁이 불이 좋다. 불씨는 내가 지킨다. 우리 집은 불씨를 꺼뜨린 적이 없다.']] },
 };
 // 일반 연구원: 이름·성격·차림을 조합해 만듦(일지는 쓰지 않음)
-const G_SUR = [['박','朴'],['최','崔'],['정','鄭'],['강','姜'],['윤','尹'],['장','張'],['신','申'],['권','權'],['황','黃'],['송','宋'],['홍','洪'],['임','任']];
-const G_NAME_M = [['덕수','德洙'],['만복','萬福'],['기남','基男'],['영길','永吉'],['춘보','春甫'],['치문','致文'],['학규','學奎'],['상렬','相烈']];
-const G_NAME_F = [['문옥','文玉'],['봉이','鳳伊'],['순덕','順德'],['막례','莫禮']];
+// 이름·성격: 일반 연구원 글 모음.md (페이블 v1, 10/5 체험판에 넣음 — 성격 15번 '두 장'은 아직)
+const G_SUR = [['박','朴'],['최','崔'],['정','鄭'],['강','姜'],['윤','尹'],['장','張'],['신','申'],['권','權'],['황','黃'],['송','宋'],['홍','洪'],['임','任'],
+  ['조','趙'],['유','柳'],['안','安'],['전','全'],['고','高'],['문','文'],['백','白'],['허','許']];
+const G_NAME_M = [['덕수','德洙'],['만복','萬福'],['기남','基男'],['영길','永吉'],['춘보','春甫'],['치문','致文'],['학규','學奎'],['상렬','相烈'],
+  ['인수','仁壽'],['복동','福童'],['천석','千石'],['명보','明甫'],['수길','壽吉'],['재형','載亨'],['광록','光祿'],['칠성','七星'],['도명','道明'],['원기','元基'],
+  ['창오','昌五'],['봉학','鳳學'],['태완','泰完'],['응삼','應三'],['석주','錫周'],['치영','致永'],['윤보','允甫'],['득룡','得龍'],['사문','士文'],['억만','億萬']];
+const G_NAME_F = [['문옥','文玉'],['봉이','鳳伊'],['순덕','順德'],['막례','莫禮'],['금례','金禮'],['분이','分伊'],['옥단','玉丹'],['연화','蓮花'],['복례','福禮'],
+  ['춘심','春心'],['월매','月梅'],['명심','明心'],['간난','艱難'],['유월','六月']];
+// w = 그냥 방에 오는 잦기(3·5·8·12가 잦고, 조금 이상한 13·14는 드묾)
 const G_TRAIT = [
-  { lines:['글을 베끼는 일을 해 왔습니다.', '손은 빠르나 겁이 많습니다.'], sec:3.5, fearK:1.6, note:'손이 빠르다. 겁이 많다.' },
-  { lines:['장터에서 셈을 보던 사람입니다.', '겁은 없으나 글이 느립니다.'], sec:6, fearK:0.5, note:'글이 느리다. 겁이 없다.' },
-  { lines:['서당에서 아이들을 가르쳤습니다.', '해 지기 전에는 돌아가야 합니다.'], sec:4, fearK:1, note:'해 지기 전에 집에 간다.' },
-  { lines:['잠이 없는 사람입니다.', '밤에도 일하겠습니다.'], sec:5, fearK:1.2, night:true, note:'밤낮없이 일한다.' },
-  { lines:['방을 보고 왔습니다.', '무엇이든 하겠습니다.'], sec:4.5, fearK:1, note:'시키는 일은 무엇이든 한다.' },
+  { w:1, lines:['남의 글을 베껴 먹고살았습니다. 손은 빠릅니다.', '다만 어두운 데서 글자가 움직이는 것처럼 보일 때가 있어, 등잔은 밝게 켜 주시면 좋겠습니다.'], sec:3.5, fearK:1.6, note:'손이 빠르다. 겁이 많다. 등잔을 밝게 켠다.' },
+  { w:1, lines:['장터에서 셈을 보던 사람입니다. 글은 더딥니다.', '사람 많은 데서 밤낮으로 장부를 봤으니, 책 몇 권에 놀랄 일은 없겠습니다.'], sec:6, fearK:0.5, note:'글이 느리다. 겁이 없다.' },
+  { w:3, lines:['서당에서 아이들을 가르쳤습니다. 글은 또박또박 읽습니다.', '집에 어린것들이 있어 해 지기 전에는 돌아가야 합니다. 그 점만 헤아려 주십시오.'], sec:4, fearK:1, early:true, note:'해 지기 전에 집에 간다. 글씨가 단정하다.' },
+  { w:1, lines:['어릴 때부터 잠이 없는 사람입니다. 누우면 천장만 보다 날이 밉니다.', '그 시간에 글을 읽는 게 낫겠습니다. 밤에도 일하겠습니다.'], sec:5, fearK:1.2, night:true, note:'밤낮없이 일한다.' },
+  { w:3, lines:['방을 보고 왔습니다. 글도 읽고, 물도 긷고, 심부름도 합니다.', '시키시는 일은 무엇이든 하겠습니다.'], sec:4.5, fearK:1, note:'시키는 일은 무엇이든 한다.' },
+  { w:1, lines:['잠이 얕아 밤에 몇 번씩 깹니다. 깬 김에 글을 보겠습니다.', '등잔 기름은 제가 보겠습니다. 꺼진 불을 두고 보지 못하는 성미입니다.'], sec:5, fearK:1.1, night:true, note:'밤에 자주 깬다. 등잔을 지킨다.' },
+  { w:1, lines:['눈이 어두워 돋보기를 끼고 글자를 하나씩 봅니다. 그래서 느립니다.', '대신 멀리 있는 것은 보이지 않으니 놀랄 일도 적습니다.'], sec:5.5, fearK:0.8, note:'눈이 어둡다. 돋보기를 쓴다.' },
+  { w:3, lines:['차는 마시지 않습니다. 속이 받지 않아 물만 먹습니다.', '찻잔은 돌려보내도 섭섭히 여기지 말아 주십시오. 일은 남만큼 합니다.'], sec:4.5, fearK:1, tea:false, note:'차를 마시지 않는다. 물만 먹는다.' },
+  { w:1, lines:['사람 곁에 있으면 글이 눈에 안 들어옵니다. 구석 자리를 주시면 좋겠습니다.', '혼자 두시면 빨리 읽습니다. 말은 없는 편입니다.'], sec:3.8, fearK:1.4, note:'혼자 있기를 좋아한다. 구석 자리.' },
+  { w:1, lines:['손이 빠르다는 말은 들었습니다. 입도 빠르다는 말을 더 듣습니다.', '옆 사람이 떨고 있으면 말을 걸어 주는 편입니다. 시끄럽다 하시면 줄이겠습니다.'], sec:3.8, fearK:1.2, note:'말이 많다. 옆 사람이 덜 떤다.' },
+  { w:1, lines:['갈두포 쪽에서 자랐습니다. 어릴 때부터 물에 들어 숨을 오래 참습니다.', '글은 보통입니다. 바닷가 심부름이 있으면 그것도 하겠습니다.'], sec:5, fearK:0.4, note:'물가 사람. 숨을 오래 참는다.' },
+  { w:3, lines:['글자 하나 틀린 것을 못 넘기는 성미라, 한 장을 두 번씩 읽습니다. 그래서 느립니다.', '대신 베낀 책과 원본이 다른 데가 있으면 반드시 찾아냅니다.'], sec:6.5, fearK:1, note:'꼼꼼하다. 느리다. 어긋난 글자를 찾는다.' },
+  { w:0.5, lines:['저희 할아버지가 이 댁 서고에서 글을 베끼셨다 합니다. 밤에 쓰셨다 들었습니다.', '서고 문이 닫힌 뒤로 집안이 조용했는데, 다시 열렸다니 가 보라 하셔서 왔습니다.'], sec:4, fearK:0.9, night:true, note:'집안이 이 서고와 인연이 있다 한다. 밤에 쓴다.' },
+  { w:0.5, lines:['방을 보았는지는 잘 모르겟습니다. 그런데 이 집까지 오는 길을 알고 있었습니다.', '무서운 것은 없습니다. 아무것도 무섭지 않습니다. 글을 읽게 해 주십시오.'], sec:4, fearK:0.3, note:'겁이 없다. 길을 알고 있었다 한다.' },
 ];
+const G_W = G_TRAIT.reduce((a, t) => a + t.w, 0);
 const G_ROBE = [['#ece6d6','#ddd5c0','#bfb59e'], ['#e0dccf','#cfc9b8','#aea896'], ['#d8dccd','#c7ccbb','#a6ab99'], ['#e6dccb','#d6c9b2','#b5a68c'], ['#d6dde2','#c4ccd2','#a3adb5']];
 const G_BELT = [['#5a5a5a','#3a3a3a'], ['#7a5a3a','#5a3e24'], ['#3e5a52','#2a403a'], ['#6a4a5a','#4a3040'], ['#4a4a6a','#30304a']];
 const G_SKIRT = [['#7a5a4a','#6a4a3c','#523a2e'], ['#6a7a5a','#5a6a4c','#46543a'], ['#6d5f7d','#5c4f6b','#463c54']];
 const GDEF = {};
+function mulberry(a){ let t = a >>> 0; return () => { t = (t + 0x6D2B79F5) >>> 0; let x = Math.imul(t ^ t >>> 15, 1 | t); x ^= x + Math.imul(x ^ x >>> 7, 61 | x); return ((x ^ x >>> 14) >>> 0) / 4294967296; }; }
 function genDef(k){
   if (GDEF[k]) return GDEF[k];
-  const n = +k.slice(1), r = rng(n*97 + 13), f = r() < 0.3;
-  const su = G_SUR[(n*5 + Math.floor(r()*12)) % 12], nm = (f ? G_NAME_F : G_NAME_M)[(n*3 + Math.floor(r()*8)) % (f ? 4 : 8)];
-  const tr = G_TRAIT[(n + Math.floor(r()*5)) % 5];
+  const n = +k.slice(1), r = mulberry(n*2654435761 + 977), f = r() < 0.3;   // 고르게 섞이는 난수(전의 rng는 일곱 사람마다 같은 무늬가 돌았음)
+  const su = G_SUR[(n*7 + Math.floor(r()*G_SUR.length)) % G_SUR.length], NM = f ? G_NAME_F : G_NAME_M, nm = NM[(n*3 + Math.floor(r()*NM.length)) % NM.length];
+  let x = r()*G_W, tr = G_TRAIT[0]; for (const t of G_TRAIT){ if ((x -= t.w) < 0){ tr = t; break; } }
   const look = f ? { skirt: G_SKIRT[Math.floor(r()*3)], jeo: ['#e6d7b4','#e8e0cc','#dcd6c0'][Math.floor(r()*3)] }
                  : { robe: G_ROBE[Math.floor(r()*5)], belt: G_BELT[n%5][0], belt2: G_BELT[n%5][1], hat: ['gat','tang','sangtu'][Math.floor(r()*3)] };
-  return (GDEF[k] = { gen:true, f, name: su[0] + nm[0], hj: su[1] + nm[1], job:'해독가', sec: tr.sec, fearK: tr.fearK, night: !!tr.night, note: tr.note, lines: tr.lines, look });
+  return (GDEF[k] = { gen:true, f, name: su[0] + nm[0], hj: su[1] + nm[1], job:'해독가', sec: tr.sec, fearK: tr.fearK, night: !!tr.night, early: !!tr.early, tea: tr.tea !== false, note: tr.note, lines: tr.lines, look });
 }
 const DEF = k => STAFF[k] || genDef(k);
 const isGen = k => k[0] === 'g';
@@ -78,8 +95,9 @@ const allKeys = () => ['smw', 'ojr', ...Object.keys(S.st).filter(isGen)];
 const genKeys = () => Object.keys(S.st).filter(isGen);
 const stOf = k => (S.st[k] = S.st[k] || {});
 const arrived = k => !!(S.st[k] && S.st[k].arr);
-const present = k => arrived(k) && (k === 'smw' || DEF(k).night || !isNight());    // 서명우는 늘 있음(낮엔 눈을 감고 쉼), 밤일 하는 이도 늘 있음
-const working = k => arrived(k) && Date.now() - S.st[k].arr > T_PUSH && (k === 'smw' ? isNight() : (DEF(k).night || !isNight()));
+const dusk = () => { const h = gameHour(); return h >= 18 && h < 22; };
+const present = k => arrived(k) && (k === 'smw' || DEF(k).night || (!isNight() && !(DEF(k).early && dusk())));   // 해 지기 전에 가는 사람은 노을이 들면 먼저 감    // 서명우는 늘 있음(낮엔 눈을 감고 쉼), 밤일 하는 이도 늘 있음
+const working = k => arrived(k) && Date.now() - S.st[k].arr > T_PUSH && (k === 'smw' ? isNight() : present(k));
 const deskOwner = d => allKeys().find(k => S.st[k] && S.st[k].desk === d && !S.st[k].gone) || null;
 const freeDesk = () => Object.keys(LAB_DESKS).find(d => S.owned[d] && !deskOwner(d)) || null;
 const curApplicant = () => allKeys().filter(k => S.st[k] && S.st[k].at && !S.st[k].replied && !S.st[k].gone && !(STAFF[k] && STAFF[k].later && S.st[k].read)).sort((a, b) => S.st[a].at - S.st[b].at)[0] || null;
@@ -239,7 +257,7 @@ function showBang(){
 }
 const letterOf = k => `<h3>편지 — ${STAFF[k].name}</h3>` + vlet([`${esc(S.sur)}씨 가문 서고에 올립니다.`, '', ...STAFF[k].letter], `${STAFF[k].name}(${STAFF[k].hj}) 올림.`);
 const replyOf = k => `<h3>답장</h3>` + vlet([`${STAFF[k].name} 님께.`, '', ...STAFF[k].reply], `${esc(S.sur + S.name)}`, 'min(40vh,280px)');
-const genLetter = k => { const P = DEF(k); return `<h3>지원서 — ${P.name}</h3>` + vlet([`${esc(S.sur)}씨 가문 서고에 올립니다.`, ...P.lines], `${P.name}(${P.hj}) 올림.`, 'min(36vh,250px)'); };
+const genLetter = k => { const P = DEF(k); return `<h3>지원서 — ${P.name}</h3>` + vlet([`${esc(S.sur)}씨 가문 서고에 올립니다.`, ...P.lines], `${P.name}(${P.hj}) 올림.`, 'min(50vh,370px)'); };
 function hire(k){
   const s = stOf(k); s.replied = true; s.desk = freeDesk(); s.item = 'first'; s.due = Date.now() + (isGen(k) ? 5000 : 6000);
   if (isGen(k)) S.genNext = Date.now() + 210000;
@@ -287,7 +305,7 @@ function showStaff(k){
   const o = (id, label) => `<span data-cp="${id}" class="${s.item === id ? 'on' : ''}">${label}</span>`;
   const dl = staffDiary(k), tea = Date.now() < (s.calm||0) ? '<div style="font-size:12px;opacity:.6">책상에 찻잔이 놓여 있다. 아직 따뜻하다.</div>' : '';
   openOv(`<h3>${isGen(k) ? '연구원' : '반장'} — ${P.name}(${P.hj})</h3>직업: ${P.job}<br>상태: ${st}${typeof whyHtml === 'function' ? whyHtml(k) : '<br>'}읽는 빠르기: ${speed}<br>넘긴 것: ${fmtP(s.pages||0)}<br><div style="font-size:12px;opacity:.6">${P.note}</div>${tea}`
-    + (S.teaArrived ? `<div style="text-align:center;margin:8px 0"><button class="btn rec" id="bSTea" style="color:var(--ink);border-color:#00000066">차를 한 잔 내준다</button></div>` : '')
+    + (S.teaArrived && P.tea === false ? '<div style="font-size:12px;opacity:.6;margin:6px 0">차는 마시지 않는다. 오정림이 놓고 간 잔도 돌려보낸다.</div>' : '') + (S.teaArrived && P.tea !== false ? `<div style="text-align:center;margin:8px 0"><button class="btn rec" id="bSTea" style="color:var(--ink);border-color:#00000066">차를 한 잔 내준다</button></div>` : '')
     + `<div class="opt rec"><span>읽을 사본</span><span class="ch">${o('first', '제목 없는 책')}${o('dongui', '동의보감 三')}${S.mapFound ? o('map', '지도') : ''}</span></div>`
     + `<div style="font-size:12px;opacity:.6">서고의 책을 베껴 둔 사본이라, 같은 책을 여럿이 읽을 수 있다.${s.auto && !s.manual ? ' 지금 것은 한서진이 나누어 준 것이다.' : ''}</div>`
     + (isGen(k) ? '' : `<br><b>일지</b>` + (dl.length ? dl.map((d, i) => `<div class="rec dlist" data-d="${i}"><span>일지 ${i+1} — ${esc(d.split('.')[0])}</span><span style="opacity:.45;font-size:12px">읽기</span></div>`).join('') : '<br>아직 쓴 것이 없다.')));
@@ -305,6 +323,7 @@ function readGo(){
 }
 function labRecs(recs){
   if (typeof whyRecs === 'function') whyRecs(recs);
+  if (typeof sideRecs === 'function') sideRecs(recs);
   if (S.bangAt) recs.push(['방(榜)', bangHtml]);
   for (const k of ['smw', 'ojr']){ const s = S.st[k]; if (!s) continue;
     if (s.read) recs.push([`편지 — ${STAFF[k].name}`, () => letterOf(k)]);
@@ -333,6 +352,7 @@ function labTick(dt){
   if (typeof whyTick === 'function') whyTick();
   if (typeof flipTick === 'function') flipTick();
   if (!S.bangAt) return;
+  if (typeof sideTick === 'function') sideTick(dt);
   const now = Date.now(), smw = stOf('smw'), ojr = stOf('ojr');
   if (!curApplicant()){
     const gArr = genKeys().filter(arrived), gHired = genKeys().filter(k => S.st[k].replied).length;
