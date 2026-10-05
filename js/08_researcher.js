@@ -55,7 +55,7 @@ function researcherTick(dt){
   }
   if (S.rArrived && isNight()) S.rRest = true;                                                    // 밤에 집에 갔다 오면 겁이 절반으로
   else if (S.rRest){ S.rRest = false; S.rFear = (S.rFear||0) * 0.5; }
-  if (!S.rArrived || isNight()) return;
+  if (!S.rArrived || isNight() || (S.errs && S.errs.sj)) return;   // 심부름·집에 간 동안은 읽지 않음
   if (Date.now() < (S.rSteam||0)) S.rFear = Math.max(0, (S.rFear||0) - dt*0.25);                  // 차를 마시는 동안 가라앉음
   else if (itemAt('rdesk')) S.rFear = Math.min(1, (S.rFear||0) + dt*readFear(itemAt('rdesk'))*(Date.now() < (S.rCalm||0) ? 0.3 : 1));   // 읽을수록 무서워짐
   const rf = S.rFear || 0, fac = rf > 0.7 ? 0.25 : rf > 0.35 ? 0.5 : 1;                         // 떨면 손이 느려짐

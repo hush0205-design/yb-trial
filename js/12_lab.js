@@ -96,7 +96,7 @@ const genKeys = () => Object.keys(S.st).filter(isGen);
 const stOf = k => (S.st[k] = S.st[k] || {});
 const arrived = k => !!(S.st[k] && S.st[k].arr);
 const dusk = () => { const h = gameHour(); return h >= 18 && h < 22; };
-const present = k => arrived(k) && (k === 'smw' || DEF(k).night || (!isNight() && !(DEF(k).early && dusk())));   // 해 지기 전에 가는 사람은 노을이 들면 먼저 감    // 서명우는 늘 있음(낮엔 눈을 감고 쉼), 밤일 하는 이도 늘 있음
+const present = k => arrived(k) && !S.st[k].gone && (k === 'smw' || DEF(k).night || (!isNight() && !(DEF(k).early && dusk())));   // 해 지기 전에 가는 사람은 노을이 들면 먼저 감    // 서명우는 늘 있음(낮엔 눈을 감고 쉼), 밤일 하는 이도 늘 있음
 const working = k => arrived(k) && Date.now() - S.st[k].arr > T_PUSH && (k === 'smw' ? isNight() : present(k));
 const deskOwner = d => allKeys().find(k => S.st[k] && S.st[k].desk === d && !S.st[k].gone) || null;
 const freeDesk = () => Object.keys(LAB_DESKS).find(d => S.owned[d] && !deskOwner(d)) || null;
@@ -285,10 +285,10 @@ function readApplicant(k){
 function showRoster(){
   const names = [];
   if (S.rArrived) names.push(['한서진', '韓瑞眞', '해독가']);
-  for (const k of allKeys().filter(arrived).sort((a, b) => S.st[a].arr - S.st[b].arr)) names.push([DEF(k).name, DEF(k).hj, DEF(k).job]);
+  for (const k of allKeys().filter(arrived).sort((a, b) => S.st[a].arr - S.st[b].arr)) names.push([DEF(k).name, DEF(k).hj, DEF(k).job, !!S.st[k].quit]);   // 그만둔 사람은 이름에 줄
   const n = names.length + 1;
   openOv(`<h3>명부 — ${KNUM[n] || n}</h3><div style="font-size:13px;opacity:.7;margin-bottom:8px">별채에 드나드는 사람을 적는 명부. 첫 장은 한서진의 글씨다.</div>`
-    + names.map((x, i) => `${i+1}. ${x[0]}(${x[1]}) — ${x[2]}`).join('<br>')
+    + names.map((x, i) => x[3] ? `${i+1}. <s style="opacity:.55">${x[0]}(${x[1]}) — ${x[2]}</s>` : `${i+1}. ${x[0]}(${x[1]}) — ${x[2]}`).join('<br>')   // 그만둔 사람은 이름에 줄
     + `<br>${n}. <span style="opacity:.55">${alienHtml(glyphs('누구인가', 77 + n))}</span> — <span style="opacity:.55">${alienHtml(glyphs('필경사', 91))}</span>`);
 }
 function staffDiary(k){ const s = S.st[k] || {}; return (STAFF[k] ? STAFF[k].diary : []).filter(d => (s.work||0) >= d[0]).map(d => d[1]); }
@@ -331,7 +331,7 @@ function labRecs(recs){
     if (staffDiary(k).length) recs.push([`${STAFF[k].name}의 일지`, () => `<h3>${STAFF[k].name}의 일지</h3>` + staffDiary(k).map(d => `<div style="margin:8px 0">${d}</div>`).join('')]);
   }
   const g = genKeys().filter(k => S.st[k].read);
-  if (g.length) recs.push(['지원서 묶음', () => '<h3>지원서 묶음</h3>' + g.map(k => `<div style="margin:8px 0"><b>${DEF(k).name}(${DEF(k).hj})</b>${S.st[k].gone ? ' <span style="opacity:.5;font-size:12px">— 돌려보냄</span>' : ''}<br>${DEF(k).lines.join(' ')}</div>`).join('')]);
+  if (g.length) recs.push(['지원서 묶음', () => '<h3>지원서 묶음</h3>' + g.map(k => `<div style="margin:8px 0"><b>${DEF(k).name}(${DEF(k).hj})</b>${S.st[k].gone ? ` <span style="opacity:.5;font-size:12px">— ${S.st[k].quit ? '그만둠' : '돌려보냄'}</span>` : ''}<br>${DEF(k).lines.join(' ')}</div>`).join('')]);
   if (S.goRead) recs.push(['쪽지 — 한서진 (사람이 늘었습니다)', () => '<h3>쪽지</h3>가주께. 사람이 늘었습니다. 새로 온 이들도 손이 제법입니다. 정림 씨가 차를 맡아 주니 이제 바닷가에 가 볼 수 있겠습니다. 날을 잡아 주십시오. — 한서진']);
 }
 function labNews(){
@@ -350,12 +350,13 @@ let lastTeaRound = 0;
 function labTick(dt){
   if (typeof errTick === 'function') errTick();
   if (typeof whyTick === 'function') whyTick();
+  if (typeof homeTick === 'function') homeTick();
   if (typeof flipTick === 'function') flipTick();
   if (!S.bangAt) return;
   if (typeof sideTick === 'function') sideTick(dt);
   const now = Date.now(), smw = stOf('smw'), ojr = stOf('ojr');
   if (!curApplicant()){
-    const gArr = genKeys().filter(arrived), gHired = genKeys().filter(k => S.st[k].replied).length;
+    const gArr = genKeys().filter(arrived), gHired = genKeys().filter(k => S.st[k].replied && !S.st[k].quit).length;   // 그만둔 사람 자리는 다시 채움
     const gPages = gArr.reduce((a, k) => a + (S.st[k].pages||0), 0);
     if (!smw.at && gArr.length >= 2 && gPages >= 200){ smw.at = now; save(); knock(); }                                   // 별채가 함께 2권을 넘긴 뒤
     else if (!ojr.at && smw.read && now >= smw.at + 60000 && ((S.sweatSec||0) >= 600 || now >= smw.at + 1800000)){ ojr.at = now; save(); knock(); }   // 땀 흘린 시간이 모두 합쳐 10분을 넘으면(아니면 30분 뒤)

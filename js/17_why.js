@@ -59,3 +59,40 @@ function whyRecs(recs){
   recs.push(['떨던 까닭 — 일지 뒷장', () => '<h3>떨던 까닭</h3><div style="font-size:12px;opacity:.6;margin-bottom:8px">일지 뒷장에 적혀 있다. 사람들이 떨기 시작할 때 무엇을 보았다고 했는지.<br>누가 적었는지는 모른다. 한서진의 글씨는 아니다.</div>'
     + L.map(([n, l]) => `<div style="margin:6px 0"><b>${n}</b> — ${l}</div>`).join('')]);
 }
+
+// ───────── 겁이 끝까지 오르면 집에 감 (10/5 선생님) ─────────
+// 책을 덮고 일어나 문으로 나감 → 30분 뒤 같은 문으로 돌아와 앉음(겁은 절반).
+// 일반 연구원은 세 번째에 그만둠: 나가면서 쪽지를 남기고 돌아오지 않음(책상이 빔 → 다시 사람을 받을 수 있음).
+// 반장(한서진·오정림)은 그만두지 않음. 집에 가 있는 동안은 심부름 칸 'away'(어느 방에도 안 보임).
+const FEAR_TOP = 0.95, HOME_MS = 30*60e3;
+const homeNote = (lines, sign) => '<h3>쪽지</h3>' + vlet(['가주께.', ...lines], sign, 'min(40vh,280px)');
+Object.assign(ERR_ACT, {
+  leave(k){
+    if (k === 'sj'){ S.pendingNotes = (S.pendingNotes || []).concat([homeNote(['오늘은 먼저 들어가 보겠습니다.', '글자가 눈에 들어오지 않습니다.', '내일은 괜찮을 것입니다.'], '한서진 올림.')]); return; }
+    const s = S.st[k], P = DEF(k);
+    if (isGen(k) && (s.homeN||0) >= 3){
+      s.gone = true; s.quit = Date.now(); S.genNext = Date.now() + 180000;   // 3분 뒤부터 새 지원자
+      S.pendingNotes = (S.pendingNotes || []).concat([homeNote(['이 서고 일은 더 못 하겠습니다.', '받은 끼니 값은 갚을 길이 없습니다.', '책상 위의 사본은 덮어 두었습니다.'], `${P.name}(${P.hj}) 올림.`)]);
+      if (typeof tlog === 'function') tlog('그만둠: ' + P.name);
+      return;
+    }
+    S.pendingNotes = (S.pendingNotes || []).concat([homeNote((s.homeN||0) >= 2 ? ['또 먼저 들어갑니다. 송구합니다.', '자꾸 이러면 이 일을 계속할 수 있을지 모르겠습니다.'] : ['오늘은 일찍 들어가겠습니다.', '글자가 눈에 들어오지 않습니다.'], `${P.name}(${P.hj}) 올림.`)]);
+  },
+  back(k){ if (k === 'sj') S.rFear = (S.rFear||0) * 0.5; else if (S.st[k]) S.st[k].fear = (S.st[k].fear||0) * 0.5; },
+});
+function goHome(k){
+  const lab = k !== 'sj', sc = lab ? 'lab' : 'seogo', door = lab ? LAB_DOOR : DOOR_POS, side = homeSide(k);
+  const out = lab ? [side, [side[0], LC], [door[0], LC], door] : [side, [side[0], SGC], [door[0], SGC], door];
+  const quitting = lab && isGen(k) && (S.st[k].homeN||0) >= 3;
+  const steps = [{ k:'up', sc }, ...walkPts(sc, out), waitAt(sc, door, [0, -1], 300, 'leave', k)];
+  if (!quitting) steps.push(waitAt('away', door, [0, 1], HOME_MS), ...walkPts(sc, out.slice().reverse()), waitAt(sc, side, [-1, 0], 10, 'back', k), { k:'down', sc });
+  S.errs[k] = { t0: Date.now(), steps }; save();
+  if (S.scene === sc) noise(0.5, 320, 0.1, 'lowpass');            // 의자를 빼는 소리
+  if (typeof tlog === 'function') tlog('겁에 질려 집에 감: ' + (k === 'sj' ? '한서진' : DEF(k).name));
+}
+function homeTick(){
+  if (S.rArrived && !S.errs.sj && (S.rFear||0) >= FEAR_TOP && !isNight() && !nightVisiting() && Date.now() - S.rArrived > T_PUSH) goHome('sj');
+  for (const k of allKeys()){ const s = S.st[k];
+    if (!s || !s.arr || s.gone || S.errs[k] || !working(k) || (s.fear||0) < FEAR_TOP) continue;
+    s.homeN = (s.homeN||0) + 1; goHome(k); }
+}
