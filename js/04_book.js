@@ -3,7 +3,13 @@
 const ov = document.getElementById('overlay'), ovBody = document.getElementById('ovBody');
 const ovQueue = [];
 function queueOv(html){ if (ov.classList.contains('hidden')) openOv(html); else ovQueue.push(html); }
-function openOv(html, onClose){ ovBody.innerHTML = html + '<div class="close">닫기</div>'; ov.classList.remove('hidden'); if (typeof glossify === 'function') glossify(ovBody); if (typeof tlogOv === 'function') tlogOv(html); ov._onClose = onClose; ov._t = performance.now(); }
+// 세로 편지 속 숫자는 눕지 않게: 숫자 묶음을 한 칸에 세워 넣음(縱中橫, text-combine-upright)
+function uprightDigits(root){
+  const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT), nodes = [];
+  while (w.nextNode()) if (/\d/.test(w.currentNode.nodeValue)) nodes.push(w.currentNode);
+  for (const n of nodes){ const s = document.createElement('span'); s.innerHTML = esc(n.nodeValue).replace(/\d+/g, '<span class="tcy">$&</span>'); n.replaceWith(...s.childNodes); }
+}
+function openOv(html, onClose){ ovBody.innerHTML = html + '<div class="close">닫기</div>'; ov.classList.remove('hidden'); ovBody.querySelectorAll('.vletter').forEach(uprightDigits); if (typeof glossify === 'function') glossify(ovBody); if (typeof tlogOv === 'function') tlogOv(html); ov._onClose = onClose; ov._t = performance.now(); }
 // 터치 직후 따라오는 클릭이 방금 연 창(과 그 안의 항목)을 누르지 않게: 잡기 단계에서 먼저 막음
 ov.addEventListener('click', e => { if (performance.now() - (ov._t||0) < 450) { e.stopPropagation(); e.preventDefault(); } }, true);
 function closeOv(){                                       // 창 닫기(Esc·바깥 누르기 공용 — 450ms 차단을 타지 않음)

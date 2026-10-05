@@ -149,6 +149,7 @@
   .vletter { writing-mode:vertical-rl; height:min(58vh, 420px); font-size:16px; line-height:2.1; letter-spacing:1px; overflow-x:auto; padding:4px 2px; margin:0 auto;
     background-image:repeating-linear-gradient(to left, transparent 0 calc(2.1em - 1px), #6a4a2a22 calc(2.1em - 1px) 2.1em); }
   .vletter .sign { margin-block-start:2.5em; }
+  .vletter .tcy { text-combine-upright:all; -webkit-text-combine:horizontal; }   /* 세로 편지의 숫자는 한 칸에 세워 씀(눕지 않게, 10/6) */
   .opt { display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #00000022; padding:10px 0; }
   .opt .ch { display:flex; gap:6px; }
   .opt .ch span { padding:3px 10px; border:1px solid #00000033; cursor:pointer; font-size:14px; }
