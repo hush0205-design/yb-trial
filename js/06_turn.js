@@ -37,7 +37,6 @@ function closeBook(){
     setTimeout(() => { bookView.classList.add('hidden'); coverBusy = false; }, 280);
   }, { from: 180, to: 0, bend: 30 });
 }
-document.getElementById('bClose').addEventListener('click', e => { e.stopPropagation(); closeBook(); });
 document.querySelector('#thread .hit').addEventListener('click', e => { e.stopPropagation(); if (bookOpen) closeBook(); });
 // 책 바깥(책상)을 눌러도 책을 덮고 서고로(시험 플레이에서 실을 못 찾아 갇힌 일이 있어서)
 bookView.addEventListener('click', e => {
@@ -66,7 +65,6 @@ function toggleLoupe(){
   document.getElementById('deskGlass').classList.toggle('held', loupeOn);
   if (loupeOn){ loupeX = book.clientWidth*0.6; loupeY = book.clientHeight*0.3; buildLoupe(); }
 }
-document.getElementById('bGlass').addEventListener('click', e => { e.stopPropagation(); toggleLoupe(); });
 document.getElementById('deskGlass').addEventListener('click', e => { e.stopPropagation(); if (bookOpen && !coverBusy) toggleLoupe(); });
 const moveLoupe = e => { if (!loupeOn) return; const r = book.getBoundingClientRect(); loupeX = e.clientX - r.left; loupeY = e.clientY - r.top; placeLoupe(); };
 book.addEventListener('pointermove', moveLoupe); book.addEventListener('pointerdown', moveLoupe);
@@ -84,7 +82,9 @@ function addBook(id, v){
 function checkDongui(){
   if (S.sideRead.dongui || (S.dD||0) < bDone(BD, DLINES.length-1)) return;
   S.sideRead.dongui = true; save();
-  setTimeout(() => queueOv('<h3>동의보감 三</h3>다 풀었다.<br>간을 다룬 장에만 손때가 많다. 누군가 이 장만 여러 번 펼쳤다.<br><br>두려움이 조금 더디게 찾아온다.'), 1100);
+  const h = '<h3>동의보감 三</h3>다 풀었다.<br>간을 다룬 장에만 손때가 많다. 누군가 이 장만 여러 번 펼쳤다.<br><br>두려움이 조금 더디게 찾아온다.';
+  if (window.BOOTING){ S.pendingNotes = (S.pendingNotes || []).concat([h]); return; }   // 비운 동안 다 풀렸으면 서안의 쪽지 더미로
+  setTimeout(() => queueOv(h), 1100);
 }
 function flip(auto, fast){
   const now = performance.now();

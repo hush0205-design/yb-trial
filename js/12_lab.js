@@ -343,8 +343,6 @@ function labNews(){
   if (S.goNote) n.push('go');
   return n;
 }
-const anyShrunk = () => (S.rFear||0) >= 0.6 || allKeys().some(k => working(k) && (S.st[k].fear||0) >= 0.6);
-const anyScared = () => (S.rFear||0) > 0.5 || allKeys().some(k => working(k) && (S.st[k].fear||0) > 0.5);
 
 // 매 순간: 지원서·편지 도착 → 연구원 도착 → 일 → 다원지기의 차 → 마지막 쪽지
 let lastTeaRound = 0;
@@ -411,7 +409,7 @@ function labOffline(){
     const sec = k === 'smw' ? nightSec : DEF(k).night ? daySec + nightSec : daySec; if (sec <= 0) continue;
     const n = Math.floor(sec / DEF(k).sec * 0.3); if (!n) continue;
     const rested = k === 'smw' ? daySec > 0 : (!DEF(k).night && nightSec > 0);
-    s.work = (s.work||0) + sec; s.fear = Math.max((s.fear||0) * (rested ? 0.5 : 1), 0.3); if (isCopy(s.item)){ copyWork(k, s, sec*0.3); continue; }   // 자리 비운 동안의 필사
+    s.work = (s.work||0) + sec; s.fear = Math.max((s.fear||0) * (rested ? 0.5 : 1), Math.min(FEAR_AT[2], FEAR_AT[2] * sec / 1800)); if (isCopy(s.item)){ copyWork(k, s, sec*0.3); continue; }   // 자리 비운 동안의 필사(겁은 비운 시간만큼, 30분이면 2단계)
     S.pages += n; S.earned += n; addBook(s.item || 'first', n*mult()); s.pages = (s.pages||0) + n;
     if (isGen(k)) { gen += n; continue; }
     out.push(k === 'smw'

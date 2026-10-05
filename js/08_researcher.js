@@ -18,6 +18,13 @@ function diaryList(){
 const diaryCount = () => diaryList().length;
 function readNote(){                                    // 서안 위 쪽지: 자리 비운 동안의 쪽지 먼저, 그다음 부탁 쪽지
   const keep = h => { S.awayLog = (S.awayLog || []).concat([h]).slice(-20); };   // 읽은 쪽지는 문갑 '안 계신 동안' 서랍으로
+  const all = [...(S.pendingNote ? [S.pendingNote] : []), ...(S.pendingNotes || [])];
+  if (all.length >= 2){                                   // 쪽지가 여러 장 겹쳐 있으면 한 번에 펼쳐 읽음(돌아왔을 때 창이 연달아 뜨지 않게, 10/6)
+    S.pendingNote = null; S.pendingNotes = []; all.forEach(keep); save();
+    openOv(`<h3>쪽지 ${all.length}장</h3><div style="font-size:12px;opacity:.6;margin-bottom:6px">서안에 겹쳐 놓여 있던 것. 위에 놓인 것부터.</div>`
+      + all.map(h => h.includes('vletter') ? h.replace(/<h3>[^<]*<\/h3>/, '') : h.replace(/<h3>([^<]*)<\/h3>/, '<div style="font-size:12px;opacity:.6;margin:4px 0 6px">$1</div>')).join('<hr style="border:none;border-top:1px solid #00000022;margin:12px 0">'));
+    return;
+  }
   if (S.pendingNote){ const h = S.pendingNote; S.pendingNote = null; keep(h); save(); openOv(h); return; }
   if (S.pendingNotes && S.pendingNotes.length){ const h = S.pendingNotes.shift(); keep(h); save(); openOv(h); return; }
   if (S.helpNote && !S.helpRead){ readHelp(); return; }
@@ -69,14 +76,14 @@ function researcherTick(dt){
 const NIGHT_SEC = 60;   // 밤에 서안의 책이 혼자 한 장 넘어가는 간격
 function offlineWork(){
   const res = { r:0, night:0 };
-  if (!S.lastSeen) return res;
+  if (!S.lastSeen || Date.now() - S.lastSeen < 180e3) return res;   // 3분 미만은 비운 것으로 치지 않음(전엔 이 가드가 맨 끝에 있어 새로고침마다 한서진 겁이 0.3으로 뛰었음, 10/6)
   const now = Date.now(), from = Math.max(S.lastSeen, now - 8*3600e3);
   let daySec = 0, nightSec = 0;
   for (let t = from; t < now; t += 60e3){ const d = Math.min(60, (now - t)/1000); if (isNight(new Date(t))) nightSec += d; else daySec += d; }
   const rItem = itemAt('rdesk');
   if (S.rArrived && rItem && daySec > 0){
     const n = Math.floor(daySec / R_SEC * 0.3);
-    S.rFear = Math.max((S.rFear||0) * (nightSec > 0 ? 0.5 : 1), 0.3);   // 자리를 비운 동안 혼자 읽으며 겁이 쌓임(밤에 집에 다녀왔으면 먼저 절반)
+    S.rFear = Math.max((S.rFear||0) * (nightSec > 0 ? 0.5 : 1), Math.min(FEAR_AT[2], FEAR_AT[2] * daySec / 1800));   // 자리를 비운 동안 혼자 읽으며 겁이 쌓임(비운 시간만큼, 30분이면 2단계. 밤에 집에 다녀왔으면 먼저 절반)
     S.rWork = (S.rWork||0) + daySec; S.pages += n; S.earned += n; addBook(rItem, n*mult()); S.rPages = (S.rPages||0) + n; res.r = n;
   }
   const di = itemAt('desk');
@@ -84,7 +91,6 @@ function offlineWork(){
     const m = Math.floor(nightSec / NIGHT_SEC);
     S.pages += m; S.earned += m; addBook(di, m); res.night = m;
   }
-  if (now - S.lastSeen < 180e3) { res.r = 0; res.night = 0; }
   return res;
 }
 function showResearcher(){
@@ -289,7 +295,7 @@ function roomNews(){
   if (S.rArrived) n.push('researcher', 'diary:' + diaryCount());
   if (S.helpNote) n.push('help');
   if (S.pendingNote) n.push('note:' + S.pendingNote.length);
-  if ((S.rFear||0) > 0.6) n.push('rfear');
+  if (fearStage(S.rFear) >= 4) n.push('rfear');          // 4단계(간이 오그라듦)부터
   if (S.jokboDone && !S.mapFound) n.push('chest');
   n.push(...labNews());
   return n;

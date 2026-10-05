@@ -41,7 +41,7 @@ const WHY = {
     '접힌 자리를 펴니 물 냄새가 났다고 한다.',
   ],
 };
-const WHY_ON = 0.3, WHY_OFF = 0.15;            // 2단계(땀)에 생기고, 0단계로 가라앉으면 지워짐
+const WHY_ON = FEAR_AT[2], WHY_OFF = FEAR_AT[1];            // 2단계(땀)에 생기고, 0단계로 가라앉으면 지워짐
 function pickWhy(item){
   const pool = WHY[item] || WHY.first, seen = S.whySeen = S.whySeen || {};
   const used = seen[item] = seen[item] || [];
@@ -82,7 +82,7 @@ function whyRecs(recs){
 // 6단계(간 떨어짐)면 책을 덮고 일어나 문으로 나감. 첫째는 30분 뒤, 둘째부터는 다음 날 아침(밤일 하는 이는 다음 날 저녁) 같은 문으로 돌아와 앉음(겁은 절반).
 // 일반 연구원은 세 번째에 그만둠. 둘째로 비운 동안엔 그 사람 책상을 눌러 내보낼 수 있음.
 // 반장(한서진·오정림)은 그만두지 않음. 집에 가 있는 동안은 심부름 칸 'away'(어느 방에도 안 보임).
-const FEAR_TOP = 0.95, HOME_MS = 30*60e3;
+const FEAR_TOP = FEAR_AT[6], HOME_MS = 30*60e3;
 const homeNote = (lines, sign) => '<h3>쪽지</h3>' + vlet(['가주께.', ...lines], sign, 'min(40vh,280px)');
 const pushNote = h => { S.pendingNotes = (S.pendingNotes || []).concat([h]); };
 const homeN = k => k === 'sj' ? (S.rHomeN||0) : ((S.st[k] && S.st[k].homeN)||0);

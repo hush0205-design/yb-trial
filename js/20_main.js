@@ -95,7 +95,7 @@ document.getElementById('setBtn').addEventListener('click', showSettings);
 // 컴퓨터: Esc로 창 닫기 → 지도 접기 → 책 덮기
 document.addEventListener('keydown', e => {
   if (e.key !== 'Escape') return;
-  if (!ov.classList.contains('hidden')) { ov.dispatchEvent(new MouseEvent('click', { bubbles:true })); return; }
+  if (!ov.classList.contains('hidden')) { closeOv(); return; }
   if (!mapView.classList.contains('hidden')) { closeMap(); return; }
   if (bookOpen) closeBook();
 });
@@ -144,8 +144,10 @@ document.querySelectorAll('.scroll').forEach(el => el.onclick = () => { S.gahun 
 window.__yb = { openBook, closeBook, toggleLoupe, setMapMark: () => { S.mapLastMark = 0; }, hits: () => [...curObjs(), ...curDolls()].filter(o => o.hit).map(o => ({ id:o.id, x:o.hit.x/DPR, y:(o.hit.y0*0.4 + o.hit.y1*0.6)/DPR })) };
 resize();
 ensureLoc();
+window.BOOTING = true;                                    // 비운 동안의 셈을 하는 중(이때 생기는 알림은 창을 띄우지 않고 쪽지로)
 const away = S.stage === 'room' ? offlineWork() : { r:0, night:0 };
 const labAway = S.stage === 'room' ? labOffline() : [];
+window.BOOTING = false;
 if (labAway.length){ S.pendingNotes = (S.pendingNotes || []).concat(labAway); save(); }
 if (away.r || away.night) setTimeout(() => {
   if (S.rArrived) { S.pendingNote = `<h3>쪽지</h3><div class="vletter rec" style="height:min(50vh,360px)">가주께.<br>${away.r ? `안 계신 동안 ${fmtP(away.r)}을 넘겼습니다.<br>` : ''}밤에는 일하지 않았습니다.${away.night ? `<br><br>아침에 와 보니 서안의 책이<br>${fmtP(away.night)} 넘어가 있었습니다.<br>저는 밤에 오지 않았습니다.` : ''}<div class="sign">한서진 올림.</div></div>`; save(); }
@@ -153,5 +155,10 @@ if (away.r || away.night) setTimeout(() => {
 }, 900);
 S.lastSeen = Date.now();
 if (S.stage === 'room') enterRoom(); else if (S.stage === 'gahun') scr('sGahun'); else if (S.stage === 'jokbo') scr('sJokbo'); else scr('sStart');
-setInterval(() => { if (S.stage === 'room') { S.lastSeen = Date.now(); save(); } }, 2000);
+setInterval(() => { if (S.stage === 'room') {
+  S.lastSeen = Date.now();
+  const dk = dayKey(); if (S.onDay !== dk){ S.onDay = dk; S.onSec = 0; }           // 오늘 서고에 있은 시간(초)
+  S.onSec = (S.onSec||0) + 2;
+  if (!(S.seenDays || []).includes(dk)) S.seenDays = ((S.seenDays || []).concat([dk])).slice(-10);   // 들어왔던 날들(녹봉 밀림 셈에 씀)
+  save(); } }, 2000);
 requestAnimationFrame(frame);

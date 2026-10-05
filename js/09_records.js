@@ -16,16 +16,7 @@ function recJokbo(){ if (S.D >= J0){ let h = `<h3>족보 — ${esc((S.bon||'') +
 function recLedger(){ let h = '<h3>서고 장부</h3>'; for (let i=0;i<8;i++) h += alienHtml(showText(i)) + '<br>'; return h; }
 function recNotes(){ const done = []; for (let i=0;i<11;i++) if (S.D >= lineDone(i)) done.push(esc(LINES[i][LINES[i].length-1]));
   return `<h3>해독 노트</h3><div style="font-style:italic">${done.length ? done.join('<br>') : '아직 받아 적은 줄이 없다.'}</div><div style="margin-top:10px;font-size:12px;opacity:.6">받아 적은 줄 ${done.length} / ${LINES.length}</div>`; }
-const DONGUI = [
-  { h:'肝者 將軍之官 謀慮出焉', k:'간은 장군의 벼슬이니, 꾀가 여기서 나온다.' },
-  { h:'肝藏魂', k:'간은 혼(魂)을 갈무리한다.' },
-  { h:'肝開竅於目', k:'간은 눈으로 구멍이 열린다.' },
-  { h:'肝氣虛則恐', k:'간의 기운이 허하면 두려워하고,' },
-  { h:'實則怒', k:'차면 성낸다.' },
-  { note:'두려움이 없는 자는 간이 없는 자다.' },
-  { note:'보지 않으면 두렵지 않다.<br>그러나 보지 않으면 읽을 수 없다.' },
-  { note:'바다에서 돌아온 이는 겁이 없었다.<br>간을 어디 두고 왔느냐 물으니 웃기만 하였다.' },
-];
+const DONGUI = DONGUI_SRC;   // 읽기용 원문(02_text)과 같은 것을 씀(이중 정의 없앰, 10/6)
 function showShelf(){
   if (!S.owned.lamp) { openOv('<h3>책장</h3>어두워서 책등이 보이지 않는다.'); return; }
   const books = [
@@ -46,28 +37,6 @@ function showShelf(){
     if (typeof k === 'string') showPlace(k);
     else openOv('<h3>책장</h3>꺼내지지 않는다.<br>옆 책과 붙어 있다.');
   }));
-}
-function showDongui(){
-  const cur = S.curBook === 'dongui', where = S.owned.desk ? '서안' : '궤짝';
-  openOv(`<h3>동의보감 三 — 잡병편</h3>간을 다룬 장에 손때가 많다. 한문으로 적혀 있고, 누군가 붉은 먹으로 덧쓴 곳이 있다.<br>읽으려면 꺼내서 펼쳐 놓고 넘겨 가며 풀어야 한다.${S.sideRead.dongui ? '<br><br>다 풀었다.' : ''}`
-    + `<div style="text-align:center;margin-top:16px"><button class="btn rec" id="bTake" style="color:var(--ink);border-color:#00000066">${cur ? where + '에 펼쳐 두었다 — 읽는다' : '꺼내서 ' + where + '에 올린다'}</button></div>`);
-  document.getElementById('bTake').addEventListener('click', ev => { ev.stopPropagation(); S.curBook = 'dongui'; save(); ov.classList.add('hidden'); openBook(); });
-}
-function readDongui(){
-  let idx = 0, shown = false;
-  const draw = () => {
-    const p = DONGUI[idx];
-    openOv(`<h3>동의보감 三 — 잡병편</h3><div class="rec side" id="sideP">` + (p.h ? `<div class="hj">${p.h}</div><div class="kr">${shown ? p.k : ''}</div>` : `<div class="note">${p.note}</div>`) + `<div class="pg">${idx+1} / ${DONGUI.length}</div></div>`);
-    document.getElementById('sideP').addEventListener('click', ev => {
-      ev.stopPropagation();
-      if (p.h && !shown) { shown = true; noise(0.08, 3000, 0.05); draw(); return; }
-      idx++; shown = false; sFlip();
-      if (idx < DONGUI.length) { draw(); return; }
-      const first = !S.sideRead.dongui; S.sideRead.dongui = true; save();
-      openOv('<h3>동의보감 三</h3>다 읽었다.<br>간을 다룬 장에만 손때가 많다. 누군가 이 장만 여러 번 펼쳤다.' + (first ? '<br><br>두려움이 조금 더디게 찾아온다.' : ''));
-    });
-  };
-  draw();
 }
 const recDongui = () => '<h3>동의보감 三 — 간 장</h3>' + DONGUI.map(p => p.h ? `${p.h}<br>${p.k}` : `<span style="color:#6a2a16;font-style:italic">${p.note}</span>`).join('<br><br>');
 function letterHtml(){ return `<h3>편지</h3><div class="vletter rec">${esc(S.sur)}씨 가문 서고에 올립니다.<br><br>저는 글자를 읽는 일을 해 온 사람입니다.<br>댁의 서고에 읽히지 않는 책이 있다는 말을 들었습니다.<br>누구에게 들었는지는 기억나지 않습니다.<br><br>서고에서 일하게 해 주십시오.<br>밤에는 일하지 않겠습니다.<div class="sign">한서진(韓瑞眞) 올림.</div></div>`; }

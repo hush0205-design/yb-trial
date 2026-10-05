@@ -257,7 +257,7 @@ function frame(now){
     const labels = [];
     for (const it of list){
       if (it.o.doll){
-        const D = it.o, st = D.st(), walking = st.pose === 'walk', e = Date.now() - D.arrT(), fr0 = D.fear(), I = (D.imgL && D.imgL[fr0 >= 0.6 ? 2 : fr0 >= 0.3 ? 1 : 0]) || D.img;   // 겁먹으면 표정이 바뀌고 땀
+        const D = it.o, st = D.st(), walking = st.pose === 'walk', e = Date.now() - D.arrT(), fr0 = D.fear(), I = (D.imgL && D.imgL[fearStage(fr0) >= 4 ? 2 : fearStage(fr0) >= 2 ? 1 : 0]) || D.img;   // 겁먹으면 표정이 바뀌고 땀(2단계 땀, 4단계 겁먹은 얼굴 — 17_why의 FEAR_AT)
         const face = st.f[0]*s + st.f[1]*c;                        // 바라보는 쪽이 화면(앞)으로 향한 정도
         const f = 1, bk = face < 0 || (st.pose === 'sit' && typeof lookBack === 'function' && lookBack(D, t));   // 겁이 들면 가끔 뒤를 돌아봄   // 옆모습 없음: 늘 앞이나 뒤를 보임(옆으로 걸을 때 얇아지던 것 없앰, 10/4 선생님)
         const img = st.pose === 'sit' ? (bk ? I.SIT_BK : (st.closed && I.SIT_CL) || I.SIT) : walking ? (Math.floor(e/280) % 2 ? (bk ? I.A_BK : I.A) : (bk ? I.B_BK : I.B)) : (bk ? I.A_BK : I.A);

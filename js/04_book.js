@@ -6,10 +6,13 @@ function queueOv(html){ if (ov.classList.contains('hidden')) openOv(html); else 
 function openOv(html, onClose){ ovBody.innerHTML = html + '<div class="close">닫기</div>'; ov.classList.remove('hidden'); if (typeof glossify === 'function') glossify(ovBody); if (typeof tlogOv === 'function') tlogOv(html); ov._onClose = onClose; ov._t = performance.now(); }
 // 터치 직후 따라오는 클릭이 방금 연 창(과 그 안의 항목)을 누르지 않게: 잡기 단계에서 먼저 막음
 ov.addEventListener('click', e => { if (performance.now() - (ov._t||0) < 450) { e.stopPropagation(); e.preventDefault(); } }, true);
-ov.addEventListener('click', e => {
-  if (e.target.closest('.rec')) return;
+function closeOv(){                                       // 창 닫기(Esc·바깥 누르기 공용 — 450ms 차단을 타지 않음)
   ov.classList.add('hidden'); const f = ov._onClose; ov._onClose = null; if (f) f();
   if (ovQueue.length && ov.classList.contains('hidden')) setTimeout(() => { if (ov.classList.contains('hidden')) openOv(ovQueue.shift()); }, 350);
+}
+ov.addEventListener('click', e => {
+  if (e.target.closest('.rec')) return;
+  closeOv();
 });
 
 // ───────── 책: 크기·면 구성 ─────────

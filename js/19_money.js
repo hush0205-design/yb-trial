@@ -39,16 +39,18 @@ function payTick(){
   const today = dayKey();
   if (S.payDay == null){ S.payDay = today; return; }
   let changed = false;
+  // 밀린 날(days)은 가주가 들어왔던 날만 셈 — 며칠 비운 것은 벌하지 않고, 들어와서 안 준 것만 벌함(10/6 검토 보고 6절)
   while (S.payDay < today){
     S.payDay++; changed = true;
     S.owe = S.owe || {};
-    for (const k of payees()){ const o = S.owe[k] = S.owe[k] || { amt:0, days:0 }; o.amt += WAGE(k); o.days++; }
+    const attended = (S.seenDays || []).includes(S.payDay - 1);          // 어제 가주가 서고에 있었나
+    for (const k of payees()){ const o = S.owe[k] = S.owe[k] || { amt:0, days:0 }; o.amt += WAGE(k); if (attended) o.days++; }
   }
   if (S.steward) payAll(true);
-  // 밀린 녹봉의 대가: 사흘 밀린 일반 연구원은 떠남
+  // 밀린 녹봉의 대가: 사흘 밀린 일반 연구원은 떠남 — 단, 그날 가주가 들어와 5분은 지난 뒤(돌아온 날 바로 떠나지 않게)
   for (const k of Object.keys(S.owe || {})){
     const o = S.owe[k]; if (!o.days) continue;
-    if (k !== 'sj' && isGen(k) && o.days >= 3 && S.st[k] && !S.st[k].gone && !S.errs[k] && working(k)){
+    if (k !== 'sj' && isGen(k) && o.days >= 3 && (S.onSec||0) >= 300 && S.st[k] && !S.st[k].gone && !S.errs[k] && working(k)){
       S.st[k].wageQuit = true; S.st[k].homeN = 3; goHome(k); changed = true;
     }
     if (k === 'sj' && o.days >= 2 && !S.oweNoteSJ){ S.oweNoteSJ = true; pushNote('<h3>쪽지</h3>' + vlet(['가주께.', '녹봉이 이틀째 밀렸습니다.', '쌀독이 비어 갑니다.', '궤짝을 한번 살펴 주십시오.'], '한서진 올림.', 'min(40vh,280px)')); changed = true; }

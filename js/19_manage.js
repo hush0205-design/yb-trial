@@ -3,7 +3,7 @@
 // ① 오정림의 차는 3단계(간을 졸임)까지만 달램 — 4단계부터는 가주가 직접(차를 내주거나 쉬라고 일러 보냄)
 // ② 가주의 하루 순회: 하루 첫 별채 걸음에 모두 겁이 한 단계 내려가고, 그날은 손이 조금 빠름
 // ④ 한서진의 아침 보고: 새 날 첫 쪽지 — 어제 넘긴 양·집에 간 사람·오늘 맡길 만한 것. 가주가 직접 맡긴 사람은 그날 손이 빠름
-const OJR_MAX = 0.6;                                   // 이보다 겁이 크면 오정림의 차로는 안 됨(4단계)
+const OJR_MAX = FEAR_AT[4];                            // 이보다 겁이 크면 오정림의 차로는 안 됨(4단계)
 const visitBoost = () => S.visitDay === dayKey() ? 1.1 : 1;
 const manBoost = s => s && s.manDay === dayKey() ? 1.1 : 1;
 
@@ -54,8 +54,9 @@ function statNote(kind, name){ const d = dayStat(); if (d.day !== dayKey()) retu
 Object.assign(ERR_ACT, (() => { const lv = ERR_ACT.leave; return { leave(k){ const quitting = k !== 'sj' && isGen(k) && homeN(k) >= 3; lv(k); statNote(quitting ? 'quit' : 'home', k === 'sj' ? '한서진' : DEF(k).name); } }; })());
 function morningTick(){
   const d = dayStat();
-  if (d.day === dayKey()) return;
+  if (d.day === dayKey() || S.morningDay === dayKey()) return;            // 하루에 한 장만(새로고침이 겹쳐도)
   if (!S.rArrived || isNight() || S.errs.sj) return;                       // 한서진이 자리에 있을 때 씀
+  S.morningDay = dayKey();
   const pages = Math.max(0, (S.earned||0) - d.earned0);
   const ks = allKeys().filter(k => arrived(k) && S.st[k] && !S.st[k].gone);
   const scared = ks.filter(k => isGen(k)).sort((a, b) => (S.st[b].fear||0) - (S.st[a].fear||0))[0];
