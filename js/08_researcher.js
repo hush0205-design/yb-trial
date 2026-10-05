@@ -288,7 +288,7 @@ function tick(now){
 function roomNews(){
   const n = [];
   for (const o of OBJ) if (o.buy && !S.owned[o.id] && readTotal() >= o.buy.cost && (!o.show || o.show())) n.push('see:' + o.id);   // 살 수 있게 되는 순간 → 불이 꺼짐
-  for (const o of OBJ) if (o.buy && !S.owned[o.id] && canBuy(o)) n.push('buy:' + o.id);
+  for (const o of OBJ) if (o.buy && !S.owned[o.id] && canBuy(o) && (!o.show || o.show())) n.push('buy:' + o.id);   // 안 보이는 물건(앙부일구 — 관측소 전)은 소식에 안 오름
   if (S.D >= T.door) n.push('door');
   if (S.teaArrived) n.push('teapot');
   if (S.D >= T.letter && !S.letterRead) n.push('letter');
