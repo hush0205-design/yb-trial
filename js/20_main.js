@@ -24,6 +24,8 @@ JUMPS.push(['15. 별채에 다 모인 뒤 (마지막 쪽지)', Object.assign(JSO
 JUMPS.push(['16. 일반 연구원 둘이 자리 잡은 뒤 (서명우의 편지 직전, 한 명은 겁에 질림)', Object.assign(JSON.parse(JSON.stringify(JUMPS[12][1])), { helpNote:true, helpRead:true, bangAt:-1, labSeen:true, pages:500, earned:2600, genN:2, genNext:-1,
   owned:{ lamp:true, brush:true, desk:true, glass:true, ld1:true, ld2:true }, teaArrived:true,
   st:{ g1:{ at:-1, read:true, replied:true, arr:-2, desk:'ld1', item:'first', fear:0.8, pages:120 }, g2:{ at:-1, read:true, replied:true, arr:-2, desk:'ld2', item:'first', fear:0.45, pages:100 } } })]);
+JUMPS.push(['17. 바닷가 쪽지를 읽은 뒤 (문 곁에 보퉁이)', Object.assign(JSON.parse(JSON.stringify(JUMPS[14][1])), { goNote:true, goRead:true })]);
+JUMPS.push(['18. 조사단이 돌아오기 20초 전 (대문 앞으로)', Object.assign(JSON.parse(JSON.stringify(JUMPS[14][1])), { goNote:true, goRead:true, digJump:true })]);
 function jumpTo(i){
   const keep = { sur:S.sur || '윤', bon:S.bon, name:S.name || '서하', gahun:S.gahun >= 0 ? S.gahun : 0, opt:S.opt };
   resetting = true;
