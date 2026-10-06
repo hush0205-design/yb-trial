@@ -159,7 +159,9 @@ document.getElementById('bWrite').onclick = () => {
   else { S.stage = 'gahun'; save(); scr('sGahun'); }
   if (LINE.gen <= 17 && !LINE.jokbo.length){ LINE.sur = S.sur; LINE.bon = S.bon; saveLine(); }
 };
-document.querySelectorAll('.scroll').forEach(el => el.onclick = () => { S.gahun = +el.dataset.g; sPlace(); enterRoom(); });
+document.querySelectorAll('.scroll').forEach(el => el.onclick = () => { S.gahun = +el.dataset.g; sPlace();
+  if (LINE.gen > 17 && !S.mode){ S.stage = 'room'; S.scene = 'gate'; save(); scr(null); LINES = buildLines(); resize(); return; }   // 빗장을 먼저 고르러 대문 앞으로(19_rebirth)
+  enterRoom(); });
 
 window.__yb = { openBook, closeBook, toggleLoupe, setMapMark: () => { S.mapLastMark = 0; }, hits: () => [...curObjs(), ...curDolls()].filter(o => o.hit).map(o => ({ id:o.id, x:o.hit.x/DPR, y:(o.hit.y0*0.4 + o.hit.y1*0.6)/DPR })) };
 resize();

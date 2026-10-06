@@ -106,7 +106,7 @@ function endGame(id){
   S.ended = id; if (typeof tlog === 'function') tlog('환생: ' + E.name); save();
   const was = { gen: LINE.gen, sur: S.sur || LINE.sur, bon: S.bon || LINE.bon, name: S.name, gahun: S.gahun };
   const firstCodex = !Object.keys(LINE.codex).length;
-  LINE.jokbo.push({ gen: LINE.gen, name: S.name, end: E.name, endId: id, days: Math.max(1, dayKey() - (S.genDay == null ? dayKey() : S.genDay) + 1), gahun: S.gahun });
+  LINE.jokbo.push({ gen: LINE.gen, name: S.name, end: E.name, endId: id, days: Math.max(1, dayKey() - (S.genDay == null ? dayKey() : S.genDay) + 1), gahun: S.gahun, mode: S.mode || 'basic' });
   const c = LINE.codex[id] || { n:0, first: Date.now() }; c.n++; c.line = E.codex; LINE.codex[id] = c;
   if (S.gahun >= 0) LINE.gahun.used[S.gahun] = (LINE.gahun.used[S.gahun] || 0) + 1;
   const newGahun = E.gahun != null && !gahunOpen().includes(E.gahun) ? E.gahun : null; if (newGahun != null) LINE.gahun.unlocked.push(newGahun);
@@ -175,7 +175,7 @@ function showDocbox(){
     + [['dJ', '집안 족보 — 대마다 한 줄'], ['dC', '멸망 도감(滅亡圖鑑)'], ['dG', '가훈첩(家訓帖)'], ['dR', '유품 — ' + LINE.relics.map(r => RELIC[r] ? RELIC[r].name : r).join(' · ')]]
       .map(([id, t]) => `<div class="rec" id="${id}" style="margin:8px 0">${t}</div>`).join(''));
   const on = (id, f) => document.getElementById(id).addEventListener('click', ev => { ev.stopPropagation(); f(); });
-  on('dJ', () => openOv('<h3>집안 족보</h3>' + LINE.jokbo.map(j => `<div style="margin:6px 0">${genHj(j.gen)}世. ${esc(LINE.sur + j.name)} — ${esc(j.end)}<span style="font-size:12px;opacity:.55"> (${j.days}일, 가훈 「${GAHUN[j.gahun] ? GAHUN[j.gahun].t : '—'}」)</span></div>`).join('')
+  on('dJ', () => openOv('<h3>집안 족보</h3>' + LINE.jokbo.map(j => `<div style="margin:6px 0">${genHj(j.gen)}世. ${esc(LINE.sur + j.name)} — ${esc(j.end)}<span style="font-size:12px;opacity:.55"> (${j.days}일, 가훈 「${GAHUN[j.gahun] ? GAHUN[j.gahun].t : '—'}」${j.mode === 'hard' ? ', 빗장을 열어 둔 채' : ''})</span></div>`).join('')
     + `<div style="margin:6px 0">${genHj(LINE.gen)}世. ${esc(LINE.sur + S.name)} — </div>`));
   on('dC', () => openOv('<h3>멸망 도감</h3><div style="font-size:12px;opacity:.6;margin-bottom:8px">서고가 끝난 방식. 겪은 것만 적힌다.</div>'
     + Object.keys(LINE.codex).map(id => `<div style="margin:12px 0"><b>${END[id] ? END[id].name : id}</b>${LINE.codex[id].n > 1 ? ` <span style="font-size:12px;opacity:.55">— ${LINE.codex[id].n}번</span>` : ''}<br>${esc(LINE.codex[id].line)}${END[id] && END[id].only ? `<div style="font-size:13px;margin-top:6px">${END[id].only()}</div>` : ''}</div>`).join('')));
@@ -204,3 +204,34 @@ rebirthJokbo();
 // 가훈 족자(둘째 대부터): 물려받은 것 + 끝으로 풀린 것. 살아 본 가훈에만 족보 말투의 설명이 곁에 붙음
 document.getElementById('gahunWrap').innerHTML = gahunOpen().map(i => { const g = GAHUN[i], u = LINE.gahun.used[i] || 0;
   return `<div class="scroll" data-g="${i}">${esc(g.t)}${u ? `<span class="gnote">${esc(g.note[Math.min(1, u - 1)])}</span>` : ''}</div>`; }).join('');
+
+// ── 대문의 빗장 = 기본/하드 모드 (환생 명세 10-12): 1대엔 녹슬어 안 움직임, 첫 강제 환생 뒤 새 대 시작 때 대문 앞에서 처음 고름(한 대에 한 번) ──
+// 지금은 물건과 고르기만 — 하드의 보상(도감 두 번째 장·칭호·'집을 비우다')은 뒤 묶음.
+M.barShut = model(12, 1, 2, (x, y, z) => (x === 0 || x === 11) ? '#a8873e' : (z ? '#5e3c22' : '#4a2e18'));
+M.barRust = model(12, 1, 2, (x, y, z) => (x === 0 || x === 11) ? '#6e5236' : ((x * 3 + z) % 4 ? '#5a3e2a' : '#8a4a26'));
+M.barOpen = model(2, 1, 12, (x, y, z) => (z === 0 || z === 11) ? '#a8873e' : (x ? '#5e3c22' : '#4a2e18'));   // 빼서 문짝 옆에 세워 둠
+GATE_OBJ.push({ id:'gBar', y:-19.6, rot:0, on:()=>'gate', get x(){ return S.mode === 'hard' ? -8 : 0; }, get z(){ return S.mode === 'hard' ? 2 : 5; },
+  m:()=> LINE.gen <= 17 ? 'barRust' : S.mode === 'hard' ? 'barOpen' : 'barShut', show:()=> Math.cos(viewA) > 0.05, click:()=>showBar(), glow:()=> LINE.gen > 17 && !S.mode });
+const MODE_TXT = {
+  basic: ['문을 잠그고 떠난다', '당신이 없는 동안 서고는 버팁니다. 다만 아무 일도 일어나지 않는 것은 아닙니다.'],
+  hard:  ['문을 열어 두고 떠난다', '당신이 없는 동안에도 서고는 살아 있습니다. 돌아왔을 때 당신이 아닌 당신의 자식이 이 글을 읽고 있을 수도 있습니다. 그렇게만 얻을 수 있는 것들이 있습니다.'],
+};
+function showBar(){
+  if (LINE.gen <= 17) return openOv('<h3>빗장</h3>대문의 빗장. 녹슬어 움직이지 않는다.');
+  if (S.mode) return openOv(`<h3>빗장</h3>${S.mode === 'hard' ? '빗장을 빼서 문짝 옆에 세워 두었다. 대문은 열려 있다.' : '빗장이 걸려 있다.'}<br><span style="font-size:13px;opacity:.7">이 대 동안은 이대로다.</span>`);
+  openOv('<h3>빗장</h3>녹이 벗겨져 있다. 누군가 기름을 먹여 둔 것 같다.<br>이번 대에는 어떻게 하고 떠날 것인가. <span style="font-size:12px;opacity:.6">(한 대에 한 번 — 이 대 동안 못 바꾼다)</span>'
+    + Object.keys(MODE_TXT).map(k => `<div class="rec" data-mode="${k}" style="margin:12px 0;padding:10px 12px;border:1px solid #00000033"><b>${MODE_TXT[k][0]}</b><br><span style="font-size:13px">${MODE_TXT[k][1]}</span></div>`).join(''),
+    () => { if (!S.mode) setTimeout(showBar, 300); });              // 처음엔 고르지 않고 닫을 수 없음
+  ovBody.querySelectorAll('[data-mode]').forEach(el => el.addEventListener('click', ev => { ev.stopPropagation();
+    S.mode = el.dataset.mode; LINE.mode = S.mode; saveLine(); save(); ov._onClose = null; ov.classList.add('hidden');
+    noise(0.4, 300, 0.12, 'lowpass'); setTimeout(() => noise(0.15, 160, 0.2, 'lowpass'), 350);   // 빗장 소리
+    if (typeof tlog === 'function') tlog('빗장: ' + MODE_TXT[S.mode][0]);
+    if (!S.opened) setTimeout(() => { goScene('seogo'); enterRoom(); }, 900);   // 새 대의 첫 서고로
+  }));
+}
+// 새 대 시작(이름 → 가훈) 다음: 아직 안 골랐으면 대문 앞으로
+let barAsked = false;
+HOOK.tick.push(() => {
+  if (barAsked || LINE.gen <= 17 || S.mode || S.stage !== 'room' || S.ended || !ov.classList.contains('hidden')) return;
+  barAsked = true; if (bookOpen) closeBook(); if (S.scene !== 'gate') goScene('gate'); setTimeout(showBar, 900);
+});
