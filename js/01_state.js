@@ -1,7 +1,7 @@
 'use strict';
 // ───────── 상태 ─────────
-const SAVE = 'yeobaek_trial_v1';
-if (/[?&]new\b/.test(location.search)) { localStorage.removeItem(SAVE); history.replaceState(null, '', location.pathname); }
+const SAVE = 'yeobaek_trial_v1', LINE_KEY = 'yeobaek_line_v1';   // 판(S) — 대마다 새로 / 가문(LINE) — 대를 넘어 남음(환생 명세 1절)
+if (/[?&]new\b/.test(location.search)) { localStorage.removeItem(SAVE); localStorage.removeItem(LINE_KEY); history.replaceState(null, '', location.pathname); }
 const S = Object.assign({
   stage:'start', sur:'', bon:'', name:'', gahun:-1,
   pages:0, earned:0, D:0, owned:{}, fear:0, opened:false,
@@ -10,6 +10,23 @@ const S = Object.assign({
 S.opt = Object.assign({ horiz:false, mute:false, fast:false, gameTime:false }, S.opt); S.sideRead = S.sideRead || {}; S.owned = S.owned || {};
 let resetting = false;
 const save = () => { if (!resetting) localStorage.setItem(SAVE, JSON.stringify(S)); };
+// ───────── 가문(LINE): 족보·멸망 도감·유품·가훈첩·열린 것 — 환생해도 안 지움(설정의 '처음부터'만 지움) ─────────
+const LINE = Object.assign({ v:1, sur:'', bon:'', gen:17, jokbo:[], gahun:{ used:{} }, relics:[], codex:{}, odd:{}, books:[], feats:{}, reached:{}, trace:null, mode:'basic', ending:{}, limits:{} },
+  JSON.parse(localStorage.getItem(LINE_KEY) || '{}'));
+LINE.limits = Object.assign({ leave:4, rice:5 }, LINE.limits);           // 일반 엔딩 한도(아무도 오지 않다: 떠난 사람 넷 / 쌀독이 비다: 닷새) — 유품·가훈·연구로 늘어남
+if (!LINE.sur && S.sur){ LINE.sur = S.sur; LINE.bon = S.bon; }           // 환생이 생기기 전에 시작한 판
+const saveLine = () => { if (!resetting) localStorage.setItem(LINE_KEY, JSON.stringify(LINE)); };
+const genName = g => g === LINE.gen ? (S.name || '') : ((LINE.jokbo.find(j => j.gen === g) || {}).name || '');
+const NUMHJ = ['', '一', '二', '三', '四', '五', '六', '七', '八', '九'];
+const genHj = n => (n >= 20 ? NUMHJ[Math.floor(n/10)] + '十' : n >= 10 ? '十' : '') + NUMHJ[n % 10];   // 17 → 十七
+// 가훈: 효과는 처음엔 안 보임 — 그 가훈으로 한 대를 살아 보면 가훈첩·가훈 고르는 족자에 족보 말투로 적힘(써 볼수록 정확해짐)
+const GAHUN = [
+  { t:'읽되 믿지 마라',   read:1.2, fear:1.2, note:['이 가훈 아래 가주는 책장을 빨리 넘겼다.', '이 가훈 아래 가주들은 글을 빨리 풀었으나 손이 일찍 떨렸다.'] },
+  { t:'모르는 것은 덮어라', read:0.9, fear:0.8, note:['이 가훈 아래 가주는 덜 떨었다.', '이 가훈 아래 가주들은 덜 떨었으나 글을 더디 풀었다.'] },
+];
+const gahunK = k => (GAHUN[S.gahun] || {})[k] || 1;
+// 훅: 뒤 파일이 앞 파일의 함수를 감싸는 대신 여기에 넣음(코드 정리 설계 3절 — 건드리는 것부터 하나씩)
+const HOOK = { tick:[] };
 const josa = (w, a, b) => { const c = w.charCodeAt(w.length - 1) - 0xAC00; return w + (c >= 0 && c < 11172 && c % 28 ? a : b); };   // 받침에 따라 은/는·이/가
 const esc = s => String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 

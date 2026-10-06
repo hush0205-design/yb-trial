@@ -179,3 +179,17 @@
     color:#e8dcc0; opacity:0; pointer-events:none; z-index:11; text-shadow:0 0 8px #000; white-space:nowrap; }
   #afterimg.go { animation:afterimg 1.2s ease-out; }
   @keyframes afterimg { 0% { opacity:0; } 15% { opacity:.32; } 100% { opacity:0; } }
+/* 끝 장면·환생 (19_rebirth, 10/7) */
+#endScene { position:fixed; inset:0; z-index:40; background:#050403; display:flex; align-items:center; justify-content:center; animation:endIn 2.4s ease both; }
+@keyframes endIn { from { background:#05040300; } to { background:#050403; } }
+#endScene .hanji { max-height:88vh; overflow:auto; line-height:1.9; }
+#endScene .endRec { background:transparent; color:#cfc3a8; box-shadow:none; font-size:15px; }
+#endScene .endRec h3 { letter-spacing:6px; font-size:16px; margin:0 0 16px; opacity:.75; }
+#endScene .el { opacity:0; transition:opacity 1.6s; margin:10px 0; }
+#endScene .el.on { opacity:1; }
+#endScene .endTap { font-size:12px; text-align:center; margin-top:22px; opacity:0; }
+#endScene .endTap.on { opacity:.45; }
+#endScene .writing { color:#2a1408; }
+#endScene .after { margin-top:18px; font-size:14px; }
+.scroll .gnote { display:block; font-size:12px; letter-spacing:2px; opacity:.6; margin-right:12px; }
+

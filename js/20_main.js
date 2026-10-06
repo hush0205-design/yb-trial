@@ -26,7 +26,21 @@ JUMPS.push(['16. 일반 연구원 둘이 자리 잡은 뒤 (서명우의 편지 
   st:{ g1:{ at:-1, read:true, replied:true, arr:-2, desk:'ld1', item:'first', fear:0.8, pages:120 }, g2:{ at:-1, read:true, replied:true, arr:-2, desk:'ld2', item:'first', fear:0.45, pages:100 } } })]);
 JUMPS.push(['17. 바닷가 쪽지를 읽은 뒤 (문 곁에 보퉁이)', Object.assign(JSON.parse(JSON.stringify(JUMPS[14][1])), { goNote:true, goRead:true })]);
 JUMPS.push(['18. 조사단이 돌아오기 20초 전 (대문 앞으로)', Object.assign(JSON.parse(JSON.stringify(JUMPS[14][1])), { goNote:true, goRead:true, digJump:true })]);
+// 환생 시험용(10/7): 19 둘째 대 이름 짓기부터 / 20 떠난 사람 셋(한 명 더 내보내면 끝) / 21 쌀독 나흘째(들어가면 곧 끝)
+JUMPS.push(['19. 둘째 대 — 이름 짓기부터 (앞 대: 아무도 오지 않다)', { gen2:true }]);
+JUMPS.push(['20. 일반 연구원 셋이 떠난 뒤 (한 명 더 내보내면 끝남)', Object.assign(JSON.parse(JSON.stringify(JUMPS[14][1])), { genN:6, genNext:-1,
+  st: Object.assign(JSON.parse(JSON.stringify(JUMPS[14][1].st)), { g4:{ at:-1, read:true, replied:true, arr:-2, gone:true, quit:-1, fired:true }, g5:{ at:-1, read:true, replied:true, arr:-2, gone:true, quit:-1 }, g6:{ at:-1, read:true, replied:true, arr:-2, gone:true, quit:-1, fired:true } }), omen:{ nobody:true } })]);
+JUMPS.push(['21. 쌀독이 비기 직전 (들어가면 곧 끝남)', Object.assign(JSON.parse(JSON.stringify(JUMPS[14][1])), { genN:3, money:0, riceN:4, riceDay:-1, omen:{ rice:true },
+  st: { g1:{ at:-1, read:true, replied:true, arr:-2, gone:true, quit:-1 }, g2:{ at:-1, read:true, replied:true, arr:-2, gone:true, quit:-1 }, g3:{ at:-1, read:true, replied:true, arr:-2, gone:true, quit:-1 } } })]);
+function jumpGen2(){
+  const nm = S.name || '서하';
+  Object.assign(LINE, { sur: S.sur || LINE.sur || '윤', bon: S.bon || LINE.bon || '파평', gen:18, jokbo:[{ gen:17, name:nm, end:'아무도 오지 않다', endId:'nobody', days:4, gahun: S.gahun >= 0 ? S.gahun : 0 }],
+    codex:{ nobody:{ n:1, first:Date.now(), line:END.nobody.codex } }, relics:['key', 'ledger'], trace:{ from:'nobody' }, gahun:{ used:{ [S.gahun >= 0 ? S.gahun : 0]: 1 } },
+    reached:{ lamp:1, brush:1, desk:1, glass:1, letter:1, lab:1, ld1:1, ld2:1 } });
+  saveLine(); resetting = true; localStorage.setItem(SAVE, JSON.stringify({ stage:'jokbo', opt:S.opt })); location.reload();
+}
 function jumpTo(i){
+  if (JUMPS[i][1] && JUMPS[i][1].gen2) return jumpGen2();
   const keep = { sur:S.sur || '윤', bon:S.bon, name:S.name || '서하', gahun:S.gahun >= 0 ? S.gahun : 0, opt:S.opt };
   resetting = true;
   if (!JUMPS[i][1]) { localStorage.setItem(SAVE, JSON.stringify({ stage:'start', opt:S.opt })); location.reload(); return; }   // 처음부터: 설정만 남김
@@ -40,7 +54,8 @@ function jumpTo(i){
   if (fresh.replied && !fresh.rArrived) fresh.rDue = Date.now() + 6000;
   if (fresh.bangAt === -1) fresh.bangAt = Date.now() - 40000;
   if (fresh.genNext === -1) fresh.genNext = Date.now() + 600000;
-  for (const s of Object.values(fresh.st || {})){ if (s.at === -1) s.at = Date.now() - 100000; if (s.arr === -1) s.arr = Date.now() - T_PUSH - 1000; if (s.arr === -2) s.arr = Date.now() - 181000; }
+  if (fresh.riceDay === -1) fresh.riceDay = dayKey() - 1;
+  for (const s of Object.values(fresh.st || {})){ if (s.quit === -1) s.quit = Date.now() - 200000; if (s.at === -1) s.at = Date.now() - 100000; if (s.arr === -1) s.arr = Date.now() - T_PUSH - 1000; if (s.arr === -2) s.arr = Date.now() - 181000; }
   fresh.lastSeen = Date.now();
   localStorage.setItem(SAVE, JSON.stringify(fresh)); location.reload();
 }
@@ -85,8 +100,8 @@ function showSettings(){
   document.getElementById('bLog').addEventListener('click', ev => { ev.stopPropagation(); showTlog(); });
   document.getElementById('bReset').addEventListener('click', ev => {
     ev.stopPropagation();
-    openOv('<h3>처음부터</h3>지금까지의 기록이 모두 지워집니다.<div style="text-align:center;margin-top:18px"><button class="btn rec" id="bReset2" style="color:var(--ink);border-color:#00000066">지우고 처음부터</button></div>');
-    document.getElementById('bReset2').addEventListener('click', e2 => { e2.stopPropagation(); resetting = true; localStorage.removeItem(SAVE); location.reload(); });
+    openOv('<h3>처음부터</h3>지금까지의 기록이 모두 지워집니다.<br><span style="font-size:13px;opacity:.7">앞 대들의 족보·멸망 도감·유품도 함께 지워집니다.</span><div style="text-align:center;margin-top:18px"><button class="btn rec" id="bReset2" style="color:var(--ink);border-color:#00000066">지우고 처음부터</button></div>');
+    document.getElementById('bReset2').addEventListener('click', e2 => { e2.stopPropagation(); resetting = true; localStorage.removeItem(SAVE); localStorage.removeItem(LINE_KEY); location.reload(); });
   });
   if (!dev){ document.getElementById('bDev').addEventListener('click', ev => { ev.stopPropagation(); askDev(); }); return; }
   document.getElementById('bJump').addEventListener('click', ev => { ev.stopPropagation(); showJumps(); });
@@ -132,14 +147,15 @@ const scr = id => ['sStart','sJokbo','sGahun'].forEach(k => document.getElementB
 function enterRoom(){ S.stage = 'room'; tlog('서고에 들어옴'); save(); scr(null); LINES = buildLines(); resize(); if (!S.opened) openBook(); }
 document.getElementById('bOpen').onclick = () => { ac(); sFlip(); S.stage = 'jokbo'; scr('sJokbo'); };
 // 비워 두고 '적는다'를 누르면 흐리게 적힌 예시(또는 지난번에 쓴 이름) 그대로 시작
-const LAST = 'yeobaek_last_name';
-(() => { try { const l = JSON.parse(localStorage.getItem(LAST) || 'null'); if (l) { iSur.placeholder = l.sur; iBon.placeholder = l.bon || iBon.placeholder; iName.placeholder = l.name; } } catch(_){} })();
+const LAST = 'yeobaek_last_name';   // 둘째 대부터는 지난 이름 대신 19_rebirth가 무작위 이름을 적어 둠
+(() => { try { const l = JSON.parse(localStorage.getItem(LAST) || 'null'); if (l && LINE.gen <= 17) { iSur.placeholder = l.sur; iBon.placeholder = l.bon || iBon.placeholder; iName.placeholder = l.name; } } catch(_){} })();
 document.getElementById('bWrite').onclick = () => {
   const val = el => el.value.trim() || el.placeholder;
   const sur = val(iSur), nm = val(iName);
   try { localStorage.setItem(LAST, JSON.stringify({ sur, bon: val(iBon), name: nm })); } catch(_){}
   if (!/^[가-힣]{1,2}$/.test(sur) || !/^[가-힣]{1,3}$/.test(nm)) { document.getElementById(!/^[가-힣]{1,2}$/.test(sur)?'iSur':'iName').focus(); return; }
   S.sur = sur; S.name = nm; S.bon = val(iBon); sFlip(); S.stage = 'gahun'; save(); scr('sGahun');
+  if (LINE.gen <= 17 && !LINE.jokbo.length){ LINE.sur = S.sur; LINE.bon = S.bon; saveLine(); }
 };
 document.querySelectorAll('.scroll').forEach(el => el.onclick = () => { S.gahun = +el.dataset.g; sPlace(); enterRoom(); });
 

@@ -73,7 +73,7 @@ book.addEventListener('pointermove', moveLoupe); book.addEventListener('pointerd
 const CD = 1200;     // 손으로 넘기는 간격(읽는 시간)
 let lastFlip = -1e9;
 function perClick(){ return 1 + (S.owned.lamp?1:0) + (S.owned.desk?1:0); }
-function mult(){ return (1 + (S.owned.brush?0.5:0) + (S.owned.glass?1:0)) * (S.fear > 0.45 ? 0.6 : 1); }
+function mult(){ return (1 + (S.owned.brush?0.5:0) + (S.owned.glass?1:0)) * (S.fear > 0.45 ? 0.6 : 1) * gahunK('read'); }   // 가훈이 해독 빠르기를 조금 바꿈
 function addBook(id, v){
   if (id === 'map'){ S.mapStudy = (S.mapStudy||0) + v; return; }
   if (id === 'dongui' && !S.sideRead.dongui){ S.dD = (S.dD||0) + v; checkDongui(); }

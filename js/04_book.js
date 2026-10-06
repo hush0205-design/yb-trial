@@ -72,7 +72,7 @@ function linesHtml(from, to, Dv, mark, b = curB()){
   }
   return h;
 }
-function marginHtml(){ const nm = (hanjaOf(S.sur||'') + '氏 十七世 ' + (S.name||'')).replace(/[&<>]/g,''); return alienHtml(glyphs('토끼 아래 두고왔다', 99)) + `<span class="tiny">${nm}</span>`; }
+function marginHtml(){ const nm = (hanjaOf(S.sur||'') + '氏 ' + genHj(LINE.gen) + '世 ' + (S.name||'')).replace(/[&<>]/g,''); return alienHtml(glyphs('토끼 아래 두고왔다', 99)) + `<span class="tiny">${nm}</span>`; }
 function faceInner(kind, Dv, mark){
   const b = curB(), D = Dv === undefined ? b.D() : Dv;
   if (b === BD){

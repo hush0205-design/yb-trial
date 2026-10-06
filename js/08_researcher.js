@@ -266,7 +266,7 @@ function tick(now){
   const dt = Math.min(0.5, (now - lastTick)/1000); lastTick = now;
   if (S.stage !== 'room') return;
   if (now < steamUntil) S.fear = Math.max(0, S.fear - dt*0.2);                 // 차를 마시는 동안 서서히 가라앉음
-  else if (S.D >= T.fearOn) S.fear = Math.min(0.8, S.fear + dt*0.025*(S.sideRead.dongui ? 0.6 : 1)*(now < calmUntil ? 0.35 : 1));
+  else if (S.D >= T.fearOn) S.fear = Math.min(0.8, S.fear + dt*0.025*(S.sideRead.dongui ? 0.6 : 1)*(now < calmUntil ? 0.35 : 1)*gahunK('fear'));
   document.getElementById('fear').style.opacity = S.fear.toFixed(2);
   const shaking = S.fear >= 0.35;
   bookView.classList.toggle('tremble', S.fear >= 0.22);
@@ -279,9 +279,10 @@ function tick(now){
   updateThread(now);
   researcherTick(dt);
   labTick(dt);
+  for (const f of HOOK.tick) f(dt, now);
   if (!S.helpNote && S.caveAt && (S.rWork||0) >= (S.caveWork||0) + 90){ S.helpNote = true; save(); }
   if (!S.jokboDone && S.D >= T.jEnd){ S.jokboDone = true; save();
-    setTimeout(() => queueOv(`<h3>족보</h3>다 풀었다.<br><br>${esc((S.bon||'') + ' ' + S.sur)}씨 17세손 ${esc(S.sur + S.name)}.<br>18세와 19세는 이름 칸이 비어 있다. 끝난 자리만 적혀 있다.<br>20세 아래로는 아무것도 없다.<br><br>그때 구석의 궤짝에서 무언가 들썩이는 소리가 났다.`), 1200);
+    setTimeout(() => queueOv(`<h3>족보</h3>다 풀었다.<br><br>${esc((S.bon||'') + ' ' + S.sur)}씨 ${LINE.gen}세손 ${esc(S.sur + S.name)}.<br>${LINE.gen === 17 ? '18세와 19세는 이름 칸이 비어 있다. 끝난 자리만 적혀 있다.<br>20세 아래로는 아무것도 없다.' : LINE.gen <= 20 ? `${LINE.gen}세 칸에 내 이름이 적혀 있다. 적어 넣은 사람은 없다.<br>끝난 자리는 처음 읽을 때 그대로다.` : '20세 아래로는 아무것도 없다. 내 이름이 들어갈 칸이 없다.'}<br><br>그때 구석의 궤짝에서 무언가 들썩이는 소리가 났다.`), 1200);
     setTimeout(() => { noise(0.25, 90, 0.45, 'lowpass'); setTimeout(() => noise(0.18, 120, 0.3, 'lowpass'), 380); }, 700); }
   if (bookOpen && !bookView.classList.contains('hidden')) { threadPh += threadStir ? dt*5.5 : 0; drawThread(threadStir ? 5 : 0); }
   if (S.owned.desk && (itemAt('desk') === 'first' || itemAt('desk') === 'dongui') && now - lastAuto > 9000 && now - lastFlip > 4000 && ov.classList.contains('hidden')){ lastAuto = now; flip(true); }
