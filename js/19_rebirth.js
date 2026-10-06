@@ -129,7 +129,7 @@ function showStand(){
     if (kind === 'wage'){
       if ((S.money || 0) < owe){ document.getElementById('stMsg').textContent = '궤짝의 엽전이 모자란다.'; return; }
       S.money -= owe; ledger(`녹봉(쌀) ${fmtM(owe)} — ${P.name} (대문 앞에서)`); S.owe[k] = { amt:0, days:0 };
-      noise(0.08, 3000, 0.04); setTimeout(() => noise(0.06, 2600, 0.03), 90);
+      sCoin();
     }
     s.stand = false; S.stand = null;
     if (kind === 'fear'){ s.homeN = 2; s.fear = Math.min(s.fear || 0, 0.6); goHome(k); }
@@ -191,7 +191,7 @@ function loanReply(){
     S.debt = (S.debt || 0) + CREDIT; ledger(`세책점에서 외상 ${fmtM(CREDIT)} — 사본 값에서 절반씩 갚음`);
     pushNote('<h3>답장</h3>' + vlet(['보내신 글 받았소.', '엽전 한 냥을 놓소.', '갚는 건 사본으로 하시오.', '다음 사본부터 값의 절반을 떼겠소.'], '세책점 ' + alienHtml(glyphs('주인', 63)) + ' 적음.', 'min(44vh,320px)'));
   }
-  noise(0.08, 3000, 0.04); setTimeout(() => noise(0.06, 2600, 0.03), 90);
+  sCoin();
   if (typeof tlog === 'function') tlog('돈을 꾼 답장이 옴 — ' + (kin ? '먼 일가' : '세책점')); save(); sPlace();
 }
 // 서안 위 빈 편지지(서안이 없으면 바닥에)
@@ -353,7 +353,7 @@ function showBar(){
     () => { if (!S.mode) setTimeout(showBar, 300); });              // 처음엔 고르지 않고 닫을 수 없음
   ovBody.querySelectorAll('[data-mode]').forEach(el => el.addEventListener('click', ev => { ev.stopPropagation();
     S.mode = el.dataset.mode; LINE.mode = S.mode; saveLine(); save(); ov._onClose = null; ov.classList.add('hidden');
-    noise(0.4, 300, 0.12, 'lowpass'); setTimeout(() => noise(0.15, 160, 0.2, 'lowpass'), 350);   // 빗장 소리
+    sLatch();   // 빗장 소리
     if (typeof tlog === 'function') tlog('빗장: ' + MODE_TXT[S.mode][0]);
     if (!S.opened) setTimeout(() => { goScene('seogo'); enterRoom(); }, 900);   // 새 대의 첫 서고로
   }));
@@ -477,7 +477,7 @@ function bookSaleHtml(){
 function bookSaleBind(){
   ovBody.querySelectorAll('[data-bk]').forEach(el => el.addEventListener('click', ev => { ev.stopPropagation();
     const [how, id] = el.dataset.bk.split(':'), price = (BOOK_SALE.find(b => b[0] === id) || [0, 0])[1];
-    if (how === 's'){ if ((S.money || 0) < price){ el.textContent = '엽전이 모자란다'; return; } S.money -= price; ledger(`세책점에서 ${BOOK_NAME[id]}을 삼 − ${fmtM(price)}`); noise(0.08, 3000, 0.04); }
+    if (how === 's'){ if ((S.money || 0) < price){ el.textContent = '엽전이 모자란다'; return; } S.money -= price; ledger(`세책점에서 ${BOOK_NAME[id]}을 삼 − ${fmtM(price)}`); sCoin(); }
     else { S.borrowDue = S.borrowDue || {}; S.borrowDue[id] = Date.now() + 3 * DAY_MS(); ledger(`세책점에서 ${BOOK_NAME[id]}을 빌림 — 사흘 안에 돌려줌`); }
     gainBook(id, how === 's' ? 'own' : 'borrow'); if (typeof tlog === 'function') tlog((how === 's' ? '책을 삼: ' : '책을 빌림: ') + BOOK_NAME[id]);
     sellCopies(); }));

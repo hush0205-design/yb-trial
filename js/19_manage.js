@@ -17,7 +17,7 @@ function sendRest(k){
   const out = lab ? [side, [side[0], LC], [door[0], LC], door] : [side, [side[0], SGC], [door[0], SGC], door];
   S.errs[k] = { t0: Date.now(), home: true, rest: true, steps: [{ k:'up', sc }, ...walkPts(sc, out), waitAt(sc, door, [0, -1], 300, 'restLeave', k),
     waitAt('away', door, [0, 1], HOME_MS), ...walkPts(sc, out.slice().reverse()), waitAt(sc, side, [-1, 0], 10, 'restBack', k), { k:'down', sc }] };
-  save(); if (S.scene === sc) noise(0.5, 320, 0.1, 'lowpass');
+  save(); if (S.scene === sc) sChair(0.1);
   if (typeof tlog === 'function') tlog('쉬라고 보냄: ' + (k === 'sj' ? '한서진' : DEF(k).name));
 }
 const restBox = (k, f) => {

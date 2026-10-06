@@ -44,15 +44,15 @@ function researcherTick(dt){
   if (S.replied && !S.rArrived && S.rDue && Date.now() >= S.rDue){
     S.rArrived = Date.now(); S.rWork = 0; S.rPages = 0; save();
     noise(0.12, 110, 0.4, 'lowpass'); setTimeout(() => noise(0.12, 110, 0.35, 'lowpass'), 260);          // 문 두드리는 소리
-    for (let t = 300; t < WALK_MS; t += 560) setTimeout(() => noise(0.08, 220, 0.16, 'lowpass'), t);       // 발소리
-    setTimeout(() => noise(0.5, 320, 0.12, 'lowpass'), WALK_MS + 50);                                       // 의자를 빼는 소리
+    for (let t = 300; t < WALK_MS; t += 560) setTimeout(() => sStep(0.16), t);       // 발소리
+    setTimeout(() => sChair(0.12), WALK_MS + 50);                                       // 의자를 빼는 소리
     setTimeout(() => noise(0.2, 160, 0.25, 'lowpass'), T_STEP + 150);                                       // 앉는 소리
-    setTimeout(() => noise(0.45, 300, 0.1, 'lowpass'), T_SIT + 50);                                         // 의자를 당기는 소리
+    setTimeout(() => sChair(0.1), T_SIT + 50);                                         // 의자를 당기는 소리
     if (isNight()){                                     // 밤에 처음 왔으면: 자리만 보고 돌아감
       S.rNightVisit = S.rArrived; save();
       const L0 = T_PUSH + NV_STAY;
-      setTimeout(() => noise(0.45, 300, 0.1, 'lowpass'), L0 + 50);                                          // 의자를 빼는 소리
-      for (let t = L0 + T_PUSH - WALK_MS + 300; t < L0 + T_PUSH; t += 560) setTimeout(() => noise(0.08, 220, 0.16, 'lowpass'), t);   // 나가는 발소리
+      setTimeout(() => sChair(0.1), L0 + 50);                                          // 의자를 빼는 소리
+      for (let t = L0 + T_PUSH - WALK_MS + 300; t < L0 + T_PUSH; t += 560) setTimeout(() => sStep(0.16), t);   // 나가는 발소리
     }
   }
   if (S.rNightVisit && !S.rNightNote && Date.now() - S.rNightVisit >= T_PUSH*2 + NV_STAY){

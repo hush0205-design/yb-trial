@@ -117,7 +117,7 @@ function goHome(k){
   const steps = [{ k:'up', sc }, ...walkPts(sc, out), waitAt(sc, door, [0, -1], 300, 'leave', k)];
   if (!quitting) steps.push(waitAt('away', door, [0, 1], awayMs(k)), ...walkPts(sc, out.slice().reverse()), waitAt(sc, side, [-1, 0], 10, 'back', k), { k:'down', sc });
   S.errs[k] = { t0: Date.now(), steps, home: true }; save();
-  if (S.scene === sc) noise(0.5, 320, 0.1, 'lowpass');            // 의자를 빼는 소리
+  if (S.scene === sc) sChair(0.1);            // 의자를 빼는 소리
   if (typeof tlog === 'function') tlog('겁에 질려 집에 감(' + homeN(k) + '번째): ' + (k === 'sj' ? '한서진' : DEF(k).name));
 }
 const awayNow = k => !!(S.errs[k] && S.errs[k].home && errScene(k) === 'away');
@@ -153,7 +153,7 @@ ERR_ACT.dismiss = k => { const s = S.st[k]; if (!s) return; s.gone = true; s.qui
 function dismiss(k){
   const side = homeSide(k);
   S.errs[k] = { t0: Date.now(), steps: [{ k:'up', sc:'lab' }, ...walkPts('lab', [side, [side[0], LC], [LAB_DOOR[0], LC], LAB_DOOR]), waitAt('lab', LAB_DOOR, [0, -1], 300, 'dismiss', k)] };
-  save(); if (S.scene === 'lab') noise(0.5, 320, 0.1, 'lowpass');
+  save(); if (S.scene === 'lab') sChair(0.1);
 }
 { const ss2 = showStaff; showStaff = function(k){
     ss2(k);

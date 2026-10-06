@@ -29,8 +29,7 @@ setInterval(() => {
   amb.master.gain.setTargetAtTime(on, t, 0.5);
   amb.g.gain.setTargetAtTime(Math.max(0.01, 0.035 + 0.025*Math.sin(t*0.21)*Math.sin(t*0.13)), t, 1.5);
   if (!on) return;
-  if (isNight() && Math.random() < 0.35) cricket();
-  else if (!isNight() && Math.random() < 0.004) dogBark();
+  // 풀벌레·개 짖는 소리는 합성음이 '삐비빅'처럼 들려 끔(10/7 선생님) — 진짜 녹음을 구하면 다시
 }, 1000);
 
 // 세 번 두드림: 편지는 늘 두 번 두드리는데, 한서진이 온 뒤 어느 밤 세 번 — 문 앞엔 아무것도 없고 기록도 남지 않음(1대에 두 번까지)

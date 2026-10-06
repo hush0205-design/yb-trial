@@ -235,7 +235,7 @@ OBJ.push(
 function goScene(sc){
   if (sc === 'lab') S.labSeen = true;
   S.scene = sc; save(); sceneAt = performance.now();
-  noise(0.35, 240, 0.12, 'lowpass'); setTimeout(() => noise(0.12, 110, 0.3, 'lowpass'), 300);   // 문 여닫는 소리
+  sDoor();   // 문 여닫는 소리
   if (typeof tlog === 'function') tlog(sc === 'lab' ? '별채로 감' : sc === 'gate' ? '대문으로 나감' : '서고로 돌아옴');
   if (sc === 'seogo' && S.bangAt && !S.labDoorNoted && !S.labSeen){ S.labDoorNoted = true; save();
     setTimeout(() => queueOv('<h3>서고</h3>방을 붙이고 돌아오니, 서고 왼쪽 벽에 문이 하나 있다.<br>별채로 이어지는 문이다.<br><br>전에도 있었던 것 같다.'), 900); }
@@ -374,9 +374,9 @@ function labTick(dt){
       s.arr = now; s.work = 0; s.pages = 0; s.fear = 0; save();
       const v = S.scene === 'lab' ? 1 : 0.35;                                                          // 서고에 있으면 벽 너머로 희미하게
       knock(v);
-      for (let t = 300; t < WALK_MS; t += 560) setTimeout(() => noise(0.08, 220, 0.16*v, 'lowpass'), t);
-      setTimeout(() => noise(0.5, 320, 0.12*v, 'lowpass'), WALK_MS + 50);
-      setTimeout(() => noise(0.45, 300, 0.1*v, 'lowpass'), T_SIT + 50);
+      for (let t = 300; t < WALK_MS; t += 560) setTimeout(() => sStep(0.16*v), t);
+      setTimeout(() => sChair(0.12*v), WALK_MS + 50);
+      setTimeout(() => sChair(0.1*v), T_SIT + 50);
       if (typeof tlog === 'function') tlog('도착: ' + DEF(k).name);
     }
     if (s && s.arr && !working(k)) s.rest = true;                                           // 쉬고(집에 가고) 돌아오면 겁이 절반으로

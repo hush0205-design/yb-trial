@@ -36,7 +36,7 @@ askBuy = function(o){
 buy = function(o){
   if (!canBuy(o)) return; S.money -= priceOf(o); S.owned[o.id] = true; tlog('들임: ' + o.buy.name + ' ' + fmtM(priceOf(o)));
   if (o.id === 'desk'){ ensureLoc(); ITEMS.forEach(k => { if (S.loc[k] === 'desk') S.loc[k] = 'shelf'; }); }
-  noise(0.08, 3000, 0.04); setTimeout(() => noise(0.06, 2600, 0.03), 90);                     // 엽전 소리
+  sCoin();                     // 엽전 소리
   sPlace(); save(); if (ITEM[o.id]) showItem(o.id);
 };
 const ledger = (t) => { S.ledger = (S.ledger || []).concat([t]).slice(-60); };
@@ -94,7 +94,7 @@ const owePenalty = k => oweDays(k) > 0 ? 1.2 : 1;
       + ((S.ledger || []).length ? '<div class="rec" id="bLedger" style="text-align:center;font-size:12px;opacity:.6;margin-top:10px">치부책 보기</div>' : ''));
     const b = document.getElementById('bPay'); if (b) b.addEventListener('click', ev => { ev.stopPropagation();
       const p = payAll(false); if (!p){ openOv('<h3>궤짝</h3>엽전이 모자라 아무에게도 내주지 못했다.<br>사본을 베껴 팔아야 한다.'); return; }
-      noise(0.08, 3000, 0.04); setTimeout(() => noise(0.06, 2600, 0.03), 90); showEmptyChest(); });
+      sCoin(); showEmptyChest(); });
     const l = document.getElementById('bLedger'); if (l) l.addEventListener('click', ev => { ev.stopPropagation(); openOv(ledgerHtml()); });
     if (typeof loanChestBind === 'function') loanChestBind();
   }; }
@@ -153,7 +153,7 @@ function sellCopies(){
   document.getElementById('bSell').addEventListener('click', ev => { ev.stopPropagation();
     const debtPay = Math.min(S.debt || 0, Math.floor(sum / 2)); S.debt = (S.debt || 0) - debtPay;   // 외상(19_rebirth): 갚을 때까지 사본 값의 절반을 뗌
     S.money = (S.money||0) + sum - debtPay; ledger(`사본 ${cs.length}권을 세책점에 넘김 + ${fmtM(sum - debtPay)}${debtPay ? ` (외상 갚음 ${fmtM(debtPay)} 뗌${S.debt ? `, 남은 외상 ${fmtM(S.debt)}` : ', 외상을 다 갚음'})` : ''}`); S.copies = []; S.dealerAt = 0; S.dealerKnock = false; S.soldN = (S.soldN||0) + cs.length; save();
-    ov.classList.add('hidden'); noise(0.08, 3000, 0.04); setTimeout(() => noise(0.06, 2600, 0.03), 90); setTimeout(() => noise(0.08, 2800, 0.03), 200);
+    ov.classList.add('hidden'); sCoin();
     if (typeof tlog === 'function') tlog('사본 팜 ' + fmtM(sum));
     if (S.steward) return;
     setTimeout(() => queueOv(`<h3>엽전</h3>${fmtM(sum)}을 받아 궤짝에 넣었다.`), 400); });

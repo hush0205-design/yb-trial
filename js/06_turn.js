@@ -13,7 +13,7 @@ function openBook(){
   facesEl.style.visibility = 'hidden';                      // 덮여 있을 땐 표지만
   const go = () => {
     if (coverBusy) return; coverBusy = true;
-    cover.onclick = null; noise(0.35, 700, 0.12, 'lowpass');
+    cover.onclick = null; sBookOpen();
     // 두 면: 표지가 묶은 선(가운데)을 축으로 오른쪽으로 넘어가 내려앉으면 그 자리가 오른쪽 면이 됨
     const R2 = faces[1];
     buildLeaf(coverSpot(), COVER_HTML(), 'none', R2 ? R2.innerHTML : '', R2 ? R2.style.backgroundImage : INNER_BG);
@@ -28,7 +28,7 @@ function closeBook(){
   if (coverBusy) return;
   if (loupeOn) toggleLoupe();
   S.ack = roomNews(); save();
-  finishTurn(); bookOpen = false; coverBusy = true; noise(0.3, 500, 0.12, 'lowpass');
+  finishTurn(); bookOpen = false; coverBusy = true; sBookClose();
   const R2 = faces[1];
   buildLeaf(coverSpot(), COVER_HTML(), 'none', R2 ? R2.innerHTML : '', R2 ? R2.style.backgroundImage : INNER_BG);
   if (R2) R2.style.visibility = 'hidden';
