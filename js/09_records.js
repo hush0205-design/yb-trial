@@ -11,7 +11,7 @@ function showEmptyChest(){
 }
 function showEmptyChest0(){ openOv('<h3>궤짝</h3>책을 꺼내고 구석으로 치웠다. 뚜껑을 열어 보면 비어 있다.<br><br>바닥에 무언가를 오래 눌러 둔 자국이 있다. 책보다 조금 크다.'); }
 function showGahun(){ openOv(`<h3>家訓</h3><div style="font-size:20px;letter-spacing:6px;text-align:center;padding:20px 0">${GAHUN[S.gahun].t}</div>${LINE.gen <= 17 ? '<div style="font-size:13px;opacity:.7">앞 대가 걸어 둔 족자. 언제부터 걸려 있었는지 아무도 모른다.</div>' : ''}`); }
-function recJokbo(){ if (S.D >= J0){ let h = `<h3>족보 — ${esc((S.bon||'') + ' ' + S.sur)}씨 ${LINE.gen}세손 ${esc(S.sur + S.name)}</h3>`; for (let i=11;i<22;i++) h += alienHtml(showText(i)) + '<br>'; return h; }
+function recJokbo(){ if (typeof jokboSheetHtml === 'function') return jokboSheetHtml(); if (S.D >= J0){ let h = `<h3>족보 — ${esc((S.bon||'') + ' ' + S.sur)}씨 ${LINE.gen}세손 ${esc(S.sur + S.name)}</h3>`; for (let i=11;i<22;i++) h += alienHtml(showText(i)) + '<br>'; return h; }
   return `<h3>族譜 — 첫 장</h3>一世. <span style="letter-spacing:-2px;opacity:.6">▒▒▒</span> — ${alienHtml(glyphs('이 서고를 세우다',40))}<br>…<br>十三世. ${alienHtml(glyphs('서고 문을 닫고 떠나다', 43))}<br>十四世 ━━━ 十五世 ━━━ 十六世 ━━━<br>十七世. ${esc(S.sur+genName(17))} — 궤짝을 열다.<br>十八世. ${genName(18) ? esc(S.sur+genName(18)) : '　　'} — ${alienHtml(glyphs('물가에서', 41))}<br>十九世. ${genName(19) ? esc(S.sur+genName(19)) : '　　'} — ${alienHtml(glyphs('문을 잠그고 나오지 않다', 42))}`; }
 function recLedger(){ let h = '<h3>서고 장부</h3>'; for (let i=0;i<8;i++) h += alienHtml(showText(i)) + '<br>'; return h; }
 function recNotes(){ const done = []; for (let i=0;i<11;i++) if (S.D >= lineDone(i)) done.push(esc(LINES[i][LINES[i].length-1]));
@@ -41,7 +41,7 @@ function showShelf(){
 const recDongui = () => '<h3>동의보감 三 — 간 장</h3>' + DONGUI.map(p => p.h ? `${p.h}<br>${p.k}` : `<span style="color:#6a2a16;font-style:italic">${p.note}</span>`).join('<br><br>');
 function letterHtml(){ return `<h3>편지</h3><div class="vletter rec">${esc(S.sur)}씨 가문 서고에 올립니다.<br><br>저는 글자를 읽는 일을 해 온 사람입니다.<br>댁의 서고에 읽히지 않는 책이 있다는 말을 들었습니다.<br>누구에게 들었는지는 기억나지 않습니다.<br><br>서고에서 일하게 해 주십시오.<br>밤에는 일하지 않겠습니다.<div class="sign">한서진(韓瑞眞) 올림.</div></div>`; }
 function buildRecs(){
-  const recs = [['족보 첫 장', recJokbo], ['서고 장부', recLedger]];
+  const recs = [['족보', recJokbo], ['서고 장부', recLedger]];
   if (S.owned.brush) recs.push(['해독 노트', recNotes]);
   if (S.sideRead.dongui) recs.push(['동의보감 三 — 간 장', recDongui]);
   if (S.letterRead) recs.push(['편지 — 한서진', letterHtml]);

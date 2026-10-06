@@ -271,15 +271,10 @@ function endScene(E, was, got){
   });
   // 2) 족보가 펼쳐지며 이번 대의 줄에 끝이 적힘(붓이 저절로)
   function jokboStep(){
-    const rows = LINE.jokbo.slice(-5), cur = rows[rows.length - 1];
-    const older = LINE.jokbo.length > 5 ? '<div class="row faint"><span class="gen">…</span></div>' : '';
-    const rowH = j => `<div class="row"><span class="gen">${genHj(j.gen)}世</span><span>${esc(was.sur + j.name)} — <span class="${j === cur ? 'writing' : ''}">${j === cur ? '' : esc(j.end)}</span></span></div>`;
+    const cur = LINE.jokbo[LINE.jokbo.length - 1];
     fadeIn(`<div class="hanji"><h2>族譜</h2>
-      <div class="row faint"><span class="gen">十三世</span>…</div>
-      <div class="row faint"><span class="gen">十四世</span><span class="inkline"></span></div>
-      <div class="row faint"><span class="gen">十五世</span><span class="inkline"></span></div>
-      <div class="row faint"><span class="gen">十六世</span><span class="inkline"></span></div>${older}
-      ${rows.map(rowH).join('')}
+      ${jokboOldRows(false)}
+      ${jokboLineRows(cur)}
       <div class="after">
         <p class="el">${got.firstCodex ? '가환록(家患錄)을 새로 매어 서안 곁 문서함에 둔다. 첫 줄이 적혔다.' : '가환록에 한 줄이 더 적혔다.'}</p>
         ${got.newGahun != null ? `<p class="el">가훈 하나가 풀렸다 — 「${GAHUN[got.newGahun].t}」</p>` : ''}
@@ -308,8 +303,7 @@ function showDocbox(){
     + [['dJ', '집안 족보 — 대마다 한 줄'], ['dC', '가환록(家患錄)'], ['dG', '가훈첩(家訓帖)'], ['dR', '유품 — ' + LINE.relics.map(r => RELIC[r] ? RELIC[r].name : r).join(' · ')]]
       .map(([id, t]) => `<div class="rec" id="${id}" style="margin:8px 0">${t}</div>`).join(''));
   const on = (id, f) => document.getElementById(id).addEventListener('click', ev => { ev.stopPropagation(); f(); });
-  on('dJ', () => openOv('<h3>집안 족보</h3>' + LINE.jokbo.map(j => `<div style="margin:6px 0">${genHj(j.gen)}世. ${esc(LINE.sur + j.name)} — ${esc(j.end)}<span style="font-size:12px;opacity:.55"> (${j.days}일, 가훈 「${GAHUN[j.gahun] ? GAHUN[j.gahun].t : '—'}」${j.mode === 'hard' ? ', 빗장을 열어 둔 채' : ''})</span></div>`).join('')
-    + `<div style="margin:6px 0">${genHj(LINE.gen)}世. ${esc(LINE.sur + S.name)} — </div>`));
+  on('dJ', () => showJokboSheet());
   on('dC', () => openOv('<h3>가환록(家患錄)</h3><div style="font-size:12px;opacity:.6;margin-bottom:8px">집안에 든 우환을 대마다 적어 둔 책. 겪은 일만 적혀 있다.</div>'
     + Object.keys(LINE.codex).map(id => `<div style="margin:12px 0"><b>${END[id] ? END[id].name : id}</b>${LINE.codex[id].n > 1 ? ` <span style="font-size:12px;opacity:.55">— ${LINE.codex[id].n}번</span>` : ''}<br>${esc(LINE.codex[id].line)}${END[id] && END[id].only ? `<div style="font-size:13px;margin-top:6px">${END[id].only()}</div>` : ''}</div>`).join('')));
   on('dG', () => openOv('<h3>가훈첩</h3>' + GAHUN.map((g, i) => { const u = LINE.gahun.used[i] || 0; if (!gahunOpen().includes(i)) return '';
@@ -368,3 +362,33 @@ HOOK.tick.push(() => {
   if (barAsked || LINE.gen <= 17 || S.mode || S.stage !== 'room' || S.ended || !ov.classList.contains('hidden')) return;
   barAsked = true; if (bookOpen) closeBook(); if (S.scene !== 'gate') goScene('gate'); setTimeout(showBar, 900);
 });
+
+// ── 족보 한 장 (10/7 선생님 "1세 뒤로 쭉 있는 게 뭔지 모르겠다, 지워진 건지 없는 건지") ──
+// 첫 화면·끝 장면·문서함·문갑이 같은 족보 한 장을 씀. 지운 줄은 원래 글자가 흐리게 비치고 그 위에 긁힘(1세)·먹줄(14~16세) — '없는 것'(⋮)과 구분.
+// 다시 펼쳐 볼 때(view)는 첫 책에서 받아 적은 만큼 이름·한 일이 풀림. 첫 화면에선 설명하지 않음(읽으며 알게).
+const JK_OLD = [   // [세, 이름(풀리면), 첫 책 줄, 모양, 한 일]
+  [1, null, 12, 'erased', '이 서고를 세우다'], [2, '문학', 13, 'plain', '글을 읽다'], [3, '서도', 14, 'plain', '글을 읽다'], [0, null, 15, 'dots', '4세부터 12세까지, 모두 글을 읽다'],
+  [13, '수진', 16, 'plain', '서고 문을 닫고 떠나다'], [14, null, 17, 'struck', ''], [15, null, 17, 'struck', ''], [16, null, 17, 'struck', ''],
+];
+function jokboOldRows(view){
+  const sur = LINE.sur || S.sur || '';
+  return JK_OLD.map(([g, nm, li, kind, deed]) => {
+    const read = view && S.D >= lineDone(li);
+    if (kind === 'dots') return `<div class="row faint"><span class="gen">⋮</span><span class="jd">${read ? deed : ''}</span></div>`;
+    const name = read && nm ? esc(sur + nm) : alienHtml(glyphs('이름자', 200 + g));
+    return `<div class="row"><span class="gen">${genHj(g)}世</span><span class="jn ${kind}">${name}</span>${read && deed ? `<span class="jd">— ${deed}</span>` : ''}</div>`;
+  }).join('');
+}
+const jokboLineRows = (cur, view) => LINE.jokbo.map(j => `<div class="row"><span class="gen">${genHj(j.gen)}世</span><span>${esc(LINE.sur + j.name)} — <span class="${j === cur ? 'writing' : ''}">${j === cur ? '' : esc(j.end)}</span>${view ? `<span class="jd">(${j.days}일, 가훈 「${GAHUN[j.gahun] ? GAHUN[j.gahun].t : '—'}」${j.mode === 'hard' ? ', 빗장을 열어 둔 채' : ''})</span>` : ''}</span></div>`).join('');
+function jokboSheetHtml(){
+  const book = S.D >= J0 ? '<div class="bsec">첫 책의 족보 장 — 받아 적은 만큼</div><div style="font-size:14px">' + Array.from({ length: 11 }, (_, k) => alienHtml(showText(11 + k))).join('<br>') + '</div>' : '';
+  return (`<h3>族譜 — ${esc((LINE.bon || S.bon || '') + ' ' + (LINE.sur || S.sur))}씨</h3><div class="jsheet">${jokboOldRows(true)}${jokboLineRows(null, true)}<div class="row"><span class="gen">${genHj(LINE.gen)}世</span><span>${esc((LINE.sur || S.sur) + S.name)} —</span></div></div>` + book);
+}
+const showJokboSheet = () => openOv(jokboSheetHtml());
+// 첫 화면 족보(1대·둘째 대 모두): 옛 줄을 같은 모양으로 다시 그림, 한자는 눌러서 풀이
+(() => {
+  const box = document.querySelector('#sJokbo .hanji'), rows = [...box.querySelectorAll('.row')];
+  const olds = rows.filter(r => r.querySelector('.gen') && /^(一|二|十三|十四|十五|十六)世$/.test(r.querySelector('.gen').textContent));
+  olds[0].insertAdjacentHTML('beforebegin', jokboOldRows(false)); olds.forEach(r => r.remove());
+  if (typeof glossify === 'function') glossify(box);
+})();

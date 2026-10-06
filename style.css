@@ -199,4 +199,20 @@
 .brow .bt { flex:1; }
 .brow .bn { font-size:12px; opacity:.6; white-space:nowrap; }
 .brow.on { font-weight:700; background:#00000008; }
+/* 족보 한 장: 지운 줄은 원래 글자가 비치고 그 위에 긁힘·먹줄 (10/7) */
+.jn { position:relative; display:inline-block; letter-spacing:2px; }
+.jn.erased { color:#2a2118; }
+/* 1세: 이름을 칼끝으로 마구 그어 판 자국 — 엇갈린 굵은 획 + 종이가 일어난 밝은 결 */
+.jn.erased::before { content:''; position:absolute; inset:-5px -10px; background:
+  linear-gradient(12deg, transparent 44%, #1a120b 44% 52%, transparent 52%),
+  linear-gradient(-9deg, transparent 30%, #1a120b 30% 37%, transparent 37%),
+  linear-gradient(-14deg, transparent 58%, #1a120b 58% 65%, transparent 65%),
+  linear-gradient(20deg, transparent 18%, #1a120b 18% 24%, transparent 24%, transparent 70%, #1a120b 70% 76%, transparent 76%); }
+.jn.erased::after { content:''; position:absolute; inset:-5px -10px; background:
+  linear-gradient(12deg, transparent 52%, #f3ead2 52% 55%, transparent 55%),
+  linear-gradient(-9deg, transparent 37%, #f3ead2 37% 39%, transparent 39%); opacity:.8; }
+.jn.struck > * { opacity:.45; }   /* 글자만 흐리게, 먹줄은 진하게 */
+.jn.struck::after { content:''; position:absolute; left:-8px; right:-8px; top:50%; height:4px; margin-top:-2px; background:#2a2118; border-radius:2px; transform:rotate(-1.5deg); opacity:1; }
+.jd { font-size:13px; opacity:.75; margin-left:6px; }
+.jsheet .row { margin:8px 0; }
 
