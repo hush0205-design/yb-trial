@@ -237,7 +237,7 @@ function frame(now){
     const lab = S.scene === 'lab';
     const gate = S.scene === 'gate';
     drawModel(lab ? M.labFloor : gate ? M.yard : M.floor, ox, oy, a, 1, -1);
-    const list = [];
+    const list = []; let lampPt = null;
     for (const o of curObjs()){
       const owned = !o.buy || S.owned[o.id];
       if (o.show && !o.show()) { o.hit=null; continue; }
@@ -283,7 +283,7 @@ function frame(now){
       drawModel(m, it.sx, it.sy, a + (it.o.rot||0), alpha, it.o.z||0);
       it.o.hit = { x: it.sx, y0: it.sy - (it.o.z||0)*SC*0.85, y1: it.sy - (m.h + (it.o.z||0) + (it.ghost ? 8 : 0))*SC*0.85, r: Math.max(Math.max(m.w, m.d)*SC*0.5, 28*DPR), ghost: it.ghost };
       if (it.ghost) labels.push({ t:`${it.o.buy.name} ${fmtM(priceOf(it.o))}`, x: it.sx, y: it.sy - (m.h+4)*SC*0.85, c: canBuy(it.o) ? '#cfc3a8' : '#6d6350' });   // 값은 돈(쪽은 나타나는 문턱)
-      if (it.o.id==='lamp' && !it.ghost && S.lampOut){ cx.fillStyle = 'rgba(120,110,100,.35)'; for (let k=0;k<3;k++){ const ph=(t*0.6+k/3)%1; cx.fillRect(it.sx + Math.sin(t*2+k)*3*DPR, it.sy - 24*SC*0.85 - ph*30*DPR, SC*0.6, SC*0.6); } }   // 꺼진 심지의 연기
+      if (it.o.id==='lamp' && !it.ghost && S.lampOut){ lampPt = [it.sx, it.sy - 24*SC*0.85]; cx.fillStyle = 'rgba(120,110,100,.35)'; for (let k=0;k<3;k++){ const ph=(t*0.6+k/3)%1; cx.fillRect(it.sx + Math.sin(t*2+k)*3*DPR, it.sy - 24*SC*0.85 - ph*30*DPR, SC*0.6, SC*0.6); } }   // 꺼진 심지의 연기
       if (it.o.id==='lamp' && !it.ghost && !S.lampOut){ const fy = it.sy - 24*SC*0.85, fl = 0.6+0.4*Math.sin(t*11)*Math.sin(t*7.3);
         cx.fillStyle = '#ffd27a'; cx.fillRect(it.sx - SC*0.5, fy - SC*1.6, SC, SC*1.6); cx.fillStyle = '#e8a040'; cx.fillRect(it.sx - SC*0.5, fy - SC*0.6, SC, SC*0.6);
         const g = cx.createRadialGradient(it.sx, fy, 0, it.sx, fy, 30*DPR); g.addColorStop(0,`rgba(255,190,90,${0.35*fl})`); g.addColorStop(1,'rgba(255,190,90,0)');
@@ -308,6 +308,12 @@ function frame(now){
     const lit = lab || gate || (S.owned.lamp && !S.lampOut) ? 1 : 0, out = !lab && !gate && S.owned.lamp && S.lampOut;
     const g = cx.createRadialGradient(ox, oy-20*DPR, Math.min(W,H)*(out ? 0.04 : 0.18+0.12*lit), ox, oy, Math.max(W,H)*(out ? 0.38 : 0.62));
     g.addColorStop(0, out ? 'rgba(8,6,4,0.55)' : 'rgba(8,6,4,0)'); g.addColorStop(1,'rgba(8,6,4,' + (out ? 0.97 : 0.92) + ')'); cx.fillStyle = g; cx.fillRect(0,0,W,H);
+    if (out && lampPt){                                                   // 꺼진 심지의 불씨: 캄캄한 방에서 유일하게 밝은 점, 숨 쉬듯 떨림(어둠 위에 그려 가려지지 않게)
+      const [lx, ly] = lampPt, em = 0.55 + 0.45*Math.sin(t*2.3) * Math.sin(t*0.7 + 1);
+      const eg = cx.createRadialGradient(lx, ly, 0, lx, ly, 26*DPR); eg.addColorStop(0, `rgba(255,120,50,${0.45*em + 0.2})`); eg.addColorStop(0.4, `rgba(255,90,40,${0.18*em})`); eg.addColorStop(1, 'rgba(255,90,40,0)');
+      cx.fillStyle = eg; cx.fillRect(lx - 26*DPR, ly - 26*DPR, 52*DPR, 52*DPR);
+      cx.fillStyle = `rgba(255,${120 + Math.round(60*em)},60,${0.75 + 0.25*em})`; cx.fillRect(lx - SC*0.35, ly - SC*0.55, SC*0.7, SC*0.55);
+    }
     const since = now - relitAt;
     const sc = now - sceneAt; if (sc < 700){ cx.fillStyle = `rgba(0,0,0,${1 - sc/700})`; cx.fillRect(0,0,W,H); }   // 문을 지나 다른 방으로
     if (since < 900){ const k = since < 120 || (since > 260 && since < 380) || (since > 520 && since < 600) ? 0.85 : 0; if (k){ cx.fillStyle = `rgba(8,6,4,${k})`; cx.fillRect(0,0,W,H); } }   // 다시 붙인 불의 깜빡임
