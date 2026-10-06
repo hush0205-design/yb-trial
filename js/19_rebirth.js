@@ -83,21 +83,25 @@ function againNote(){
 }
 // ── 기본 모드(1대 포함): 비운 동안 쌓인 셈으로는 끝 바로 앞에서 멈춤 — 끝은 들어와 있을 때만. 하드는 비운 동안에도 끝까지(기획서 9절, 10/7 선생님) ──
 const AWAY = S.stage === 'room' && Date.now() - (S.lastSeen || Date.now()) > 180000;   // 20_main이 lastSeen을 새로 쓰기 전에 봄
-const LOAD_T = performance.now();
+const LOAD_T = performance.now(), PREV_SEEN = S.lastSeen || Date.now();
 const catchingUp = () => AWAY && performance.now() - LOAD_T < 8000;                    // 돌아온 직후 몇 초 = 비운 동안의 셈을 따라잡는 때
 const holdEnd = () => S.mode !== 'hard' && catchingUp();
 const quittingNow = () => genKeys().filter(k => S.st[k] && !S.st[k].quit && S.errs[k] && S.errs[k].home && homeN(k) >= 3).length;
 // 기본 모드의 안전장치(10/7 선생님): 넷째로 떠날 사람은 짐을 싸 들고 대문 앞에서 기다림 — 들어와 계신 동안 3분 안에
 // 녹봉을 내주거나(녹봉 떠남) 쉬라고 보내면(겁 그만둠) 남음. 그대로 두면 떠나고 끝. 한 대에 한 번.
+// 하드도 같은 장면(10/7 선생님 "하드도 모든 콘텐츠를 빠짐없이") — 다만 기다리는 시간이 비운 동안에도 흐름(돌아와 보면 이미 떠났을 수 있음).
 function holdQuit(k, kind){
-  if (S.mode === 'hard' || END.nobody.n() + quittingNow() + 1 < END.nobody.lim()) return false;
+  if (END.nobody.n() + quittingNow() + 1 < END.nobody.lim()) return false;
   if (!S.standUsed && k){ startStand(k, kind); return true; }
-  return catchingUp();                                              // 장치를 이미 썼으면: 비운 셈으로는 안 떠나고 들어와 계실 때 떠남
+  return S.mode !== 'hard' && catchingUp();                         // 장치를 이미 썼으면: 기본은 비운 셈으로는 안 떠나고 들어와 계실 때 떠남
 }
 const STAND_MS = 180000;
 function startStand(k, kind){
   const P = DEF(k), s = S.st[k];
-  S.standUsed = true; S.stand = { k, kind, ms:0 }; s.stand = true;
+  // 하드에서 비운 동안 생긴 일이면 그날이 바뀐 때(또는 자리를 비운 때)부터 이미 기다리고 있었던 것으로
+  const dayStart = S.opt.gameTime ? dayKey() * 7200e3 : dayKey() * 86400e3 - 9*3600e3;
+  const t0 = S.mode === 'hard' && catchingUp() ? Math.max(PREV_SEEN, dayStart) : Date.now();
+  S.standUsed = true; S.stand = { k, kind, ms:0, t0 }; s.stand = true;
   pushNote('<h3>쪽지</h3>' + vlet(kind === 'wage'
     ? ['가주께.', '녹봉이 사흘째 밀렸습니다.', '짐을 싸서 대문 앞에 나와 있습니다.', '밀린 것만 받으면 남겠습니다.', '해가 기울기 전에 말씀 주십시오.']
     : ['가주께.', '이 서고 일은 더 못 하겠습니다.', '짐을 싸서 대문 앞에 나와 있습니다.', '다만 하루만 쉬게 해 주시면', '다시 해 볼 수도 있겠습니다.'], `${P.name}(${P.hj}) 올림.`, 'min(48vh,340px)'));
@@ -107,7 +111,7 @@ function standTick(dt){
   if (!S.stand) return;
   const s = S.st[S.stand.k]; if (!s || s.gone || !s.stand){ S.stand = null; save(); return; }
   S.stand.ms += dt * 1000;
-  if (S.stand.ms >= STAND_MS) standLeave();
+  if (S.stand.ms >= STAND_MS || (S.mode === 'hard' && Date.now() - (S.stand.t0 || Date.now()) >= STAND_MS)) standLeave();   // 기본: 들어와 계신 시간만 / 하드: 실제 시간
 }
 function standLeave(){
   const k = S.stand.k, s = S.st[k], P = DEF(k), kind = S.stand.kind;
@@ -173,7 +177,7 @@ function showLoan(){
   openOv('<h3>편지</h3><div style="font-size:12px;opacity:.6;margin-bottom:6px">서안에 펴 둔 편지지. 쓸 말은 정해져 있다.</div>' + vlet(body, esc(S.sur + S.name), 'min(50vh,360px)')
     + '<div style="text-align:center;margin-top:12px"><button class="btn rec" id="bLoan" style="color:var(--ink);border-color:#00000066">보낸다</button></div>');
   document.getElementById('bLoan').addEventListener('click', ev => { ev.stopPropagation();
-    S.credit.sent = Date.now(); save(); ov.classList.add('hidden'); sPlace(); sFlip();
+    S.credit.sent = Date.now(); S.loanSent = (S.loanSent || 0) + 1; save();   // 도전 '빚지지 않다' 판정용(엔딩 때) ov.classList.add('hidden'); sPlace(); sFlip();
     if (typeof tlog === 'function') tlog('돈을 꾸는 편지를 보냄 — ' + (kin ? '먼 일가' : '세책점')); });
 }
 function loanReply(){
