@@ -10,7 +10,7 @@ const S = Object.assign({
 S.opt = Object.assign({ horiz:false, mute:false, fast:false, gameTime:false }, S.opt); S.sideRead = S.sideRead || {}; S.owned = S.owned || {};
 let resetting = false;
 const save = () => { if (!resetting) localStorage.setItem(SAVE, JSON.stringify(S)); };
-// ───────── 가문(LINE): 족보·멸망 도감·유품·가훈첩·열린 것 — 환생해도 안 지움(설정의 '처음부터'만 지움) ─────────
+// ───────── 가문(LINE): 족보·가환록·유품·가훈첩·열린 것 — 환생해도 안 지움(설정의 '처음부터'만 지움) ─────────
 const LINE = Object.assign({ v:1, sur:'', bon:'', gen:17, jokbo:[], gahun:{ used:{} }, relics:[], codex:{}, odd:{}, books:[], feats:{}, reached:{}, trace:null, mode:'basic', ending:{}, limits:{} },
   JSON.parse(localStorage.getItem(LINE_KEY) || '{}'));
 LINE.limits = Object.assign({ leave:4, rice:5 }, LINE.limits);           // 일반 엔딩 한도(아무도 오지 않다: 떠난 사람 넷 / 쌀독이 비다: 닷새) — 유품·가훈·연구로 늘어남

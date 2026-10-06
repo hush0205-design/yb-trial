@@ -305,8 +305,12 @@ function showStaff(k){
   const dl = staffDiary(k), tea = Date.now() < (s.calm||0) ? '<div style="font-size:12px;opacity:.6">책상에 찻잔이 놓여 있다. 아직 따뜻하다.</div>' : '';
   openOv(`<h3>${isGen(k) ? '연구원' : '반장'} — ${P.name}(${P.hj})</h3>직업: ${P.job}<br>상태: ${st}${typeof whyHtml === 'function' ? whyHtml(k) : '<br>'}읽는 빠르기: ${speed}<br>넘긴 것: ${fmtP(s.pages||0)}<br><div style="font-size:12px;opacity:.6">${P.note}</div>${tea}`
     + (S.teaArrived && P.tea === false ? '<div style="font-size:12px;opacity:.6;margin:6px 0">차는 마시지 않는다. 오정림이 놓고 간 잔도 돌려보낸다.</div>' : '') + (S.teaArrived && P.tea !== false ? `<div style="text-align:center;margin:8px 0"><button class="btn rec" id="bSTea" style="color:var(--ink);border-color:#00000066">차를 한 잔 내준다</button></div>` : '')
-    + `<div class="opt rec"><span>읽을 사본</span><span class="ch">${o('first', '제목 없는 책')}${o('dongui', '동의보감 三')}${S.mapFound ? o('map', '지도') : ''}</span></div>`
-    + copyOpts(s, o) + `<div style="font-size:12px;opacity:.6">서고의 책을 베껴 둔 사본이라, 같은 책을 여럿이 읽을 수 있다.${s.auto && !s.manual ? ' 지금 것은 한서진이 나누어 준 것이다.' : ''}</div>`
+    + '<div class="bsec">읽을 것 — 서고의 책을 베껴 둔 사본이라 여럿이 같은 책을 읽을 수 있다</div>'
+    + bookRows('cp', s.item, [['first', '제목 없는 책', fearWord('first')], ['dongui', '동의보감 三', fearWord('dongui')], ...(S.mapFound ? [['map', '지도', fearWord('map')]] : [])])
+    + `<div class="bsec">베껴 팔 것 — 맡기면 쓸 수 있는 쪽 ${fmtP(COPY_PAGES)}을 쓰고, 베끼는 동안은 쪽이 늘지 않는다</div>`
+    + bookRows('cp', s.item, ['c_sohak', 'c_nong', ...(S.sideRead.dongui ? ['c_dongui'] : [])].map(id => [id, COPY[id].name.split('(')[0], '팔면 ' + fmtM(COPY[id].price * gahunK('copy'))]))
+    + (isCopy(s.item) ? `<div style="font-size:12px;opacity:.6;margin-top:4px">${COPY[s.item].name.split('(')[0]}을 베끼는 중 — ${Math.floor(100 * (s.copyAcc||0) / COPY_SEC)}%</div>` : '')
+    + (s.auto && !s.manual ? '<div style="font-size:12px;opacity:.6;margin-top:4px">지금 것은 한서진이 나누어 준 것이다.</div>' : '')
     + (isGen(k) ? '' : `<br><b>일지</b>` + (dl.length ? dl.map((d, i) => `<div class="rec dlist" data-d="${i}"><span>일지 ${i+1} — ${esc(d.split('.')[0])}</span><span style="opacity:.45;font-size:12px">읽기</span></div>`).join('') : '<br>아직 쓴 것이 없다.')));
   const bt = document.getElementById('bSTea'); if (bt) bt.addEventListener('click', ev => { ev.stopPropagation(); ov.classList.add('hidden'); s.steam = Date.now() + 3000; s.calm = Date.now() + 243000; save(); sBoil(); });
   ovBody.querySelectorAll('[data-cp]').forEach(el => el.addEventListener('click', ev => { ev.stopPropagation(); if (!setStaffItem(k, el.dataset.cp)) return; s.manual = true; s.auto = false; s.manDay = dayKey(); save(); sPlace(); showStaff(k); }));
