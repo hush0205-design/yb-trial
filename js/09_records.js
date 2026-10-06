@@ -17,29 +17,24 @@ function recLedger(){ let h = '<h3>서고 장부</h3>'; for (let i=0;i<8;i++) h 
 function recNotes(){ const done = []; for (let i=0;i<11;i++) if (S.D >= lineDone(i)) done.push(esc(LINES[i][LINES[i].length-1]));
   return `<h3>해독 노트</h3><div style="font-style:italic">${done.length ? done.join('<br>') : '아직 받아 적은 줄이 없다.'}</div><div style="margin-top:10px;font-size:12px;opacity:.6">받아 적은 줄 ${done.length} / ${LINES.length}</div>`; }
 const DONGUI = DONGUI_SRC;   // 읽기용 원문(02_text)과 같은 것을 씀(이중 정의 없앰, 10/6)
-function showShelf(){
-  if (!S.owned.lamp) { openOv('<h3>책장</h3>어두워서 책등이 보이지 않는다.'); return; }
-  const books = [
-    ['소학', 0], [alienHtml(glyphs('이름모를책', 51)), 0], ['농가집성 一', 0], ['동의보감 一', 0], [alienHtml(glyphs('이름모를', 52)), 0], ['동의보감 二', 0],
-    ['농가집성 二', 0], ['동의보감 三', 1], [alienHtml(glyphs('모를책', 53)), 0], ['시조 묶음', 0], [alienHtml(glyphs('이름모를책', 54)), 0], [alienHtml(glyphs('모를', 55)), 0],
-  ];
-  ensureLoc();
-  const W = { shelf:'꽂혀 있음', desk: S.owned.desk ? '서안 위' : '궤짝 위', rdesk:'연구원 책상 위' };
-  if (S.owned.desk || S.loc.first !== 'desk') books.unshift(['제목 없는 책', 'first']);
-  if (S.mapFound) books.unshift(['지도', 'map']);
-  books.forEach(b => { if (b[1] === 1) b[1] = 'dongui'; });
-  const tag = b => b[1] === 'dongui' && S.sideRead.dongui && S.loc.dongui === 'shelf' ? '다 풀었음' : (typeof b[1] === 'string' ? (b[1] === 'map' && S.loc.map === 'shelf' ? '책장 위' : W[S.loc[b[1]]]) : '');
-  const n = 11 + (S.loc.dongui === 'shelf' ? 1 : 0) + (S.loc.first === 'shelf' ? 1 : 0);   // 다른 책 열한 권 + 동의보감 + 제목 없는 책
-  openOv(`<h3>책장 — ${['열한','열두','열세'][Math.max(0, Math.min(2, n - 11))]} 권</h3>` + books.map((b,i) => `<div class="rec spine" data-i="${i}"><span>${b[0]}</span><span style="opacity:.45;font-size:12px">${tag(b)}</span></div>`).join(''));
-  ovBody.querySelectorAll('.spine').forEach(el => el.addEventListener('click', ev => {
-    ev.stopPropagation();
-    const k = books[+el.dataset.i][1];
-    if (typeof k === 'string') showPlace(k);
-    else openOv('<h3>책장</h3>꺼내지지 않는다.<br>옆 책과 붙어 있다.');
-  }));
-}
+// 책장 (10/7 선생님): 이름 모를 책 다섯은 뺌(신들의 책은 그 신의 차례에 밖에서 옴) → 평범한 책으로 채움.
+// 장부엔 "모두 열세 권"(시조 묶음·천자문·잡서 네 권), 책장엔 잡서가 세 권뿐 — 하나 모자람, 까닭은 안 알려 줌.
+// 평범한 책은 꺼내 펴면 해독 없이 그냥 읽힘. 소름은 원문 안에(책 목록과 보관 7절 — 진짜 원문 + 누군가의 흔적).
+const SOEKKI = ['입춘','우수','경칩','춘분','청명','곡우','입하','소만','망종','하지','소서','대서','입추','처서','백로','추분','한로','상강','입동','소설','대설','동지','소한','대한'];
+const PLAIN = {
+  sohak:   ['소학(小學)', () => '아이에게 몸가짐을 가르치는 책.<br><br>「身體髮膚 受之父母 ▇▇毁傷 孝之始也」<br>몸과 머리털과 살갗은 부모께 받은 것이니, ▇▇ 헐고 다치지 않는 것이 효의 시작이다.<br><br><span style="font-size:13px;opacity:.75">이 구절에만 손때가 짙다. 두 글자가 먹으로 지워져 있다.</span>'],
+  nong1:   ['농가집성(農家集成) 一', () => '절기를 적은 장.<br><br>' + SOEKKI.slice(0, 11).join(' · ') + ' · ' + alienHtml(glyphs('절기', 77)) + ' · ' + SOEKKI.slice(11).join(' · ') + '<br><br><span style="font-size:13px;opacity:.75">세어 보면 스물다섯이다.</span>'],
+  nong2:   ['농가집성(農家集成) 二', () => '논에 물 대는 법을 적은 장.<br><br>물꼬를 트는 날을 셈하는 대목에, 밀물과 썰물의 때를 셈하는 법이 섞여 있다.<br><br><span style="font-size:13px;opacity:.75">논에 바닷물을 대는 법이다.</span>'],
+  dong1:   ['동의보감(東醫寶鑑) 一', () => '내경편. 꿈을 다룬 장.<br><br>「腎氣虛 則使人夢見舟船溺人」<br>콩팥의 기운이 허하면, 배가 뒤집혀 사람이 물에 빠지는 꿈을 꾸게 된다.<br><br><span style="font-size:13px;opacity:.75">장 끝 여백에 날짜가 여럿 적혀 있다. 날짜마다 같은 손이다.</span>'],
+  dong2:   ['동의보감(東醫寶鑑) 二', () => '외형편. 눈을 다룬 장. 이 장의 귀가 접혀 있다.<br><br>눈병 처방들이 이어진다. 그 사이에 붉은 먹으로 누가 한 줄을 끼워 적었다.<br><span style="color:#6a2a16">' + alienHtml(glyphs('눈을 덜어내는 법', 78)) + '</span>'],
+  sijo:    ['시조 묶음', () => '누가 엮었는지 모르는 시조 묶음.<br><br>청산리 벽계수야 수이 감을 자랑 마라<br>일도창해하면 다시 오기 어려우니<br>명월이 만공산하니 쉬어 간들 어떠리<br><br><span style="font-size:13px;opacity:.75">맨 끝에 지은이 없는 한 수가 있다. 끝 줄이 번져 읽히지 않는다.</span>'],
+  cheonja: ['천자문(千字文)', () => '아이가 쓰던 천자문. 「天地玄黃」 옆에 서툰 한글 토가 달려 있다.<br><br>「海鹹河淡」 — 바다는 짜고, 강물은 싱겁다.<br>네 글자에 동그라미가 쳐 있다. 셋은 아이 손이고, 하나는 붉은 먹이다.<br><br>「閏餘成歲」 — 윤달의 남는 날이 모여 해를 이룬다.<br>여기에도 붉은 동그라미가 하나.'],
+  myeong:  ['명심보감(明心寶鑑)', () => '첫 장.<br><br>「子曰 爲善者 天報之以福 爲不善者 天報之以禍」<br>착한 일을 하는 이에게는 하늘이 복으로 갚고, 착하지 않은 일을 하는 이에게는 하늘이 화로 갚는다.<br><br><span style="font-size:13px;opacity:.75">‘天’ 자 옆마다 작은 점이 찍혀 있다. 세어 보면 점이 하나 더 많다.</span>'],
+  samgang: ['삼강행실도(三綱行實圖)', () => '효자·충신·열녀의 행실을 그림과 함께 적은 책.<br><br>물가에 선 사람을 그린 장들만 종이가 물결처럼 울어 있다.'],
+  yeoji:   ['동국여지승람(東國輿地勝覽) 한 권', () => '나라의 고을과 산천을 적은 책 가운데 한 권. 우리 고을의 장이 들어 있다.<br><br>갈두포의 바위와 물길을 적은 대목 아래, 한 줄이 칼로 도려내져 있다.'],
+};
 const recDongui = () => '<h3>동의보감 三 — 간 장</h3>' + DONGUI.map(p => p.h ? `${p.h}<br>${p.k}` : `<span style="color:#6a2a16;font-style:italic">${p.note}</span>`).join('<br><br>');
-function letterHtml(){ return `<h3>편지</h3><div class="vletter rec">${esc(S.sur)}씨 가문 서고에 올립니다.<br><br>저는 글자를 읽는 일을 해 온 사람입니다.<br>댁의 서고에 읽히지 않는 책이 있다는 말을 들었습니다.<br>누구에게 들었는지는 기억나지 않습니다.<br><br>서고에서 일하게 해 주십시오.<br>밤에는 일하지 않겠습니다.<div class="sign">한서진(韓瑞眞) 올림.</div></div>`; }
+function letterHtml(){ return `<h3>편지</h3><div class="vletter rec">${esc(S.sur)}씨 가문 서고에 올립니다.<br><br>저는 글자를 읽는 일을 해 온 사람입니다.<br>댁의 서고에 읽히지 않는 책이 있다는 말을 들었습니다.<br>누구에게 들었는지는 기억나지 않습니다.<br><br>서고에서 일하게 해 주십시오.<br>읽다 만 책 한 권을 가지고 가겠습니다.<br>밤에는 일하지 않겠습니다.<div class="sign">한서진(韓瑞眞) 올림.</div></div>`; }
 function buildRecs(){
   const recs = [['족보', recJokbo], ['서고 장부', recLedger]];
   if (S.owned.brush) recs.push(['해독 노트', recNotes]);

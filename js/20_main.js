@@ -47,7 +47,7 @@ function jumpTo(i){
   const fresh = Object.assign({ stage:'room', pages:0, earned:0, D:0, owned:{}, fear:0, opened:false, letterRead:false, chair:false, glitchDone:false, sideRead:{}, ack:[], teaArrived:false, letterShadow:false }, keep, JSON.parse(JSON.stringify(JUMPS[i][1])));
   if (fresh.rArrived === -1) fresh.rArrived = Date.now() - WALK_MS - 1000;
   if (fresh.caveAt === -2) fresh.caveAt = Date.now() - 600000;
-  if (!fresh.loc) fresh.loc = { first:'desk', dongui: fresh.rArrived ? 'rdesk' : 'shelf', map: fresh.mapFound ? (fresh.rArrived ? 'shelf' : 'shelf') : null };
+  if (!fresh.loc) fresh.loc = { first:'desk', dongui: fresh.rArrived ? 'rdesk' : null, map: fresh.mapFound ? (fresh.rArrived ? 'shelf' : 'shelf') : null };
   if (fresh.mapFound && fresh.rArrived) fresh.loc = { first:'desk', dongui:'shelf', map:'rdesk' };
   fresh.revealed = (fresh.revealed || []).concat(['letter']);
   fresh.revealed = ['door', 'teapot', 'sj'].concat(fresh.revealed || []);

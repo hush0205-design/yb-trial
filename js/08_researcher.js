@@ -107,7 +107,7 @@ function showResearcher(){
   openOv(`<h3>연구원 — 한서진(韓瑞眞)</h3>직업: 해독가<br>상태: ${st}${typeof whyHtml === 'function' ? whyHtml('sj') : '<br>'}읽는 빠르기: ${speed}<br>넘긴 것: ${fmtP(S.rPages||0)}<br><div style="font-size:12px;opacity:.6">밤에는 일하지 않는다.</div>`
     + (S.teaArrived ? `<div style="text-align:center;margin:8px 0"><button class="btn rec" id="bRTea" style="color:var(--ink);border-color:#00000066">차를 한 잔 내준다</button></div>` : '')
     + `<div style="margin-top:8px">책상 위: ${rb ? INAME[rb] : '<i>비어 있다 — 아무것도 하지 않고 앉아 있다</i>'}</div>`
-    + '<div class="bsec">책장에서 가져다 놓기</div>' + bookRows('rb', rb || '', [['first', '제목 없는 책', fearWord('first')], ['dongui', '동의보감 三', fearWord('dongui')], ...(S.mapFound ? [['map', '지도', fearWord('map')]] : []), ...(rb ? [['', '치운다', '']] : [])])
+    + '<div class="bsec">책장에서 가져다 놓기</div>' + bookRows('rb', rb || '', [['first', '제목 없는 책', fearWord('first')], ...(hasBook('dongui') ? [['dongui', '동의보감 三', fearWord('dongui')]] : []), ...(S.mapFound ? [['map', '지도', fearWord('map')]] : []), ...(rb ? [['', '치운다', '']] : [])])
     + (rb === 'dongui' && S.sideRead.dongui ? '<div style="font-size:12px;opacity:.6">동의보감 三은 다 풀었다. 남은 손은 제목 없는 책에 보탠다.</div>' : '')
     + `<br><b>일지</b>` + (n ? diaryList().map((d, i) => `<div class="rec dlist" data-d="${i}"><span>일지 ${i+1} — ${esc(d.split('.')[0])}</span><span style="opacity:.45;font-size:12px">읽기</span></div>`).join('') : '<br>아직 쓴 것이 없다.'));
   const bt = document.getElementById('bRTea'); if (bt) bt.addEventListener('click', ev => { ev.stopPropagation(); ov.classList.add('hidden'); giveTea(); });

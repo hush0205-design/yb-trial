@@ -127,17 +127,19 @@ OBJ.push({ id:'copies', x:12, y:-22, z:9, rot:0, on:()=>'mungap', onOrder:0.02, 
 const DEALER_O = { robe:['#4a4e52', '#3e4246', '#2e3236'], belt:'#2a2a2a', belt2:'#1a1a1a', hat:'gat' };
 let DEALER = null;
 function dealerDolls(){
-  if (!(S.copies || []).length || !S.dealerAt || Date.now() < S.dealerAt) return [];
+  if (!((S.copies || []).length || S.bookSale) || !S.dealerAt || Date.now() < S.dealerAt) return [];   // 사본을 사러 오거나, 처음엔 책을 팔러 옴(19_rebirth)
   if (!DEALER){ const sets = dollSet(drawSeonbi, DEALER_O);
     DEALER = { id:'dealer', doll:true, img: sets[0], imgL: sets, shadow:false, st:()=>({ x:-9, y:-11, pose:'stand', f:[0, 1], chair:0 }), fear:()=>0, steam:()=>0, arrT:()=>0, show:()=>true, click:()=>sellCopies() }; }
   return [DEALER];
 }
 let dealerKnocked = false;
-function dealerTick(){ if ((S.copies || []).length && S.dealerAt && Date.now() >= S.dealerAt && !S.dealerKnock){ S.dealerKnock = true; save(); knock(S.scene === 'gate' ? 1 : 0.5); } }
+function dealerTick(){ if (((S.copies || []).length || S.bookSale) && S.dealerAt && Date.now() >= S.dealerAt && !S.dealerKnock){ S.dealerKnock = true; save(); knock(S.scene === 'gate' ? 1 : 0.5); } }
 function sellCopies(){
+  if (!(S.copies || []).length && typeof showBookSale === 'function') return showBookSale();
   const cs = S.copies || [], sum = Math.round(cs.reduce((a, c) => a + COPY[c].price, 0) * gahunK('copy'));   // 가훈 「곡간을 먼저 채워라」
   openOv(`<h3>세책점 거간</h3>장터 세책점에서 왔다며 사본을 들여다본다.<br><br>${cs.map(c => `${COPY[c].name} — ${fmtM(COPY[c].price * gahunK('copy'))}`).join('<br>')}<br><br>모두 ${fmtM(sum)}을 쳐 주겠다고 한다.${S.debt ? `<br>그중 ${fmtM(Math.min(S.debt, Math.floor(sum / 2)))}은 외상 갚음으로 뗀다.` : ''}`
-    + '<div style="text-align:center;margin-top:12px"><button class="btn rec" id="bSell" style="color:var(--ink);border-color:#00000066">넘긴다</button></div>');
+    + '<div style="text-align:center;margin-top:12px"><button class="btn rec" id="bSell" style="color:var(--ink);border-color:#00000066">넘긴다</button></div>' + (typeof bookSaleHtml === 'function' ? bookSaleHtml() : ''));
+  if (typeof bookSaleBind === 'function') bookSaleBind();
   document.getElementById('bSell').addEventListener('click', ev => { ev.stopPropagation();
     const debtPay = Math.min(S.debt || 0, Math.floor(sum / 2)); S.debt = (S.debt || 0) - debtPay;   // 외상(19_rebirth): 갚을 때까지 사본 값의 절반을 뗌
     S.money = (S.money||0) + sum - debtPay; ledger(`사본 ${cs.length}권을 세책점에 넘김 + ${fmtM(sum - debtPay)}${debtPay ? ` (외상 갚음 ${fmtM(debtPay)} 뗌${S.debt ? `, 남은 외상 ${fmtM(S.debt)}` : ', 외상을 다 갚음'})` : ''}`); S.copies = []; S.dealerAt = 0; S.dealerKnock = false; S.soldN = (S.soldN||0) + cs.length; save();

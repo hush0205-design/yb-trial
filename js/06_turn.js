@@ -6,7 +6,7 @@ function coverSpot(){ return { offsetLeft: 0, offsetWidth: FW, offsetHeight: FH 
 let coverBusy = false;
 function openBook(){
   const di = itemAt('desk'); if (di === 'first' || di === 'dongui') S.curBook = di;
-  cover.querySelector('.slip').textContent = S.curBook === 'dongui' ? '東醫寶鑑' : '□□';
+  cover.querySelector('.slip').textContent = S.curBook === 'dongui' ? '東醫寶鑑' : (typeof titleSlip === 'function' ? titleSlip() : '□□');
   stage.style.setProperty('--cc', (BOOKCOL[S.curBook] || BOOKCOL.first)[0]);
   S.ack = roomNews(); S.blown = (S.blown || []).concat(S.ack);   // 책을 펴기 전에 서고에서 본 것은 '본 것'
   bookView.classList.remove('hidden'); layoutBook(); book.style.visibility = 'visible'; cover.style.visibility = 'visible';

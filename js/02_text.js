@@ -11,7 +11,7 @@ function buildLines(){
     { idu:'時調 一束 誰矣 編爲乎喩 不知齊', old:'시됴 무금 ᄒᆞᆫ 권. 뉘 엮건디 모ᄅᆞᆷ.', mod:'시조 묶음 한 권. 누가 엮었는지 모름.' },
     { idu:'地圖 一張 海邊 半是 空爲齊', old:'디도 ᄒᆞᆫ 쟝. 바ᄅᆞᆯ 녁 반이 뷔여 이숌.', mod:'지도 한 장. 바다 쪽 절반이 비어 있음.' },
     { idu:'無題冊 一卷 櫃中', old:'뎨목 업슨 ᄎᆡᆨ ᄒᆞᆫ 권. 궤ᄶᆞᆨ 안.', mod:'제목 없는 책 한 권. 궤짝 안.' },
-    { idu:'都合 十三卷', old:'모도 열세 권.', mod:'모두 열세 권.' },
+    { idu:'冊目 右良如 爲齊', old:'ᄎᆡᆨ목은 우ᄒᆡ ᄀᆞᆺᄒᆞ니라.', mod:'책은 위와 같다.' },   // 10/7 선생님: 책 수(13)는 뺌 — 장부엔 제목 목록만, 책장 먼지 자국은 제목 수보다 하나 더(19_rebirth)
     { idu:'夜良中 此冊乙 越爲在 者隱', old:'밤의 이 ᄎᆡᆨ을 넘기ᄂᆞᆫ 이ᄂᆞᆫ', mod:'밤에 이 책을 넘기는 이는' },
     { idu:'先只 茶乙 煎爲乎事', old:'몬져 차ᄅᆞᆯ 글힐 것.', mod:'먼저 차를 끓일 것.' },
     { idu:'手是 戰慄爲去等 冊乙 覆爲乎事', old:'손이 ᄯᅥᆯ리거든 ᄎᆡᆨ을 더플 것.', mod:'손이 떨리거든 책을 덮을 것.' },
@@ -59,7 +59,7 @@ const ITEMS = ['first', 'dongui', 'map'];
 const INAME = { first:'제목 없는 책', dongui:'동의보감 三', map:'지도' };
 function ensureLoc(){
   if (S.loc) return;
-  S.loc = { first: S.owned.desk ? 'desk' : 'desk', dongui: 'shelf', map: S.mapFound ? 'shelf' : null };
+  S.loc = { first: S.owned.desk ? 'desk' : 'desk', dongui: S.rArrived ? 'shelf' : null, map: S.mapFound ? 'shelf' : null };   // 동의보감 三은 한서진이 들고 옴(10/7)
   if (S.curBook === 'dongui') { S.loc.dongui = 'desk'; S.loc.first = 'shelf'; }
 }
 const itemAt = where => ITEMS.find(k => S.loc && S.loc[k] === where) || null;

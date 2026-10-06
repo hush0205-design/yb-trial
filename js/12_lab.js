@@ -306,9 +306,10 @@ function showStaff(k){
   openOv(`<h3>${isGen(k) ? '연구원' : '반장'} — ${P.name}(${P.hj})</h3>직업: ${P.job}<br>상태: ${st}${typeof whyHtml === 'function' ? whyHtml(k) : '<br>'}읽는 빠르기: ${speed}<br>넘긴 것: ${fmtP(s.pages||0)}<br><div style="font-size:12px;opacity:.6">${P.note}</div>${tea}`
     + (S.teaArrived && P.tea === false ? '<div style="font-size:12px;opacity:.6;margin:6px 0">차는 마시지 않는다. 오정림이 놓고 간 잔도 돌려보낸다.</div>' : '') + (S.teaArrived && P.tea !== false ? `<div style="text-align:center;margin:8px 0"><button class="btn rec" id="bSTea" style="color:var(--ink);border-color:#00000066">차를 한 잔 내준다</button></div>` : '')
     + '<div class="bsec">읽을 것 — 서고의 책을 베껴 둔 사본이라 여럿이 같은 책을 읽을 수 있다</div>'
-    + bookRows('cp', s.item, [['first', '제목 없는 책', fearWord('first')], ['dongui', '동의보감 三', fearWord('dongui')], ...(S.mapFound ? [['map', '지도', fearWord('map')]] : [])])
+    + bookRows('cp', s.item, [['first', '제목 없는 책', fearWord('first')], ...(hasBook('dongui') ? [['dongui', '동의보감 三', fearWord('dongui')]] : []), ...(S.mapFound ? [['map', '지도', fearWord('map')]] : [])])
     + `<div class="bsec">베껴 팔 것 — 맡기면 쓸 수 있는 쪽 ${fmtP(COPY_PAGES)}을 쓰고, 베끼는 동안은 쪽이 늘지 않는다</div>`
-    + bookRows('cp', s.item, ['c_sohak', 'c_nong', ...(S.sideRead.dongui ? ['c_dongui'] : [])].map(id => [id, COPY[id].name.split('(')[0], '팔면 ' + fmtM(COPY[id].price * gahunK('copy'))]))
+    + (() => { const cl = [...(hasBook('sohak') ? ['c_sohak'] : []), ...(hasBook('nong1') || hasBook('nong2') ? ['c_nong'] : []), ...(S.sideRead.dongui ? ['c_dongui'] : [])];   // 책장에 있는 책만 베낄 수 있음
+        return cl.length ? bookRows('cp', s.item, cl.map(id => [id, COPY[id].name.split('(')[0], '팔면 ' + fmtM(COPY[id].price * gahunK('copy'))])) : '<div style="font-size:13px;opacity:.6;padding:6px 4px">베낄 책이 책장에 없다.</div>'; })()
     + (isCopy(s.item) ? `<div style="font-size:12px;opacity:.6;margin-top:4px">${COPY[s.item].name.split('(')[0]}을 베끼는 중 — ${Math.floor(100 * (s.copyAcc||0) / COPY_SEC)}%</div>` : '')
     + (s.auto && !s.manual ? '<div style="font-size:12px;opacity:.6;margin-top:4px">지금 것은 한서진이 나누어 준 것이다.</div>' : '')
     + (isGen(k) ? '' : `<br><b>일지</b>` + (dl.length ? dl.map((d, i) => `<div class="rec dlist" data-d="${i}"><span>일지 ${i+1} — ${esc(d.split('.')[0])}</span><span style="opacity:.45;font-size:12px">읽기</span></div>`).join('') : '<br>아직 쓴 것이 없다.')));
@@ -455,7 +456,7 @@ function autoAssign(){
   ks.sort((a, b) => (isGen(b) - isGen(a)) || ((DEF(a).sec||4) - (DEF(b).sec||4)));   // 일반 연구원·손 빠른 사람부터
   if (!ks.length) return;
   const want = [];
-  if (!S.sideRead.dongui) want.push('dongui');                 // 아직 못 푼 곁책에 한 사람
+  if (!S.sideRead.dongui && hasBook('dongui')) want.push('dongui');                 // 아직 못 푼 곁책에 한 사람
   if (S.mapFound && (S.mapStudy||0) < MAP_NEED + 60) want.push('map');   // 지도의 글자에 한 사람
   const changes = [];
   ks.forEach((k, i) => { const it = want[i] || 'first'; if (S.st[k].item !== it) changes.push([k, it]); });
