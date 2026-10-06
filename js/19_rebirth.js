@@ -411,11 +411,33 @@ function gainBook(id, how){
   S.shelfOrder = S.shelfOrder || []; if (!S.shelfOrder.includes(id)) S.shelfOrder.push(id);
   save();
 }
+const shelfOrderNow = () => { const so = S.shelfOrder || []; return [...(hasBook('dongui') && !so.includes('dongui') ? ['dongui'] : []), ...so].filter(hasBook); };   // 예전 판(순서 기록 전)의 동의보감 三도 첫 칸에
+function shelfMarks(){ ensureLoc(); const order = shelfOrderNow(), marks = [];
+  for (let m = 0, b = 0; m < SHELF_MARKS; m++) marks.push(m === ODD_MARK ? (S.loc.first === 'shelf' ? 'first' : null) : (order[b++] || null));
+  return marks; }
+// 책장 그림: 자국 여덟 칸(윗단 여섯 + 아랫단 둘)에 실제로 있는 책만, 빈 칸엔 먼지 위의 책 자국(밝은 먼지 바닥에 어두운 네모)
+const SHELF_SLOT = m => m < 6 ? [1, m] : [0, m - 6];               // [단(1=위), 칸]
+function shelfModel(key){
+  const name = 'shelf_' + key; if (M[name]) return name;
+  const filled = key.split('').map(c => c === '1');
+  M[name] = model(20, 6, 26, (x, y, z) => {
+    if (x === 0 || x === 19 || z === 0 || z === 25 || z === 12) return WOOD;
+    if (y === 0) return DARK;
+    const row = z < 12 ? 0 : 1, zz = row ? z - 13 : z - 1, bi = Math.floor((x - 1) / 3);
+    if (bi > 5) return null;
+    const m = filled.findIndex((f, i) => { const [r, c] = SHELF_SLOT(i); return r === row && c === bi; });
+    if (m < 0) return zz === 0 && y <= 4 ? '#4a3a2a' : null;            // 자국 없는 칸: 먼지만
+    if (filled[m]){ const hgt = 8 + ((bi*7 + row*3) % 4); return y <= 4 && zz < hgt && (x - 1) % 3 !== 2 ? BOOKC[(bi + row*2) % 6] : null; }
+    if (zz === 0 && y <= 4) return (x - 1) % 3 === 2 ? '#5e4c38' : '#2c2016';   // 책 자국: 먼지 사이에 어두운 네모
+    return null;
+  });
+  return name;
+}
+{ const sh = OBJ.find(o => o.id === 'shelf'); sh.m = () => shelfModel(shelfMarks().map(id => id ? '1' : '0').join('')); }
 function showShelf(){
   ensureLoc();
   if (!S.owned.lamp) { openOv('<h3>책장</h3>어두워서 잘 보이지 않는다. 손으로 더듬으니 먼지뿐이다.'); return; }
-  const so = S.shelfOrder || [], order = [...(hasBook('dongui') && !so.includes('dongui') ? ['dongui'] : []), ...so].filter(hasBook), marks = [];   // 예전 판(순서 기록 전)의 동의보감 三도 첫 칸에
-  for (let m = 0, b = 0; m < SHELF_MARKS; m++) marks.push(m === ODD_MARK ? (S.loc.first === 'shelf' ? 'first' : null) : (order[b++] || null));
+  const order = shelfOrderNow(), marks = shelfMarks();
   const W = { shelf:'', desk: S.owned.desk ? '서안 위' : '궤짝 위', rdesk:'연구원 책상 위' };
   const tag = id => id === 'first' ? '' : id === 'dongui' ? (S.sideRead.dongui && S.loc.dongui === 'shelf' ? '다 풀었음' : W[S.loc.dongui] || '') : S.books[id] === 'borrow' ? '빌린 책' : '';
   const top = S.mapFound ? [['지도', 'map']] : [];
