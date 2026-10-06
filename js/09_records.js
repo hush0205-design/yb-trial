@@ -10,7 +10,7 @@ function showEmptyChest(){
   showEmptyChest0();
 }
 function showEmptyChest0(){ openOv('<h3>궤짝</h3>책을 꺼내고 구석으로 치웠다. 뚜껑을 열어 보면 비어 있다.<br><br>바닥에 무언가를 오래 눌러 둔 자국이 있다. 책보다 조금 크다.'); }
-function showGahun(){ openOv(`<h3>家訓</h3><div style="font-size:20px;letter-spacing:6px;text-align:center;padding:20px 0">${GAHUN[S.gahun].t}</div>`); }
+function showGahun(){ openOv(`<h3>家訓</h3><div style="font-size:20px;letter-spacing:6px;text-align:center;padding:20px 0">${GAHUN[S.gahun].t}</div>${LINE.gen <= 17 ? '<div style="font-size:13px;opacity:.7">앞 대가 걸어 둔 족자. 언제부터 걸려 있었는지 아무도 모른다.</div>' : ''}`); }
 function recJokbo(){ if (S.D >= J0){ let h = `<h3>족보 — ${esc((S.bon||'') + ' ' + S.sur)}씨 ${LINE.gen}세손 ${esc(S.sur + S.name)}</h3>`; for (let i=11;i<22;i++) h += alienHtml(showText(i)) + '<br>'; return h; }
   return `<h3>族譜 — 첫 장</h3>一世. <span style="letter-spacing:-2px;opacity:.6">▒▒▒</span> — ${alienHtml(glyphs('이 서고를 세우다',40))}<br>…<br>十三世. ${alienHtml(glyphs('서고 문을 닫고 떠나다', 43))}<br>十四世 ━━━ 十五世 ━━━ 十六世 ━━━<br>十七世. ${esc(S.sur+genName(17))} — 궤짝을 열다.<br>十八世. ${genName(18) ? esc(S.sur+genName(18)) : '　　'} — ${alienHtml(glyphs('물가에서', 41))}<br>十九世. ${genName(19) ? esc(S.sur+genName(19)) : '　　'} — ${alienHtml(glyphs('문을 잠그고 나오지 않다', 42))}`; }
 function recLedger(){ let h = '<h3>서고 장부</h3>'; for (let i=0;i<8;i++) h += alienHtml(showText(i)) + '<br>'; return h; }

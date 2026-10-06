@@ -133,8 +133,8 @@ function dealerDolls(){
 let dealerKnocked = false;
 function dealerTick(){ if ((S.copies || []).length && S.dealerAt && Date.now() >= S.dealerAt && !S.dealerKnock){ S.dealerKnock = true; save(); knock(S.scene === 'gate' ? 1 : 0.5); } }
 function sellCopies(){
-  const cs = S.copies || [], sum = cs.reduce((a, c) => a + COPY[c].price, 0);
-  openOv(`<h3>세책점 거간</h3>장터 세책점에서 왔다며 사본을 들여다본다.<br><br>${cs.map(c => `${COPY[c].name} — ${fmtM(COPY[c].price)}`).join('<br>')}<br><br>모두 ${fmtM(sum)}을 쳐 주겠다고 한다.`
+  const cs = S.copies || [], sum = Math.round(cs.reduce((a, c) => a + COPY[c].price, 0) * gahunK('copy'));   // 가훈 「곡간을 먼저 채워라」
+  openOv(`<h3>세책점 거간</h3>장터 세책점에서 왔다며 사본을 들여다본다.<br><br>${cs.map(c => `${COPY[c].name} — ${fmtM(COPY[c].price * gahunK('copy'))}`).join('<br>')}<br><br>모두 ${fmtM(sum)}을 쳐 주겠다고 한다.`
     + '<div style="text-align:center;margin-top:12px"><button class="btn rec" id="bSell" style="color:var(--ink);border-color:#00000066">넘긴다</button></div>');
   document.getElementById('bSell').addEventListener('click', ev => { ev.stopPropagation();
     S.money = (S.money||0) + sum; ledger(`사본 ${cs.length}권을 세책점에 넘김 + ${fmtM(sum)}`); S.copies = []; S.dealerAt = 0; S.dealerKnock = false; S.soldN = (S.soldN||0) + cs.length; save();

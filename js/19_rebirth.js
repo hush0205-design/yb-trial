@@ -26,7 +26,7 @@ const RELIC = {
 const END = {
   nobody: { name:'아무도 오지 않다', kind:'일반',
     n: () => genKeys().filter(k => S.st[k] && S.st[k].quit).length,            // 내보냄 + 녹봉 떠남 + 겁에 질려 그만둠(10/7 선생님)
-    lim: () => LINE.limits.leave + (hasRelic('ledger') ? 2 : 0),
+    lim: () => LINE.limits.leave + (hasRelic('ledger') ? 2 : 0) + (GAHUN[S.gahun] && GAHUN[S.gahun].leave || 0),
     omen(){ S.lateApp = true;
       pushNote('<h3>쪽지</h3>' + vlet(['가주께.', '장터에 이 댁 이야기가 돈다 합니다.', '들어오는 사람마다 얼마 못 가 나간다고.', '방을 보고도 발길을 돌리는 이가 있답니다.'], '한서진 올림.', 'min(44vh,320px)')); },
     scene: () => ['방(榜)이 비에 젖어 대문에서 떨어졌다. 다시 붙여도 아무도 오지 않았다.',
@@ -36,7 +36,7 @@ const END = {
       '그해 겨울, 가주는 서고 문을 닫았다.'],
     codex: '사람을 거듭 잃으니 서고에 아무도 오지 않았다.',
     only: () => '<b>장터 소문</b> — 「그 집 서고는 사람을 들이고 내보내기를 밥 먹듯 한다더라. 들어간 사람이 나올 땐 얼굴이 달라져 있다더라. 방이 붙어 있어도 가지 마라. 밥은 준다더라만.」',
-    relics: ['ledger'] },
+    relics: ['ledger'], gahun: 2 },
   rice: { name:'쌀독이 비다', kind:'일반',
     n: () => S.riceN || 0,                                                     // 궤짝이 바닥이고 별채에 일하는 사람이 없는 날(달력) — 닷새(10/7 선생님)
     lim: () => LINE.limits.rice,
@@ -48,8 +48,9 @@ const END = {
       '그해 겨울, 가주는 남은 책을 궤짝에 넣고 서고 문을 닫았다.'],
     codex: '쌀독이 비어, 책을 쌀과 바꾸었다.',
     only: () => `<b>거간의 영수증</b> — 쌀 두 섬. 받은 것: ${alienHtml(glyphs('책 세 권과 이름 하나', 61))}<br><span style="font-size:12px;opacity:.6">마지막 몇 글자는 아무리 보아도 풀리지 않는다.</span>`,
-    relics: ['ledger', 'copies'] },
+    relics: ['ledger', 'copies'], gahun: 3 },
 };
+const gahunOpen = () => (LINE.gahun.unlocked = LINE.gahun.unlocked || [0]);
 
 // ── 새 대의 첫걸음: 유품을 풀고 흔적을 남김(서고에 처음 들어올 때 한 번) ──
 function genInit(){
@@ -65,8 +66,10 @@ function traceTick(){
     S.traceDone = true; S.genNext = Math.max(S.genNext || 0, S.bangAt + 120000 + DAY_MS()); S.gnSeen = S.genNext; save(); }
   if (S.trace === 'rice' && S.rArrived && !S.traceDone){           // 밀린 것을 안고 시작: 한서진의 녹봉이 이틀 밀린 채
     S.traceDone = true; S.owe = S.owe || {}; S.owe.sj = { amt: WAGE('sj') * 2, days: 2 }; if (S.payDay == null) S.payDay = dayKey(); save(); }
-  if (S.lateApp && S.genNext && S.genNext !== S.gnSeen){            // 징조 뒤로는 지원자가 하루씩 늦게 옴
-    if (S.genNext > Date.now() - 1000) S.genNext += DAY_MS(); S.gnSeen = S.genNext; save(); }
+  const late = GAHUN[S.gahun] && GAHUN[S.gahun].appLate;
+  if ((S.lateApp || late) && S.genNext && S.genNext !== S.gnSeen){   // 징조 뒤로는 지원자가 하루씩 늦게 / 가훈 「사람을 아끼지 마라」는 기다림이 두 배
+    if (S.genNext > Date.now() - 1000){ if (late) S.genNext = Date.now() + (S.genNext - Date.now()) * late; if (S.lateApp) S.genNext += DAY_MS(); }
+    S.gnSeen = S.genNext; save(); }
 }
 // 한서진은 앞 대에 왔었으면 편지 없이 둘째 날 아침에 옴
 function againTick(){
@@ -106,6 +109,7 @@ function endGame(id){
   LINE.jokbo.push({ gen: LINE.gen, name: S.name, end: E.name, endId: id, days: Math.max(1, dayKey() - (S.genDay == null ? dayKey() : S.genDay) + 1), gahun: S.gahun });
   const c = LINE.codex[id] || { n:0, first: Date.now() }; c.n++; c.line = E.codex; LINE.codex[id] = c;
   if (S.gahun >= 0) LINE.gahun.used[S.gahun] = (LINE.gahun.used[S.gahun] || 0) + 1;
+  const newGahun = E.gahun != null && !gahunOpen().includes(E.gahun) ? E.gahun : null; if (newGahun != null) LINE.gahun.unlocked.push(newGahun);
   const pool = E.relics.filter(r => !hasRelic(r)), relic = pool.length ? pool[Math.floor(Math.random() * pool.length)] : null;
   const gotKey = !hasRelic('key');
   if (gotKey) LINE.relics.push('key'); if (relic) LINE.relics.push(relic);
@@ -115,7 +119,7 @@ function endGame(id){
   // 판은 새로 — 낱말 장부·여백 글씨·시험 기록·설정만 들고 감
   localStorage.setItem(SAVE, JSON.stringify({ stage:'jokbo', opt: S.opt, gl: S.gl, margins: S.margins, tlog: S.tlog }));
   resetting = true;
-  endScene(E, was, { relic, gotKey, firstCodex });
+  endScene(E, was, { relic, gotKey, firstCodex, newGahun });
 }
 function endScene(E, was, got){
   if (typeof bookOpen !== 'undefined' && bookOpen) try { closeBook(); } catch(_){}
@@ -145,6 +149,7 @@ function endScene(E, was, got){
       ${rows.map(rowH).join('')}
       <div class="after">
         <p class="el">${got.firstCodex ? '멸망 도감이 생겼다. 서안 곁 문서함에 둔다.' : '멸망 도감에 한 줄이 더 적혔다.'}</p>
+        ${got.newGahun != null ? `<p class="el">가훈 하나가 풀렸다 — 「${GAHUN[got.newGahun].t}」</p>` : ''}
         <p class="el">다음 대에 남길 것: ${got.relic ? esc(RELIC[got.relic].name) : '없음'}${got.gotKey ? ' · 그리고 대문 열쇠 하나' : ''}</p>
         <div class="el" style="text-align:center;margin-top:16px"><button class="btn" id="bNextGen" style="color:var(--ink);border-color:#00000066">${genHj(LINE.gen)}世를 적는다</button></div>
       </div></div>`, 99999);
@@ -174,7 +179,7 @@ function showDocbox(){
     + `<div style="margin:6px 0">${genHj(LINE.gen)}世. ${esc(LINE.sur + S.name)} — </div>`));
   on('dC', () => openOv('<h3>멸망 도감</h3><div style="font-size:12px;opacity:.6;margin-bottom:8px">서고가 끝난 방식. 겪은 것만 적힌다.</div>'
     + Object.keys(LINE.codex).map(id => `<div style="margin:12px 0"><b>${END[id] ? END[id].name : id}</b>${LINE.codex[id].n > 1 ? ` <span style="font-size:12px;opacity:.55">— ${LINE.codex[id].n}번</span>` : ''}<br>${esc(LINE.codex[id].line)}${END[id] && END[id].only ? `<div style="font-size:13px;margin-top:6px">${END[id].only()}</div>` : ''}</div>`).join('')));
-  on('dG', () => openOv('<h3>가훈첩</h3>' + GAHUN.map((g, i) => { const u = LINE.gahun.used[i] || 0;
+  on('dG', () => openOv('<h3>가훈첩</h3>' + GAHUN.map((g, i) => { const u = LINE.gahun.used[i] || 0; if (!gahunOpen().includes(i)) return '';
     return `<div style="margin:10px 0"><b>${g.t}</b>${S.gahun === i ? ' <span style="font-size:12px;opacity:.55">— 지금</span>' : ''}<br><span style="font-size:13px;opacity:.8">${u ? g.note[Math.min(1, u - 1)] + ` (${u}대)` : '아직 이 가훈으로 산 가주가 없다.'}</span></div>`; }).join('')));
   on('dR', () => openOv('<h3>유품</h3>' + LINE.relics.map(r => RELIC[r] ? `<div style="margin:10px 0"><b>${RELIC[r].name}</b><br><span style="font-size:13px">${RELIC[r].desc}</span></div>` : '').join('')));
 }
@@ -196,6 +201,6 @@ function rebirthJokbo(){
   document.getElementById('bReName').addEventListener('click', () => { iName.value = ''; iName.placeholder = pickName(); });
 }
 rebirthJokbo();
-// 가훈 족자: 써 본 가훈엔 족보 말투의 설명이 곁에 붙음
-document.querySelectorAll('#sGahun .scroll').forEach(el => { const g = GAHUN[+el.dataset.g], u = LINE.gahun.used[+el.dataset.g] || 0;
-  el.innerHTML = esc(g.t) + (u ? `<span class="gnote">${esc(g.note[Math.min(1, u - 1)])}</span>` : ''); });
+// 가훈 족자(둘째 대부터): 물려받은 것 + 끝으로 풀린 것. 살아 본 가훈에만 족보 말투의 설명이 곁에 붙음
+document.getElementById('gahunWrap').innerHTML = gahunOpen().map(i => { const g = GAHUN[i], u = LINE.gahun.used[i] || 0;
+  return `<div class="scroll" data-g="${i}">${esc(g.t)}${u ? `<span class="gnote">${esc(g.note[Math.min(1, u - 1)])}</span>` : ''}</div>`; }).join('');

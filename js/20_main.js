@@ -34,8 +34,8 @@ JUMPS.push(['21. 쌀독이 비기 직전 (들어가면 곧 끝남)', Object.assi
   st: { g1:{ at:-1, read:true, replied:true, arr:-2, gone:true, quit:-1 }, g2:{ at:-1, read:true, replied:true, arr:-2, gone:true, quit:-1 }, g3:{ at:-1, read:true, replied:true, arr:-2, gone:true, quit:-1 } } })]);
 function jumpGen2(){
   const nm = S.name || '서하';
-  Object.assign(LINE, { sur: S.sur || LINE.sur || '윤', bon: S.bon || LINE.bon || '파평', gen:18, jokbo:[{ gen:17, name:nm, end:'아무도 오지 않다', endId:'nobody', days:4, gahun: S.gahun >= 0 ? S.gahun : 0 }],
-    codex:{ nobody:{ n:1, first:Date.now(), line:END.nobody.codex } }, relics:['key', 'ledger'], trace:{ from:'nobody' }, gahun:{ used:{ [S.gahun >= 0 ? S.gahun : 0]: 1 } },
+  Object.assign(LINE, { sur: S.sur || LINE.sur || '윤', bon: S.bon || LINE.bon || '파평', gen:18, jokbo:[{ gen:17, name:nm, end:'아무도 오지 않다', endId:'nobody', days:4, gahun:0 }],
+    codex:{ nobody:{ n:1, first:Date.now(), line:END.nobody.codex } }, relics:['key', 'ledger'], trace:{ from:'nobody' }, gahun:{ used:{ 0: 1 }, unlocked:[0, 2] },
     reached:{ lamp:1, brush:1, desk:1, glass:1, letter:1, lab:1, ld1:1, ld2:1 } });
   saveLine(); resetting = true; localStorage.setItem(SAVE, JSON.stringify({ stage:'jokbo', opt:S.opt })); location.reload();
 }
@@ -154,7 +154,9 @@ document.getElementById('bWrite').onclick = () => {
   const sur = val(iSur), nm = val(iName);
   try { localStorage.setItem(LAST, JSON.stringify({ sur, bon: val(iBon), name: nm })); } catch(_){}
   if (!/^[가-힣]{1,2}$/.test(sur) || !/^[가-힣]{1,3}$/.test(nm)) { document.getElementById(!/^[가-힣]{1,2}$/.test(sur)?'iSur':'iName').focus(); return; }
-  S.sur = sur; S.name = nm; S.bon = val(iBon); sFlip(); S.stage = 'gahun'; save(); scr('sGahun');
+  S.sur = sur; S.name = nm; S.bon = val(iBon); sFlip();
+  if (LINE.gen <= 17){ S.gahun = 0; save(); enterRoom(); }          // 1대: 가훈을 고르지 않음 — 벽에 이미 걸려 있음(환생 명세 10-10)
+  else { S.stage = 'gahun'; save(); scr('sGahun'); }
   if (LINE.gen <= 17 && !LINE.jokbo.length){ LINE.sur = S.sur; LINE.bon = S.bon; saveLine(); }
 };
 document.querySelectorAll('.scroll').forEach(el => el.onclick = () => { S.gahun = +el.dataset.g; sPlace(); enterRoom(); });
