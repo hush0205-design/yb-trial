@@ -215,4 +215,4 @@
 .jn.struck::after { content:''; position:absolute; left:-8px; right:-8px; top:50%; height:4px; margin-top:-2px; background:#2a2118; border-radius:2px; transform:rotate(-1.5deg); opacity:1; }
 .jd { font-size:13px; opacity:.75; margin-left:6px; }
 .jsheet .row { margin:8px 0; }
-
+.bwhy { font-size:14px; line-height:1.8; margin:0 0 10px; opacity:.85; }

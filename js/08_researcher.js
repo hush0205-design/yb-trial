@@ -101,11 +101,12 @@ const bookRows = (attr, cur, rows) => rows.map(([id, label, note]) => `<div clas
 function showResearcher(){
   if (isNight() && !nightVisiting()) { openOv('<h3>연구원의 자리</h3>밤이다. 한서진은 돌아갔다.<br>해가 뜨면 온다.'); return; }
   const rItemNow = itemAt('rdesk');
-  const speed = !rItemNow ? '쉬고 있다' : fearSpeedTxt(S.rFear, S.owned.sundial, 60/R_SEC);
+  const er = S.errs && S.errs.sj;                                   // 집에 가는 중·여울·심부름: 읽고 있지 않음(10/7 시험자 "안 보이는데 읽고 있다고 나온다")
+  const speed = er ? (er.home ? '겁에 질려 집에 다녀오는 길이다' : er.dig ? '여울에 다녀오는 길이다' : '심부름을 하러 자리를 비웠다') : !rItemNow ? '쉬고 있다' : fearSpeedTxt(S.rFear, S.owned.sundial, 60/R_SEC);
   const n = diaryCount(), rf = S.rFear || 0, st = fearState(rf);
   const rb = itemAt('rdesk'), o = (id, label) => `<span data-rb="${id}" class="${rb === id ? 'on' : ''}">${label}</span>`;
-  openOv(`<h3>연구원 — 한서진(韓瑞眞)</h3>직업: 해독가<br>상태: ${st}${typeof whyHtml === 'function' ? whyHtml('sj') : '<br>'}읽는 빠르기: ${speed}<br>넘긴 것: ${fmtP(S.rPages||0)}<br><div style="font-size:12px;opacity:.6">밤에는 일하지 않는다.</div>`
-    + (S.teaArrived ? `<div style="text-align:center;margin:8px 0"><button class="btn rec" id="bRTea" style="color:var(--ink);border-color:#00000066">차를 한 잔 내준다</button></div>` : '')
+  openOv(`<h3>연구원 — 한서진(韓瑞眞)</h3>직업: 해독가<br>상태: ${st}${typeof whyHtml === 'function' ? whyHtml('sj') : '<br>'}${er ? "지금" : "읽는 빠르기"}: ${speed}<br>넘긴 것: ${fmtP(S.rPages||0)}<br><div style="font-size:12px;opacity:.6">밤에는 일하지 않는다.</div>`
+    + (S.teaArrived && !er ? `<div style="text-align:center;margin:8px 0"><button class="btn rec" id="bRTea" style="color:var(--ink);border-color:#00000066">차를 한 잔 내준다</button></div>` : '')
     + `<div style="margin-top:8px">책상 위: ${rb ? INAME[rb] : '<i>비어 있다 — 아무것도 하지 않고 앉아 있다</i>'}</div>`
     + '<div class="bsec">책장에서 가져다 놓기</div>' + bookRows('rb', rb || '', [['first', '제목 없는 책', fearWord('first')], ...(hasBook('dongui') ? [['dongui', '동의보감 三', fearWord('dongui')]] : []), ...(S.mapFound ? [['map', '지도', fearWord('map')]] : []), ...(rb ? [['', '치운다', '']] : [])])
     + (rb === 'dongui' && S.sideRead.dongui ? '<div style="font-size:12px;opacity:.6">동의보감 三은 다 풀었다. 남은 손은 제목 없는 책에 보탠다.</div>' : '')
@@ -289,7 +290,7 @@ function tick(now){
     setTimeout(() => queueOv(`<h3>족보</h3>다 풀었다.<br><br>${esc((S.bon||'') + ' ' + S.sur)}씨 ${LINE.gen}세손 ${esc(S.sur + S.name)}.<br>${LINE.gen === 17 ? '18세와 19세는 이름 칸이 비어 있다. 끝난 자리만 적혀 있다.<br>20세 아래로는 아무것도 없다.' : LINE.gen <= 20 ? `${LINE.gen}세 칸에 내 이름이 적혀 있다. 적어 넣은 사람은 없다.<br>끝난 자리는 처음 읽을 때 그대로다.` : '20세 아래로는 아무것도 없다. 내 이름이 들어갈 칸이 없다.'}<br><br>그때 구석의 궤짝에서 무언가 들썩이는 소리가 났다.`), 1200);
     setTimeout(() => { noise(0.25, 90, 0.45, 'lowpass'); setTimeout(() => noise(0.18, 120, 0.3, 'lowpass'), 380); }, 700); }
   if (bookOpen && !bookView.classList.contains('hidden')) { threadPh += threadStir ? dt*5.5 : 0; drawThread(threadStir ? 5 : 0); }
-  if (S.owned.desk && (itemAt('desk') === 'first' || itemAt('desk') === 'dongui') && now - lastAuto > 9000 && now - lastFlip > 4000 && ov.classList.contains('hidden')){ lastAuto = now; flip(true); }
+  if (S.owned.desk && (itemAt('desk') === 'first' || itemAt('desk') === 'dongui') && now - lastAuto > 9000 && now - lastFlip > 4000 && ov.classList.contains('hidden')){ lastAuto = now; flip(true); if (typeof GHOST !== 'undefined'){ GHOST.desk = Date.now(); FLIPT.desk = Date.now() + 500; } }   // 서안의 책이 펼쳐지며 한 장 넘어감(18_flip)
 }
 function roomNews(){
   const n = [];

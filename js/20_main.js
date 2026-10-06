@@ -119,7 +119,7 @@ document.addEventListener('keydown', e => {
 // 쪽·장·권 숫자를 누르면 셈 풀이
 document.getElementById('counter').addEventListener('click', () => {
   if (S.stage !== 'room') return;
-  openOv(`<h3>장부의 셈</h3>책장 두 쪽이 한 장, 쉰 장이 한 권이다.<br>지금 쓸 수 있는 것: ${fmtP(S.pages)}<br>지금까지 넘긴 것: ${fmtP(S.earned)}<br><br>서고에 물건을 들일 때 이 셈으로 값을 친다.`);
+  openOv(`<h3>장부의 셈</h3>책장 두 쪽이 한 장, 쉰 장이 한 권이다.<br>지금 쓸 수 있는 것: ${fmtP(S.pages)}<br>지금까지 넘긴 것: ${fmtP(S.earned)}<br><br>책을 넘긴 만큼 서고에 물건이 들어올 자리가 생긴다.${S.steward ? `<br><br><b>엽전</b> — 궤짝에 ${fmtM(S.money)}.<br>한 냥은 열 전, 한 전은 열 푼.` : ''}`);
 });
 // 가훈: 족자 사이 빈틈을 눌러도 가까운 족자를 고름
 document.getElementById('sGahun').addEventListener('click', e => {

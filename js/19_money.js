@@ -13,13 +13,23 @@ function fmtM(n){
 }
 // 값(푼) — 숫자는 만들면서 맞춤
 const PRICE = { lamp:30, brush:50, desk:80, glass:100, sundial:200, ld1:100, ld2:150, ld3:200, ld4:300, ld5:500 };
+// 들이기 전에 '왜 들이고 싶은지'를 한두 줄(서고 안의 사정으로 — 숫자는 말하지 않음)
+const BUY_WHY = {
+  lamp:  '<div class="bwhy">어둑해서 한 장을 넘기는 데도 눈이 오래 걸린다. 불을 밝히면 손이 빨라지겠다.</div>',
+  brush: '<div class="bwhy">푼 글자를 적어 둘 데가 없어, 넘길 때마다 같은 글자를 다시 푼다. 붓을 걸어 두고 받아 적으면 한결 빨라지겠다.</div>',
+  desk:  '<div class="bwhy">궤짝 위에선 책을 펴 둘 수가 없다. 서안이 있으면 책을 펴 둔 채 둘 수 있다. 펴 둔 책은 아무도 없어도 넘어간다고 한다.</div>',
+  glass: '<div class="bwhy">작은 글자와 여백의 흐린 글씨가 눈에 잘 들어오지 않는다. 수정을 박은 문진이면 크게 비춰 볼 수 있겠다.</div>',
+  sundial: '<div class="bwhy">해 그림자로 때를 재는 그릇. 하늘을 보는 사람에게 쓸모가 있겠다.</div>',
+  ld:    '<div class="bwhy">별채에 책상이 하나 더 있으면 사람을 하나 더 앉힐 수 있다.</div>',
+};
 const priceOf = o => PRICE[o.id] != null ? PRICE[o.id] : 0;
 const readTotal = () => Math.max(S.earned || 0, S.pages || 0);   // 문턱 = 지금까지 읽은 총량(쓴 쪽과 상관없이, 10/6 선생님)
 const canBuy = o => readTotal() >= o.buy.cost && (S.money||0) >= priceOf(o);
 askBuy = function(o){
   const c = priceOf(o), ok = canBuy(o);
-  openOv(`<h3>${o.buy.name}</h3>값: ${fmtM(c)}<br>궤짝의 엽전: ${fmtM(S.money)}`
+  openOv(`<h3>${o.buy.name}</h3>${BUY_WHY[o.id] || (o.id.startsWith('ld') ? BUY_WHY.ld : '')}값: ${fmtM(c)}<br>궤짝의 엽전: ${fmtM(S.money)}`
     + (ok ? '<div style="text-align:center;margin-top:14px"><button class="btn rec" id="bBuy" style="color:var(--ink);border-color:#00000066">들인다</button></div>'
+          : (S.money||0) >= c ? '<div style="margin-top:10px;opacity:.75">아직은 들일 때가 아니다. 책을 더 넘겨야겠다.</div>'   // 돈은 되는데 문턱 전(0푼 모자란다고 나오던 것)
           : `<div style="margin-top:10px;opacity:.75">${fmtM(c - (S.money||0))} 모자란다.${S.rArrived ? '<br>사본을 베껴 팔면 돈이 된다.' : ''}</div>`));
   const b = document.getElementById('bBuy'); if (b) b.addEventListener('click', ev => { ev.stopPropagation(); ov.classList.add('hidden'); buy(o); });
 };
@@ -77,7 +87,7 @@ const owePenalty = k => oweDays(k) > 0 ? 1.2 : 1;
     if (S.jokboDone && !S.mapFound) return ec();
     const top = S.mapFound ? '바닥 안감을 들춘 자리 옆에' : '책을 꺼낸 궤짝 바닥에';
     const owe = oweTotal(), list = Object.keys(S.owe || {}).filter(k => S.owe[k].amt).map(k => `${wName(k)} ${S.owe[k].days}일치 ${fmtM(S.owe[k].amt)}`);
-    openOv(`<h3>궤짝</h3>${top} 엽전 꾸러미가 있다. 집안에 남은 돈이다.<div style="font-size:20px;text-align:center;margin:12px 0;letter-spacing:2px">${fmtM(S.money)}</div>`
+    openOv(`<h3>궤짝</h3>${top} 엽전 꾸러미가 있다. 집안에 남은 돈이다.<div style="font-size:20px;text-align:center;margin:12px 0 2px;letter-spacing:2px">${fmtM(S.money)}</div><div style="font-size:12px;text-align:center;opacity:.55;margin-bottom:10px">한 냥은 열 전, 한 전은 열 푼</div>`
       + (owe ? `<div style="font-size:13px;opacity:.85">밀린 녹봉(쌀 값): ${list.join(' · ')}</div><div style="text-align:center;margin-top:10px"><button class="btn rec" id="bPay" style="color:var(--ink);border-color:#00000066">녹봉을 내준다 — ${fmtM(owe)}</button></div>`
              : (payees().length ? '<div style="font-size:12px;opacity:.6">녹봉은 다 내주었다. 날이 바뀌면 또 내줘야 한다.</div>' : ''))
       + (typeof loanChestHtml === 'function' ? loanChestHtml() : '')        // 돈을 꾸는 편지(19_rebirth) — 언제든 미리

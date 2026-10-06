@@ -60,3 +60,9 @@ for (const o of LAB_OBJ.filter(o => o.id.startsWith('i_'))){
   o.m = () => { const it = itemAt('rdesk'); return (it === 'first' || it === 'dongui') && ((seatedSJ() && !bookShut('sj', S.rFear)) || ghostOpen('sj')) && !dropZ('rdesk') ? 'open_' + it : m0(); };
   OBJ.push({ id:'pgR', x:o.x, y:o.y, z:11, rot:0, on:()=>'rdesk', onOrder:0.015, m:()=> flipM(FLIPT.sj),
     show:()=> !!S.chair && o.m().startsWith('open_') && flipFrame(FLIPT.sj) >= 0, click:()=>showResearcher() }); }
+// 서안: 펴 둔 책이 저절로 넘어갈 때 덮인 책이 펼쳐져 한 장 넘어가고 다시 덮임(10/7 선생님) — 가주가 책을 펴 읽는 중엔 서고가 안 보이니 그대로
+{ const o = OBJ.find(o => o.id === 'ditem'), m0 = o.m;
+  o.m = () => { const it = itemAt('desk'); return (it === 'first' || it === 'dongui') && ghostOpen('desk') && !dropZ('desk') ? 'open_' + it : m0(); };
+  OBJ.push({ id:'pgD', x:o.x, y:o.y, z:8, rot:0, on:()=>'desk', onOrder:0.015, m:()=> flipM(FLIPT.desk),
+    show:()=> !!S.owned.desk && o.m().startsWith('open_') && flipFrame(FLIPT.desk) >= 0, click:()=>deskClick() }); }
+
