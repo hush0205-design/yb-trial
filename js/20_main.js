@@ -100,7 +100,7 @@ function showSettings(){
   document.getElementById('bLog').addEventListener('click', ev => { ev.stopPropagation(); showTlog(); });
   document.getElementById('bReset').addEventListener('click', ev => {
     ev.stopPropagation();
-    openOv('<h3>처음부터</h3>지금까지의 기록이 모두 지워집니다.<br><span style="font-size:13px;opacity:.7">앞 대들의 족보·멸망 도감·유품도 함께 지워집니다.</span><div style="text-align:center;margin-top:18px"><button class="btn rec" id="bReset2" style="color:var(--ink);border-color:#00000066">지우고 처음부터</button></div>');
+    openOv('<h3>처음부터</h3>지금까지의 기록이 모두 지워집니다.<br><span style="font-size:13px;opacity:.7">앞 대들의 족보·가환록·유품도 함께 지워집니다.</span><div style="text-align:center;margin-top:18px"><button class="btn rec" id="bReset2" style="color:var(--ink);border-color:#00000066">지우고 처음부터</button></div>');
     document.getElementById('bReset2').addEventListener('click', e2 => { e2.stopPropagation(); resetting = true; localStorage.removeItem(SAVE); localStorage.removeItem(LINE_KEY); location.reload(); });
   });
   if (!dev){ document.getElementById('bDev').addEventListener('click', ev => { ev.stopPropagation(); askDev(); }); return; }

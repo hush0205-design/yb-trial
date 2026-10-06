@@ -1,7 +1,8 @@
 'use strict';
 // ───────── 환생 뼈대 (환생 명세 1~6절 · 코드 정리 설계 2절, 10/7) ─────────
 // 끝(강제 환생)은 END 표 한 곳에 모음 — 끝을 더할 땐 여기에만. 매 틱 n()을 보고 한도의 70%면 징조(기록 한 줄, 한 번), 다 차면 endGame.
-// endGame: 가문(LINE)에 족보 줄·멸망 도감·유품·흔적·열린 것을 적고 → 판(S)을 새로 → 끝 장면(기록 → 족보에 붓이 저절로 씀) → 새 대(이름만 묻고 가훈 → 서고).
+// 이름 규칙: 우리 문서의 '멸망 도감' = 게임 속 「가환록(家患錄)」(10/7 선생님 — 우리끼리 쓰는 말은 화면에 안 냄)
+// endGame: 가문(LINE)에 족보 줄·멸망 도감(가환록)·유품·흔적·열린 것을 적고 → 판(S)을 새로 → 끝 장면(기록 → 족보에 붓이 저절로 씀) → 새 대(이름만 묻고 가훈 → 서고).
 const DAY_MS = () => S.opt.gameTime ? 2*3600e3 : 24*3600e3;
 const hasRelic = id => LINE.relics.includes(id);
 
@@ -214,7 +215,7 @@ function endScene(E, was, got){
       <div class="row faint"><span class="gen">十六世</span><span class="inkline"></span></div>${older}
       ${rows.map(rowH).join('')}
       <div class="after">
-        <p class="el">${got.firstCodex ? '멸망 도감이 생겼다. 서안 곁 문서함에 둔다.' : '멸망 도감에 한 줄이 더 적혔다.'}</p>
+        <p class="el">${got.firstCodex ? '가환록(家患錄)을 새로 매어 서안 곁 문서함에 둔다. 첫 줄이 적혔다.' : '가환록에 한 줄이 더 적혔다.'}</p>
         ${got.newGahun != null ? `<p class="el">가훈 하나가 풀렸다 — 「${GAHUN[got.newGahun].t}」</p>` : ''}
         <p class="el">다음 대에 남길 것: ${got.relic ? esc(RELIC[got.relic].name) : '없음'}${got.gotKey ? ' · 그리고 대문 열쇠 하나' : ''}</p>
         <div class="el" style="text-align:center;margin-top:16px"><button class="btn" id="bNextGen" style="color:var(--ink);border-color:#00000066">${genHj(LINE.gen)}世를 적는다</button></div>
@@ -238,12 +239,12 @@ M.docbox = model(9, 6, 5, (x, y, z) => {
 OBJ.push({ id:'docbox', x:-12, y:12, rot:0.15, show:()=> LINE.jokbo.length > 0, click:()=>showDocbox() });
 function showDocbox(){
   openOv('<h3>문서함</h3><div style="font-size:12px;opacity:.6;margin-bottom:8px">앞 대들이 남긴 것. 책장에 꽂지 않고 서안 곁에 둔다.</div>'
-    + [['dJ', '집안 족보 — 대마다 한 줄'], ['dC', '멸망 도감(滅亡圖鑑)'], ['dG', '가훈첩(家訓帖)'], ['dR', '유품 — ' + LINE.relics.map(r => RELIC[r] ? RELIC[r].name : r).join(' · ')]]
+    + [['dJ', '집안 족보 — 대마다 한 줄'], ['dC', '가환록(家患錄)'], ['dG', '가훈첩(家訓帖)'], ['dR', '유품 — ' + LINE.relics.map(r => RELIC[r] ? RELIC[r].name : r).join(' · ')]]
       .map(([id, t]) => `<div class="rec" id="${id}" style="margin:8px 0">${t}</div>`).join(''));
   const on = (id, f) => document.getElementById(id).addEventListener('click', ev => { ev.stopPropagation(); f(); });
   on('dJ', () => openOv('<h3>집안 족보</h3>' + LINE.jokbo.map(j => `<div style="margin:6px 0">${genHj(j.gen)}世. ${esc(LINE.sur + j.name)} — ${esc(j.end)}<span style="font-size:12px;opacity:.55"> (${j.days}일, 가훈 「${GAHUN[j.gahun] ? GAHUN[j.gahun].t : '—'}」${j.mode === 'hard' ? ', 빗장을 열어 둔 채' : ''})</span></div>`).join('')
     + `<div style="margin:6px 0">${genHj(LINE.gen)}世. ${esc(LINE.sur + S.name)} — </div>`));
-  on('dC', () => openOv('<h3>멸망 도감</h3><div style="font-size:12px;opacity:.6;margin-bottom:8px">서고가 끝난 방식. 겪은 것만 적힌다.</div>'
+  on('dC', () => openOv('<h3>가환록(家患錄)</h3><div style="font-size:12px;opacity:.6;margin-bottom:8px">집안에 든 우환을 대마다 적어 둔 책. 겪은 일만 적혀 있다.</div>'
     + Object.keys(LINE.codex).map(id => `<div style="margin:12px 0"><b>${END[id] ? END[id].name : id}</b>${LINE.codex[id].n > 1 ? ` <span style="font-size:12px;opacity:.55">— ${LINE.codex[id].n}번</span>` : ''}<br>${esc(LINE.codex[id].line)}${END[id] && END[id].only ? `<div style="font-size:13px;margin-top:6px">${END[id].only()}</div>` : ''}</div>`).join('')));
   on('dG', () => openOv('<h3>가훈첩</h3>' + GAHUN.map((g, i) => { const u = LINE.gahun.used[i] || 0; if (!gahunOpen().includes(i)) return '';
     return `<div style="margin:10px 0"><b>${g.t}</b>${S.gahun === i ? ' <span style="font-size:12px;opacity:.55">— 지금</span>' : ''}<br><span style="font-size:13px;opacity:.8">${u ? g.note[Math.min(1, u - 1)] + ` (${u}대)` : '아직 이 가훈으로 산 가주가 없다.'}</span></div>`; }).join('')));
