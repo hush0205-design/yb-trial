@@ -325,9 +325,7 @@ function updateThread(now){
   if (bookOpen && S.owned.lamp && !S.lampOut && newly.length){   // 책을 읽는 동안 생긴 일에만
     S.lampOut = true; S.blown = blown.concat(newly); save(); applyLight();
     noise(0.6, 600, 0.12, 'lowpass');                                  // 훅 — 불이 꺼지는 바람 소리
-    // 어두워 글자가 안 보이니 책이 저절로 덮이고 서고로(10/6 선생님: 실을 찾아 헤매지 않게). 서고엔 등잔의 불씨만 남아 있음(07_room)
-    setTimeout(() => { if (!bookOpen || !S.lampOut) return; closeBook();
-      setTimeout(() => queueOv('<h3>서고</h3>바람도 없이 불이 꺼졌다.<br>글자가 보이지 않아 책을 덮었다.<br><br>심지에 불씨가 남아 있다.'), 1400); }, 1600);
+    // 그 뒤는 19_dark: 안 덮고 버티면 점점 압박(실 크게 흔들림 → 붉은 '덮어라' → 두드림·글자 되돌아감 → 60초에 손이 떨려 책을 놓침). 서고엔 등잔의 불씨만(07_room)
   }
   if (bookOpen && S.D >= T.letter && !S.letterShadow){   // 편지가 놓일 때: 문 앞을 지나가는 그림자 하나
     S.letterShadow = true; save();

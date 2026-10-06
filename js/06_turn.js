@@ -89,7 +89,9 @@ function checkDongui(){
 function flip(auto, fast){
   const now = performance.now();
   if (!auto && !fast){ if (now - lastFlip < CD) return; lastFlip = now; setTimeout(() => { const e = document.getElementById('ear'); if (e) e.classList.add('ready'); }, CD); }
-  const p = auto ? 1 : perClick(); S.pages += p; S.earned += p; addBook(S.curBook || 'first', p*mult());
+  const p = auto ? 1 : perClick(); S.pages += p; S.earned += p;
+  if (S.owned.lamp && S.lampOut){ if (!auto) S.fear = Math.min(0.8, S.fear + 0.02); }   // 어둠 속: 넘어가긴 하지만 글자가 풀리지 않고(해독 0), 한 장마다 겁이 조금(10/7 선생님)
+  else addBook(S.curBook || 'first', p*mult());
   if (bookOpen) { if (auto) rustle(0.9, 0.09); else sFlip(); }
   turnPage(!!auto, !!fast);
 }
