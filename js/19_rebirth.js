@@ -132,13 +132,27 @@ function showStand(){
   document.getElementById('bStGo').addEventListener('click', ev => { ev.stopPropagation(); ov.classList.add('hidden'); standLeave(); });
 }
 const STAND_DOLLS = {};
-// ── 쌀독의 안전장치(기본 모드, 10/7 선생님): 닷새째가 되는 순간 끝내지 않고 서안에 빈 편지지 — 가주가 돈을 꾸어 달라는 편지를 보냄 ──
-// 받는 이: 가문에서 처음엔 먼 일가(빚 없음, 대신 경고 한 줄, 다시는 안 도움) → 그다음 대부터는 세책점(빚 — 사본 값에서 절반씩, 기획서 14-4 ③).
-// 안 쓰고 두면 들어와 계신 동안 3분 뒤 끝. 보내면 1분 뒤 답장과 엽전 1냥, 쌀독 날수는 처음으로. 한 대에 한 번, 하드엔 없음.
+// ── 돈을 꾸는 편지 (10/7 선생님): 받는 이는 가문에서 처음엔 먼 일가(빚 없음, 대신 경고 한 줄, 다시는 안 도움) → 그다음부터 세책점(빚 — 사본 값에서 절반씩, 기획서 14-4 ③).
+// ① 언제든 미리: 궤짝 창의 '돈을 꾸는 편지를 쓴다'(기본·하드 모두 — 하드도 같은 편지·답장을 다 볼 수 있게). 세책점 빚이 남아 있으면 더 못 꿈.
+// ② 기본 모드의 안전장치: 쌀독이 닷새째가 되는 순간 끝내지 않고 서안에 빈 편지지 — 안 쓰고 두면 들어와 계신 동안 3분 뒤 끝. 한 대에 한 번. 하드엔 이 장치만 없음(미리 꿔 둬야 함).
+// 보내면 1분 뒤 답장과 엽전 1냥, 쌀독 날수는 처음으로.
 const CREDIT = 100, LOAN_REPLY_MS = 60000;
 const loanTo = () => LINE.loanKin ? 'dealer' : 'kin';
+const loanAvail = () => !S.credit && !(LINE.loanKin && (S.debt || 0) > 0);
+function loanChestHtml(){
+  if (S.credit) return `<div style="font-size:12px;opacity:.65;text-align:center;margin-top:10px">${S.credit.sent ? '돈을 꾸는 편지를 보냈다. 답장을 기다린다.' : '서안에 돈을 꾸는 편지지를 펴 두었다.'}</div>`;
+  const debt = (S.debt || 0) > 0 ? `<div style="font-size:13px;opacity:.8;margin-top:8px">세책점 외상: ${fmtM(S.debt)} — 사본을 팔 때마다 절반씩 갚는다.</div>` : '';
+  if (!loanAvail()) return debt;
+  return debt + `<div style="text-align:center;margin-top:10px"><span class="rec" id="bLoanW" style="font-size:13px;opacity:.75">돈을 꾸는 편지를 쓴다 — ${loanTo() === 'kin' ? '먼 일가 어른께' : '세책점에'}</span></div>`;
+}
+function loanChestBind(){
+  const b = document.getElementById('bLoanW'); if (!b) return;
+  b.addEventListener('click', ev => { ev.stopPropagation(); S.credit = { ms:0, to: loanTo(), early:true }; save(); sPlace(); showLoan(); });
+}
 function riceReach(L){
   if (S.mode === 'hard' || S.creditUsed) return L;
+  if (S.credit){ S.creditUsed = true; if (!S.credit.sent) S.credit.early = false; save(); return L - 1; }   // 이미 편지지를 펴 뒀거나 보낸 중이면 그걸로 버팀(안 보냈으면 이제부터 3분)
+  if (!loanAvail()) return L;                                        // 세책점 빚이 남아 더 꿀 데가 없음
   S.creditUsed = true; S.credit = { ms:0, to: loanTo() };
   pushNote('<h3>쪽지</h3>' + vlet(['가주께.', '오늘 아침 쌀독이 비었습니다.', '서안에 편지지를 펴 두었습니다.', S.credit.to === 'kin' ? '먼 일가 어른께라도 한 줄 넣어 보심이 어떨지요.' : '부끄러운 일이나, 세책점에라도 넣어 보셔야겠습니다.'], '한서진 올림.', 'min(46vh,330px)'));
   if (typeof tlog === 'function') tlog('쌀독이 빔 — 서안에 편지지'); save(); sPlace();
@@ -147,10 +161,11 @@ function riceReach(L){
 function creditTick(dt){
   if (!S.credit) return;
   if (S.credit.sent){ if (Date.now() - S.credit.sent >= LOAN_REPLY_MS) loanReply(); return; }
+  if (S.credit.early) return;                                         // 미리 펴 둔 편지지는 재촉하지 않음
   S.credit.ms += dt * 1000;
   if (S.credit.ms >= STAND_MS) creditEnd();
 }
-function creditEnd(){ S.credit = null; S.riceN = END.rice.lim(); if (typeof tlog === 'function') tlog('돈을 꾸는 편지를 쓰지 않음'); save(); }
+function creditEnd(){ S.credit = null; S.creditUsed = true; S.riceN = END.rice.lim(); if (typeof tlog === 'function') tlog('돈을 꾸는 편지를 쓰지 않음'); save(); }
 function showLoan(){
   const kin = S.credit.to === 'kin';
   const body = kin ? ['일가 어른께.', '오래 소식 드리지 못했습니다.', '집안 서고를 다시 열었으나', '쌀독이 비어 사람들을 먹일 길이 없습니다.', '엽전 한 냥만 꾸어 주시면', '서고가 일어서는 대로 갚겠습니다.']

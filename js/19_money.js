@@ -80,11 +80,13 @@ const owePenalty = k => oweDays(k) > 0 ? 1.2 : 1;
     openOv(`<h3>궤짝</h3>${top} 엽전 꾸러미가 있다. 집안에 남은 돈이다.<div style="font-size:20px;text-align:center;margin:12px 0;letter-spacing:2px">${fmtM(S.money)}</div>`
       + (owe ? `<div style="font-size:13px;opacity:.85">밀린 녹봉(쌀 값): ${list.join(' · ')}</div><div style="text-align:center;margin-top:10px"><button class="btn rec" id="bPay" style="color:var(--ink);border-color:#00000066">녹봉을 내준다 — ${fmtM(owe)}</button></div>`
              : (payees().length ? '<div style="font-size:12px;opacity:.6">녹봉은 다 내주었다. 날이 바뀌면 또 내줘야 한다.</div>' : ''))
+      + (typeof loanChestHtml === 'function' ? loanChestHtml() : '')        // 돈을 꾸는 편지(19_rebirth) — 언제든 미리
       + ((S.ledger || []).length ? '<div class="rec" id="bLedger" style="text-align:center;font-size:12px;opacity:.6;margin-top:10px">치부책 보기</div>' : ''));
     const b = document.getElementById('bPay'); if (b) b.addEventListener('click', ev => { ev.stopPropagation();
       const p = payAll(false); if (!p){ openOv('<h3>궤짝</h3>엽전이 모자라 아무에게도 내주지 못했다.<br>사본을 베껴 팔아야 한다.'); return; }
       noise(0.08, 3000, 0.04); setTimeout(() => noise(0.06, 2600, 0.03), 90); showEmptyChest(); });
     const l = document.getElementById('bLedger'); if (l) l.addEventListener('click', ev => { ev.stopPropagation(); openOv(ledgerHtml()); });
+    if (typeof loanChestBind === 'function') loanChestBind();
   }; }
 const ledgerHtml = () => '<h3>치부책(置簿冊)</h3><div style="font-size:12px;opacity:.6;margin-bottom:8px">궤짝 속 엽전이 드나든 것을 적어 두는 책.</div>' + (S.ledger || []).slice().reverse().map(t => `<div style="margin:5px 0">${t}</div>`).join('');
 
