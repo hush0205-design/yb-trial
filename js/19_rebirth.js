@@ -80,6 +80,13 @@ function againNote(){
   if (!S.sjAgain || S.sjAgainNote || !S.rArrived || Date.now() - S.rArrived < T_PUSH) return;
   S.sjAgainNote = true; pushNote('<h3>쪽지</h3>' + vlet(['가주께.', '다시 왔습니다.', '어디서 들었는지는 기억나지 않습니다.', '자리는 전과 같은 곳이면 됩니다.'], '한서진 올림.', 'min(44vh,320px)')); save();
 }
+// ── 기본 모드(1대 포함): 비운 동안 쌓인 셈으로는 끝 바로 앞에서 멈춤 — 끝은 들어와 있을 때만. 하드는 비운 동안에도 끝까지(기획서 9절, 10/7 선생님) ──
+const AWAY = S.stage === 'room' && Date.now() - (S.lastSeen || Date.now()) > 180000;   // 20_main이 lastSeen을 새로 쓰기 전에 봄
+const LOAD_T = performance.now();
+const catchingUp = () => AWAY && performance.now() - LOAD_T < 8000;                    // 돌아온 직후 몇 초 = 비운 동안의 셈을 따라잡는 때
+const holdEnd = () => S.mode !== 'hard' && catchingUp();
+const quittingNow = () => genKeys().filter(k => S.st[k] && !S.st[k].quit && S.errs[k] && S.errs[k].home && homeN(k) >= 3).length;
+function holdQuit(){ return holdEnd() && END.nobody.n() + quittingNow() >= END.nobody.lim() - 1; }   // 넷째로 떠날 사람은 들어와 계실 때 떠남
 // 쌀독: 날이 바뀔 때 궤짝이 바닥(가장 싼 녹봉보다 적음)이고 별채에 일하는 사람이 없으면 하루씩
 function riceTick(){
   const today = dayKey();
@@ -87,7 +94,15 @@ function riceTick(){
   if (S.riceDay >= today) return;
   const days = today - S.riceDay; S.riceDay = today;
   const broke = !!S.bangAt && (S.money || 0) < 30 && !genKeys().some(k => S.st[k] && S.st[k].arr && !S.st[k].gone);
-  S.riceN = broke ? (S.riceN || 0) + days : 0; save();
+  let n = broke ? (S.riceN || 0) + days : 0; const L = END.rice.lim();
+  if (n >= L && holdEnd()){ n = L - 1; S.riceOwed = true; }        // 기본: 마지막 하루는 들어와 있을 때 셈
+  S.riceN = n; save();
+}
+function riceOwedTick(){                                            // 돌아와 1분 넘게 머물렀는데도 여전히 궤짝이 바닥·별채가 비었으면 그 하루를 셈
+  if (!S.riceOwed || holdEnd() || performance.now() - LOAD_T < 68000) return;
+  S.riceOwed = false;
+  if (!!S.bangAt && (S.money || 0) < 30 && !genKeys().some(k => S.st[k] && S.st[k].arr && !S.st[k].gone)) S.riceN = END.rice.lim();
+  save();
 }
 function endTick(){
   if (S.ended || window.BOOTING) return;
@@ -98,7 +113,7 @@ function endTick(){
     if (v >= L){ endGame(id); return; }
   }
 }
-HOOK.tick.push(() => { if (S.stage !== 'room' || S.ended) return; genInit(); traceTick(); againTick(); againNote(); riceTick(); endTick(); });
+HOOK.tick.push(() => { if (S.stage !== 'room' || S.ended) return; genInit(); traceTick(); againTick(); againNote(); riceTick(); riceOwedTick(); endTick(); });
 
 // ── 끝 ──
 function endGame(id){

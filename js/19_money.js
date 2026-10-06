@@ -49,7 +49,7 @@ function payTick(){
   // 밀린 녹봉의 대가: 사흘 밀린 일반 연구원은 떠남(돌아와 보면 짐을 싸서 나가는 중 → 쪽지)
   for (const k of Object.keys(S.owe || {})){
     const o = S.owe[k]; if (!o.days) continue;
-    if (k !== 'sj' && isGen(k) && o.days >= 3 && S.st[k] && !S.st[k].gone && !S.errs[k] && working(k)){
+    if (k !== 'sj' && isGen(k) && o.days >= 3 && S.st[k] && !S.st[k].gone && !S.errs[k] && working(k) && !(typeof holdQuit === 'function' && holdQuit())){   // 기본 모드: 비운 동안 쌓인 셈으로는 끝 바로 앞에서 멈춤(19_rebirth)
       S.st[k].wageQuit = true; S.st[k].homeN = 3; goHome(k); changed = true;
     }
     if (k === 'sj' && o.days >= 2 && !S.oweNoteSJ){ S.oweNoteSJ = true; pushNote('<h3>쪽지</h3>' + vlet(['가주께.', '녹봉이 이틀째 밀렸습니다.', '쌀독이 비어 갑니다.', '궤짝을 한번 살펴 주십시오.'], '한서진 올림.', 'min(40vh,280px)')); changed = true; }
