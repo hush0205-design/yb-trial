@@ -86,7 +86,58 @@ const LOAD_T = performance.now();
 const catchingUp = () => AWAY && performance.now() - LOAD_T < 8000;                    // 돌아온 직후 몇 초 = 비운 동안의 셈을 따라잡는 때
 const holdEnd = () => S.mode !== 'hard' && catchingUp();
 const quittingNow = () => genKeys().filter(k => S.st[k] && !S.st[k].quit && S.errs[k] && S.errs[k].home && homeN(k) >= 3).length;
-function holdQuit(){ return holdEnd() && END.nobody.n() + quittingNow() >= END.nobody.lim() - 1; }   // 넷째로 떠날 사람은 들어와 계실 때 떠남
+// 기본 모드의 안전장치(10/7 선생님): 넷째로 떠날 사람은 짐을 싸 들고 대문 앞에서 기다림 — 들어와 계신 동안 3분 안에
+// 녹봉을 내주거나(녹봉 떠남) 쉬라고 보내면(겁 그만둠) 남음. 그대로 두면 떠나고 끝. 한 대에 한 번.
+function holdQuit(k, kind){
+  if (S.mode === 'hard' || END.nobody.n() + quittingNow() + 1 < END.nobody.lim()) return false;
+  if (!S.standUsed && k){ startStand(k, kind); return true; }
+  return catchingUp();                                              // 장치를 이미 썼으면: 비운 셈으로는 안 떠나고 들어와 계실 때 떠남
+}
+const STAND_MS = 180000;
+function startStand(k, kind){
+  const P = DEF(k), s = S.st[k];
+  S.standUsed = true; S.stand = { k, kind, ms:0 }; s.stand = true;
+  pushNote('<h3>쪽지</h3>' + vlet(kind === 'wage'
+    ? ['가주께.', '녹봉이 사흘째 밀렸습니다.', '짐을 싸서 대문 앞에 나와 있습니다.', '밀린 것만 받으면 남겠습니다.', '해가 기울기 전에 말씀 주십시오.']
+    : ['가주께.', '이 서고 일은 더 못 하겠습니다.', '짐을 싸서 대문 앞에 나와 있습니다.', '다만 하루만 쉬게 해 주시면', '다시 해 볼 수도 있겠습니다.'], `${P.name}(${P.hj}) 올림.`, 'min(48vh,340px)'));
+  if (typeof tlog === 'function') tlog('대문 앞에서 기다림: ' + P.name); save();
+}
+function standTick(dt){
+  if (!S.stand) return;
+  const s = S.st[S.stand.k]; if (!s || s.gone || !s.stand){ S.stand = null; save(); return; }
+  S.stand.ms += dt * 1000;
+  if (S.stand.ms >= STAND_MS) standLeave();
+}
+function standLeave(){
+  const k = S.stand.k, s = S.st[k], P = DEF(k), kind = S.stand.kind;
+  s.stand = false; s.gone = true; s.quit = Date.now(); if (kind === 'wage') s.wageQuit = true; S.genNext = Date.now() + 180000; S.stand = null;
+  if (S.scene === 'gate'){ noise(0.3, 260, 0.1, 'lowpass'); }
+  if (typeof tlog === 'function') tlog('그만둠(대문 앞에서 떠남): ' + P.name); save();
+}
+function showStand(){
+  const k = S.stand.k, s = S.st[k], P = DEF(k), kind = S.stand.kind, owe = (S.owe && S.owe[k] && S.owe[k].amt) || 0;
+  const btn = (id, l) => `<button class="btn rec" id="${id}" style="color:var(--ink);border-color:#00000066;margin:4px">${l}</button>`;
+  openOv(`<h3>${P.name}</h3>짐을 싸 들고 대문 앞에 서 있다. ${kind === 'wage' ? `밀린 녹봉 ${fmtM(owe)}을 기다린다.` : '얼굴이 하얗다. 손을 떨고 있다.'}<br><span style="font-size:13px;opacity:.7">해가 기울면 떠날 것이다.</span>`
+    + `<div style="text-align:center;margin-top:14px">${kind === 'wage' ? btn('bStKeep', `밀린 녹봉을 내준다 — ${fmtM(owe)}`) : btn('bStKeep', '하루 쉬고 오라 한다')}${btn('bStGo', '보낸다')}</div><div id="stMsg" style="text-align:center;font-size:13px;opacity:.75"></div>`);
+  document.getElementById('bStKeep').addEventListener('click', ev => { ev.stopPropagation();
+    if (kind === 'wage'){
+      if ((S.money || 0) < owe){ document.getElementById('stMsg').textContent = '궤짝의 엽전이 모자란다.'; return; }
+      S.money -= owe; ledger(`녹봉(쌀) ${fmtM(owe)} — ${P.name} (대문 앞에서)`); S.owe[k] = { amt:0, days:0 };
+      noise(0.08, 3000, 0.04); setTimeout(() => noise(0.06, 2600, 0.03), 90);
+    }
+    s.stand = false; S.stand = null;
+    if (kind === 'fear'){ s.homeN = 2; s.fear = Math.min(s.fear || 0, 0.6); goHome(k); }
+    if (typeof tlog === 'function') tlog('붙잡음: ' + P.name); save(); ov.classList.add('hidden'); sPlace(); });
+  document.getElementById('bStGo').addEventListener('click', ev => { ev.stopPropagation(); ov.classList.add('hidden'); standLeave(); });
+}
+const STAND_DOLLS = {};
+function standDolls(){
+  if (!S.stand || !S.st[S.stand.k] || !S.st[S.stand.k].stand) return [];
+  const k = S.stand.k;
+  if (!STAND_DOLLS[k]){ const d = dollFor(k);
+    STAND_DOLLS[k] = { id:'gs_' + k, doll:true, img: d.img, imgL: d.imgL, shadow: d.shadow, st:()=>({ x:-7, y:-12, pose:'stand', f:[0, 1], chair:0 }), fear:()=>0.5, steam:()=>0, arrT:()=>0, show:()=>true, click:()=>showStand() }; }
+  return [STAND_DOLLS[k]];
+}
 // 쌀독: 날이 바뀔 때 궤짝이 바닥(가장 싼 녹봉보다 적음)이고 별채에 일하는 사람이 없으면 하루씩
 function riceTick(){
   const today = dayKey();
@@ -113,7 +164,7 @@ function endTick(){
     if (v >= L){ endGame(id); return; }
   }
 }
-HOOK.tick.push(() => { if (S.stage !== 'room' || S.ended) return; genInit(); traceTick(); againTick(); againNote(); riceTick(); riceOwedTick(); endTick(); });
+HOOK.tick.push(dt => { if (S.stage !== 'room' || S.ended) return; standTick(dt); genInit(); traceTick(); againTick(); againNote(); riceTick(); riceOwedTick(); endTick(); });
 
 // ── 끝 ──
 function endGame(id){

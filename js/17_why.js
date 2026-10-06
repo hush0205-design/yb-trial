@@ -128,7 +128,7 @@ function homeTick(){
   for (const k of allKeys()){ const s = S.st[k];
     if (!s || !s.arr || s.gone || S.errs[k] || !working(k)) continue;
     if (!s.n5 && fearStage(s.fear) === 5){ s.n5 = true; pushNote(homeNote(['오늘은 글자가 눈에 잘 들어오지 않습니다.', '조금만 쉬었다 하겠습니다.'], `${DEF(k).name}(${DEF(k).hj}) 올림.`)); save(); }
-    if ((s.fear||0) >= FEAR_TOP){ s.homeN = (s.homeN||0) + 1; goHome(k); }
+    if ((s.fear||0) >= FEAR_TOP){ if (isGen(k) && (s.homeN||0) >= 2 && typeof holdQuit === 'function' && holdQuit(k, 'fear')) continue; s.homeN = (s.homeN||0) + 1; goHome(k); }
   }
 }
 // 집에 가 있는 사람의 자리를 누르면: 언제 오는지 / 둘째로 비운 일반 연구원은 내보낼 수 있음

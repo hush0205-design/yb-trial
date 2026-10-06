@@ -96,7 +96,7 @@ const genKeys = () => Object.keys(S.st).filter(isGen);
 const stOf = k => (S.st[k] = S.st[k] || {});
 const arrived = k => !!(S.st[k] && S.st[k].arr);
 const dusk = () => { const h = gameHour(); return h >= 18 && h < 22; };
-const present = k => arrived(k) && !S.st[k].gone && (k === 'smw' || DEF(k).night || (!isNight() && !(DEF(k).early && dusk())));   // 해 지기 전에 가는 사람은 노을이 들면 먼저 감    // 서명우는 늘 있음(낮엔 눈을 감고 쉼), 밤일 하는 이도 늘 있음
+const present = k => arrived(k) && !S.st[k].gone && !S.st[k].stand && (k === 'smw' || DEF(k).night || (!isNight() && !(DEF(k).early && dusk())));   // 해 지기 전에 가는 사람은 노을이 들면 먼저 감    // 서명우는 늘 있음(낮엔 눈을 감고 쉼), 밤일 하는 이도 늘 있음
 const working = k => arrived(k) && Date.now() - S.st[k].arr > T_PUSH && (k === 'smw' ? isNight() : present(k));
 const deskOwner = d => allKeys().find(k => S.st[k] && S.st[k].desk === d && !S.st[k].gone) || null;
 const freeDesk = () => Object.keys(LAB_DESKS).find(d => S.owned[d] && !deskOwner(d)) || null;
