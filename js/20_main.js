@@ -30,7 +30,7 @@ JUMPS.push(['18. 조사단이 돌아오기 20초 전 (대문 앞으로)', Object
 JUMPS.push(['19. 둘째 대 — 이름 짓기부터 (앞 대: 아무도 오지 않다)', { gen2:true }]);
 JUMPS.push(['20. 일반 연구원 셋이 떠난 뒤 (한 명 더 내보내면 끝남)', Object.assign(JSON.parse(JSON.stringify(JUMPS[14][1])), { genN:6, genNext:-1,
   st: Object.assign(JSON.parse(JSON.stringify(JUMPS[14][1].st)), { g4:{ at:-1, read:true, replied:true, arr:-2, gone:true, quit:-1, fired:true }, g5:{ at:-1, read:true, replied:true, arr:-2, gone:true, quit:-1 }, g6:{ at:-1, read:true, replied:true, arr:-2, gone:true, quit:-1, fired:true } }), omen:{ nobody:true } })]);
-JUMPS.push(['21. 쌀독이 비기 직전 (들어가면 곧 끝남)', Object.assign(JSON.parse(JSON.stringify(JUMPS[14][1])), { genN:3, money:0, riceN:4, riceDay:-1, omen:{ rice:true },
+JUMPS.push(['21. 쌀독이 비기 직전 (들어가면 서안에 빈 편지지 — 돈을 꾸는 편지, 하드면 곧 끝남)', Object.assign(JSON.parse(JSON.stringify(JUMPS[14][1])), { genN:3, money:0, riceN:4, riceDay:-1, omen:{ rice:true },
   st: { g1:{ at:-1, read:true, replied:true, arr:-2, gone:true, quit:-1 }, g2:{ at:-1, read:true, replied:true, arr:-2, gone:true, quit:-1 }, g3:{ at:-1, read:true, replied:true, arr:-2, gone:true, quit:-1 } } })]);
 function jumpGen2(){
   const nm = S.name || '서하';
@@ -41,7 +41,7 @@ function jumpGen2(){
 }
 function jumpTo(i){
   if (JUMPS[i][1] && JUMPS[i][1].gen2) return jumpGen2();
-  const keep = { sur:S.sur || '윤', bon:S.bon, name:S.name || '서하', gahun:S.gahun >= 0 ? S.gahun : 0, opt:S.opt };
+  const keep = { sur:S.sur || '윤', bon:S.bon, name:S.name || '서하', gahun:S.gahun >= 0 ? S.gahun : 0, opt:S.opt, mode:S.mode };   // 빗장(모드)도 그대로 — 둘째 대에서 구간을 옮길 때 다시 묻지 않게
   resetting = true;
   if (!JUMPS[i][1]) { localStorage.setItem(SAVE, JSON.stringify({ stage:'start', opt:S.opt })); location.reload(); return; }   // 처음부터: 설정만 남김
   const fresh = Object.assign({ stage:'room', pages:0, earned:0, D:0, owned:{}, fear:0, opened:false, letterRead:false, chair:false, glitchDone:false, sideRead:{}, ack:[], teaArrived:false, letterShadow:false }, keep, JSON.parse(JSON.stringify(JUMPS[i][1])));

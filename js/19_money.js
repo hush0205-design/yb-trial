@@ -134,10 +134,11 @@ let dealerKnocked = false;
 function dealerTick(){ if ((S.copies || []).length && S.dealerAt && Date.now() >= S.dealerAt && !S.dealerKnock){ S.dealerKnock = true; save(); knock(S.scene === 'gate' ? 1 : 0.5); } }
 function sellCopies(){
   const cs = S.copies || [], sum = Math.round(cs.reduce((a, c) => a + COPY[c].price, 0) * gahunK('copy'));   // 가훈 「곡간을 먼저 채워라」
-  openOv(`<h3>세책점 거간</h3>장터 세책점에서 왔다며 사본을 들여다본다.<br><br>${cs.map(c => `${COPY[c].name} — ${fmtM(COPY[c].price * gahunK('copy'))}`).join('<br>')}<br><br>모두 ${fmtM(sum)}을 쳐 주겠다고 한다.`
+  openOv(`<h3>세책점 거간</h3>장터 세책점에서 왔다며 사본을 들여다본다.<br><br>${cs.map(c => `${COPY[c].name} — ${fmtM(COPY[c].price * gahunK('copy'))}`).join('<br>')}<br><br>모두 ${fmtM(sum)}을 쳐 주겠다고 한다.${S.debt ? `<br>그중 ${fmtM(Math.min(S.debt, Math.floor(sum / 2)))}은 외상 갚음으로 뗀다.` : ''}`
     + '<div style="text-align:center;margin-top:12px"><button class="btn rec" id="bSell" style="color:var(--ink);border-color:#00000066">넘긴다</button></div>');
   document.getElementById('bSell').addEventListener('click', ev => { ev.stopPropagation();
-    S.money = (S.money||0) + sum; ledger(`사본 ${cs.length}권을 세책점에 넘김 + ${fmtM(sum)}`); S.copies = []; S.dealerAt = 0; S.dealerKnock = false; S.soldN = (S.soldN||0) + cs.length; save();
+    const debtPay = Math.min(S.debt || 0, Math.floor(sum / 2)); S.debt = (S.debt || 0) - debtPay;   // 외상(19_rebirth): 갚을 때까지 사본 값의 절반을 뗌
+    S.money = (S.money||0) + sum - debtPay; ledger(`사본 ${cs.length}권을 세책점에 넘김 + ${fmtM(sum - debtPay)}${debtPay ? ` (외상 갚음 ${fmtM(debtPay)} 뗌${S.debt ? `, 남은 외상 ${fmtM(S.debt)}` : ', 외상을 다 갚음'})` : ''}`); S.copies = []; S.dealerAt = 0; S.dealerKnock = false; S.soldN = (S.soldN||0) + cs.length; save();
     ov.classList.add('hidden'); noise(0.08, 3000, 0.04); setTimeout(() => noise(0.06, 2600, 0.03), 90); setTimeout(() => noise(0.08, 2800, 0.03), 200);
     if (typeof tlog === 'function') tlog('사본 팜 ' + fmtM(sum));
     if (S.steward) return;

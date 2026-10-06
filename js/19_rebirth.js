@@ -132,7 +132,53 @@ function showStand(){
   document.getElementById('bStGo').addEventListener('click', ev => { ev.stopPropagation(); ov.classList.add('hidden'); standLeave(); });
 }
 const STAND_DOLLS = {};
-function standDolls(){
+// ── 쌀독의 안전장치(기본 모드, 10/7 선생님): 닷새째가 되는 순간 끝내지 않고 서안에 빈 편지지 — 가주가 돈을 꾸어 달라는 편지를 보냄 ──
+// 받는 이: 가문에서 처음엔 먼 일가(빚 없음, 대신 경고 한 줄, 다시는 안 도움) → 그다음 대부터는 세책점(빚 — 사본 값에서 절반씩, 기획서 14-4 ③).
+// 안 쓰고 두면 들어와 계신 동안 3분 뒤 끝. 보내면 1분 뒤 답장과 엽전 1냥, 쌀독 날수는 처음으로. 한 대에 한 번, 하드엔 없음.
+const CREDIT = 100, LOAN_REPLY_MS = 60000;
+const loanTo = () => LINE.loanKin ? 'dealer' : 'kin';
+function riceReach(L){
+  if (S.mode === 'hard' || S.creditUsed) return L;
+  S.creditUsed = true; S.credit = { ms:0, to: loanTo() };
+  pushNote('<h3>쪽지</h3>' + vlet(['가주께.', '오늘 아침 쌀독이 비었습니다.', '서안에 편지지를 펴 두었습니다.', S.credit.to === 'kin' ? '먼 일가 어른께라도 한 줄 넣어 보심이 어떨지요.' : '부끄러운 일이나, 세책점에라도 넣어 보셔야겠습니다.'], '한서진 올림.', 'min(46vh,330px)'));
+  if (typeof tlog === 'function') tlog('쌀독이 빔 — 서안에 편지지'); save(); sPlace();
+  return L - 1;
+}
+function creditTick(dt){
+  if (!S.credit) return;
+  if (S.credit.sent){ if (Date.now() - S.credit.sent >= LOAN_REPLY_MS) loanReply(); return; }
+  S.credit.ms += dt * 1000;
+  if (S.credit.ms >= STAND_MS) creditEnd();
+}
+function creditEnd(){ S.credit = null; S.riceN = END.rice.lim(); if (typeof tlog === 'function') tlog('돈을 꾸는 편지를 쓰지 않음'); save(); }
+function showLoan(){
+  const kin = S.credit.to === 'kin';
+  const body = kin ? ['일가 어른께.', '오래 소식 드리지 못했습니다.', '집안 서고를 다시 열었으나', '쌀독이 비어 사람들을 먹일 길이 없습니다.', '엽전 한 냥만 꾸어 주시면', '서고가 일어서는 대로 갚겠습니다.']
+                   : ['세책점 주인께.', '사본을 넘기던 집입니다.', '쌀독이 비어 염치없이 청합니다.', '엽전 한 냥을 꾸어 주시면', '다음 사본들로 갚겠습니다.'];
+  openOv('<h3>편지</h3><div style="font-size:12px;opacity:.6;margin-bottom:6px">서안에 펴 둔 편지지. 쓸 말은 정해져 있다.</div>' + vlet(body, esc(S.sur + S.name), 'min(50vh,360px)')
+    + '<div style="text-align:center;margin-top:12px"><button class="btn rec" id="bLoan" style="color:var(--ink);border-color:#00000066">보낸다</button></div>');
+  document.getElementById('bLoan').addEventListener('click', ev => { ev.stopPropagation();
+    S.credit.sent = Date.now(); save(); ov.classList.add('hidden'); sPlace(); sFlip();
+    if (typeof tlog === 'function') tlog('돈을 꾸는 편지를 보냄 — ' + (kin ? '먼 일가' : '세책점')); });
+}
+function loanReply(){
+  const kin = S.credit.to === 'kin';
+  S.money = (S.money || 0) + CREDIT; S.riceN = 0; S.credit = null;
+  if (kin){
+    LINE.loanKin = true; saveLine(); ledger(`먼 일가에서 엽전 ${fmtM(CREDIT)}을 부쳐 옴 — 갚지 말라 함`);
+    pushNote('<h3>답장</h3>' + vlet(['보낸 글 받았다.', '엽전 한 냥을 부친다. 갚을 생각은 마라.', '다만 서고를 다시 열었다는 말은 듣기 좋지 않다.', '궤짝 속 그 책은 덮어 두어라.', '네 윗대 어른 하나도 그 책 때문에 집을 비웠다.', '다시는 이 일로 편지하지 마라.'], esc(`${LINE.bon || ''} ${LINE.sur}씨 일가`) + ' 적음.', 'min(52vh,380px)'));
+  } else {
+    S.debt = (S.debt || 0) + CREDIT; ledger(`세책점에서 외상 ${fmtM(CREDIT)} — 사본 값에서 절반씩 갚음`);
+    pushNote('<h3>답장</h3>' + vlet(['보내신 글 받았소.', '엽전 한 냥을 놓소.', '갚는 건 사본으로 하시오.', '다음 사본부터 값의 절반을 떼겠소.'], '세책점 ' + alienHtml(glyphs('주인', 63)) + ' 적음.', 'min(44vh,320px)'));
+  }
+  noise(0.08, 3000, 0.04); setTimeout(() => noise(0.06, 2600, 0.03), 90);
+  if (typeof tlog === 'function') tlog('돈을 꾼 답장이 옴 — ' + (kin ? '먼 일가' : '세책점')); save(); sPlace();
+}
+// 서안 위 빈 편지지(서안이 없으면 바닥에)
+OBJ.push({ id:'loanPaper', x:3, y:7, z:8, rot:0.15, m:()=>'letter', on:()=>'desk', onOrder:0.02, show:()=> !!S.owned.desk && !!S.credit && !S.credit.sent, click:()=>showLoan(), glow:()=>true },
+         { id:'loanPaper2', x:6, y:10, rot:0.15, m:()=>'letter', show:()=> !S.owned.desk && !!S.credit && !S.credit.sent, click:()=>showLoan(), glow:()=>true });
+function standDolls(){ return standDolls0(); }
+function standDolls0(){
   if (!S.stand || !S.st[S.stand.k] || !S.st[S.stand.k].stand) return [];
   const k = S.stand.k;
   if (!STAND_DOLLS[k]){ const d = dollFor(k);
@@ -148,12 +194,13 @@ function riceTick(){
   const broke = !!S.bangAt && (S.money || 0) < 30 && !genKeys().some(k => S.st[k] && S.st[k].arr && !S.st[k].gone);
   let n = broke ? (S.riceN || 0) + days : 0; const L = END.rice.lim();
   if (n >= L && holdEnd()){ n = L - 1; S.riceOwed = true; }        // 기본: 마지막 하루는 들어와 있을 때 셈
+  else if (n >= L) n = riceReach(L);
   S.riceN = n; save();
 }
 function riceOwedTick(){                                            // 돌아와 1분 넘게 머물렀는데도 여전히 궤짝이 바닥·별채가 비었으면 그 하루를 셈
   if (!S.riceOwed || holdEnd() || performance.now() - LOAD_T < 68000) return;
   S.riceOwed = false;
-  if (!!S.bangAt && (S.money || 0) < 30 && !genKeys().some(k => S.st[k] && S.st[k].arr && !S.st[k].gone)) S.riceN = END.rice.lim();
+  if (!!S.bangAt && (S.money || 0) < 30 && !genKeys().some(k => S.st[k] && S.st[k].arr && !S.st[k].gone)) S.riceN = riceReach(END.rice.lim());
   save();
 }
 function endTick(){
@@ -165,7 +212,7 @@ function endTick(){
     if (v >= L){ endGame(id); return; }
   }
 }
-HOOK.tick.push(dt => { if (S.stage !== 'room' || S.ended) return; standTick(dt); genInit(); traceTick(); againTick(); againNote(); riceTick(); riceOwedTick(); endTick(); });
+HOOK.tick.push(dt => { if (S.stage !== 'room' || S.ended) return; standTick(dt); creditTick(dt); genInit(); traceTick(); againTick(); againNote(); riceTick(); riceOwedTick(); endTick(); });
 
 // ── 끝 ──
 function endGame(id){
