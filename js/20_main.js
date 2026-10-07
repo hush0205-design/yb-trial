@@ -151,10 +151,10 @@ const LAST = 'yeobaek_last_name';   // 둘째 대부터는 지난 이름 대신 
 (() => { try { const l = JSON.parse(localStorage.getItem(LAST) || 'null'); if (l && LINE.gen <= 17) { iSur.placeholder = l.sur; iBon.placeholder = l.bon || iBon.placeholder; iName.placeholder = l.name; } } catch(_){} })();
 document.getElementById('bWrite').onclick = () => {
   const val = el => el.value.trim() || el.placeholder;
-  const sur = val(iSur), nm = val(iName);
+  const sur = val(iSur), nm = val(iName), typed = !!iName.value.trim();
   try { localStorage.setItem(LAST, JSON.stringify({ sur, bon: val(iBon), name: nm })); } catch(_){}
   if (!/^[가-힣]{1,2}$/.test(sur) || !/^[가-힣]{1,3}$/.test(nm)) { document.getElementById(!/^[가-힣]{1,2}$/.test(sur)?'iSur':'iName').focus(); return; }
-  S.sur = sur; S.name = nm; S.bon = val(iBon); sFlip();
+  S.sur = sur; S.name = nm; S.bon = val(iBon); S.bookNamed = LINE.gen > 17 && !typed; sFlip();   // 흐리게 적혀 있던 이름을 그대로 둠 → 기이록(19_odd, 기획서 20절 4)
   if (LINE.gen <= 17){ S.gahun = 0; save(); enterRoom(); }          // 1대: 가훈을 고르지 않음 — 벽에 이미 걸려 있음(환생 명세 10-10)
   else { S.stage = 'gahun'; save(); scr('sGahun'); }
   if (LINE.gen <= 17 && !LINE.jokbo.length){ LINE.sur = S.sur; LINE.bon = S.bon; saveLine(); }

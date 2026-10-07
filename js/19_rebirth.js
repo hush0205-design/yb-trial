@@ -141,6 +141,7 @@ function endScene(E, was, got){
         <p class="el">${got.firstCodex ? '가환록(家患錄)을 새로 매어 서안 곁 문서함에 둔다. 첫 줄이 적혔다.' : '가환록에 한 줄이 더 적혔다.'}</p>
         ${got.newGahun != null ? `<p class="el">가훈 하나가 풀렸다 — 「${GAHUN[got.newGahun].t}」</p>` : ''}
         <p class="el">다음 대에 남길 것: ${got.relic ? esc(RELIC[got.relic].name) : '없음'}${got.gotKey ? ' · 그리고 대문 열쇠 하나' : ''}</p>
+        <div class="el" style="margin-top:14px;font-size:13px"><span style="opacity:.75">족보 여백에 한 줄 —</span> <span style="font-size:11px;opacity:.5">(다음 대가 읽는다. 비워 두어도 된다)</span><br><input id="iLast" maxlength="14" autocomplete="off" placeholder="　" style="font:inherit;font-size:15px;background:transparent;border:none;border-bottom:1px solid #00000055;color:var(--ink);padding:2px 4px;width:15em;outline:none;margin-top:4px"></div>
         <div class="el" style="text-align:center;margin-top:16px"><button class="btn" id="bNextGen" style="color:var(--ink);border-color:#00000066">${genHj(LINE.gen)}世를 적는다</button></div>
       </div></div>`, 99999);
     const w = el.querySelector('.writing'), txt = Array.from(cur.end); let i = 0;
@@ -148,7 +149,11 @@ function endScene(E, was, got){
         el.querySelectorAll('.after .el').forEach((p, k) => setTimeout(() => p.classList.add('on'), 700 + k * 1100)); return; }
       w.textContent += txt[i++]; noise(0.12, 900, 0.05, 'bandpass'); }, 380);
     setTimeout(() => sFlip(), 300);
-    el.querySelector('#bNextGen').addEventListener('click', ev => { ev.stopPropagation(); location.reload(); });
+    const inp = el.querySelector('#iLast'); inp.addEventListener('keydown', e => e.stopPropagation());
+    el.querySelector('#bNextGen').addEventListener('click', ev => { ev.stopPropagation();
+      const v = (inp.value || '').trim().slice(0, 14);                                   // 앞 대의 한 줄(기획서 20절 1) — 가문 기록은 이미 저장됐으므로 바로 다시 씀
+      if (v){ cur.last = v; localStorage.setItem(LINE_KEY, JSON.stringify(LINE)); }
+      location.reload(); });
   }
 }
 

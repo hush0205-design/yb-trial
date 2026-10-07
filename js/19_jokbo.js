@@ -15,7 +15,8 @@ function jokboOldRows(view){
     return `<div class="row"><span class="gen">${genHj(g)}世</span><span class="jn ${kind}">${name}</span>${read && deed ? `<span class="jd">— ${deed}</span>` : ''}</div>`;
   }).join('');
 }
-const jokboLineRows = (cur, view) => LINE.jokbo.map(j => `<div class="row"><span class="gen">${genHj(j.gen)}世</span><span>${esc(LINE.sur + j.name)} — <span class="${j === cur ? 'writing' : ''}">${j === cur ? '' : esc(j.end)}</span>${view ? `<span class="jd">(${j.days}일, 가훈 「${GAHUN[j.gahun] ? GAHUN[j.gahun].t : '—'}」${j.mode === 'hard' ? ', 빗장을 열어 둔 채' : ''})</span>` : ''}</span></div>`).join('');
+const jokboLast = j => j.last ? `<div class="row jlast"><span class="gen"></span><span class="jd" style="font-style:italic;opacity:.85;margin:0">「${esc(j.last)}」</span></div>` : '';   // 앞 대가 족보 여백에 남긴 한 줄(기획서 20절 1)
+const jokboLineRows = (cur, view) => LINE.jokbo.map(j => `<div class="row"><span class="gen">${genHj(j.gen)}世</span><span>${esc(LINE.sur + j.name)} — <span class="${j === cur ? 'writing' : ''}">${j === cur ? '' : esc(j.end)}</span>${view ? `<span class="jd">(${j.days}일, 가훈 「${GAHUN[j.gahun] ? GAHUN[j.gahun].t : '—'}」${j.mode === 'hard' ? ', 빗장을 열어 둔 채' : ''})</span>` : ''}</span></div>` + (j === cur ? '' : jokboLast(j))).join('');
 function jokboSheetHtml(){
   const book = S.D >= J0 ? '<div class="bsec">첫 책의 족보 장 — 받아 적은 만큼</div><div style="font-size:14px">' + Array.from({ length: 11 }, (_, k) => alienHtml(showText(11 + k))).join('<br>') + '</div>' : '';
   return (`<h3>族譜 — ${esc((LINE.bon || S.bon || '') + ' ' + (LINE.sur || S.sur))}씨</h3><div class="jsheet">${jokboOldRows(true)}${jokboLineRows(null, true)}<div class="row"><span class="gen">${genHj(LINE.gen)}世</span><span>${esc((LINE.sur || S.sur) + S.name)} —</span></div></div>` + book);
@@ -36,7 +37,7 @@ function rebirthJokbo(){
   if (LINE.gen <= 17) return;
   const box = document.querySelector('#sJokbo .hanji'), rows = [...box.querySelectorAll('.row')];
   const r17 = rows.find(r => r.querySelector('.gen') && r.querySelector('.gen').textContent === '十七世');
-  const past = LINE.jokbo.slice(-4).map(j => `<div class="row"><span class="gen">${genHj(j.gen)}世</span><span>${esc(LINE.sur + j.name)} — ${esc(j.end)}</span></div>`).join('');
+  const past = LINE.jokbo.slice(-4).map(j => `<div class="row"><span class="gen">${genHj(j.gen)}世</span><span>${esc(LINE.sur + j.name)} — ${esc(j.end)}</span></div>` + jokboLast(j)).join('');
   r17.outerHTML = (LINE.jokbo.length > 4 ? '<div class="row faint"><span class="gen">…</span></div>' : '') + past + `<div class="row"><span class="gen">${genHj(LINE.gen)}世</span></div>`;
   iSur.value = LINE.sur; iBon.value = LINE.bon;
   const sr = iSur.closest('.row'); sr.style.display = 'none';

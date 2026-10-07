@@ -16,6 +16,7 @@ const ODD = [   // [id, 기이록 한 줄(가주의 글씨), 어려움]
   ['margin', '문진으로 비추니 여백에 아주 작은 글씨. 내 이름이 적혀 있었다.', '어려움'],
   ['rabbit', '지도 바다 끝, 문진으로만 보이는 두 글자 — 토끼.', '어려움'],
   ['roster13', '명부에 한 사람이 더 있다. 읽을 수 없는 이름.', '어려움'],
+  ['named',  '내 이름을 내가 짓지 않았다. 족보에 먼저 적혀 있던 이름을 그대로 두었다.', '보통'],   // 둘째 대부터, 흐린 이름을 그대로 적으면(20_main)
 ];
 const ODD_N = ODD.length;
 const oddCount = () => Object.keys(LINE.odd || {}).filter(id => ODD.some(o => o[0] === id)).length;
@@ -46,6 +47,11 @@ afterEl.addEventListener('click', () => { if (afterEl.classList.contains('go')){
 { const g0 = goScene; goScene = function(sc){ g0(sc);
     if (sc === 'gate' && S.knock3At && Date.now() - S.knock3At < 90000){ S.knock3At = 0; save(); notice('knock3');
       setTimeout(() => queueOv('<h3>대문 밖</h3>아무도 없다. 골목 끝까지 비어 있다.<br>대문 문고리가 아직 흔들리고 있다.'), 800); } }; }
+
+HOOK.tick.push(() => {                                        // 책이 지어 준 이름: 서고에 들어와 빗장까지 고른 뒤 조용할 때
+  if (!S.bookNamed || S.stage !== 'room' || !S.mode || !ov.classList.contains('hidden')) return;
+  S.bookNamed = false; save(); notice('named');
+});
 
 // ── 서랍: 새 '종류'의 기록에만, 하루 한 번 ──
 const recKinds = () => [...new Set(buildRecs().map(r => r[0].split(' — ')[0].replace(/ \(.*\)$/, '')))];

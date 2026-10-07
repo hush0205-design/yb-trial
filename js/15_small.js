@@ -27,7 +27,25 @@ function ambLoopsStart(){
     else { const el = new Audio('snd/' + n + '.mp3'); el.loop = true; el.volume = 0; el.play().catch(() => {}); AMBL[k] = { set: v => { el.volume = Math.max(0, Math.min(1, v)); } }; }
   }
 }
-['pointerdown', 'keydown'].forEach(ev => document.addEventListener(ev, () => { startAmb(); ambLoopsStart(); }, { once:true }));
+// 파도 겹쳐 쓰기(10/7 선생님 "여러 파도 소리를 섞어 자연스럽게"): 먼 바다는 amb_sea를 바닥으로 작게 깔고, 그 위에 낱파도(snd/wave1~5 — 한 파도가 밀려왔다 빠지는 5초)를
+// 5~12초 간격으로 무작위 하나씩 — 크기·높낮이·좌우 자리를 조금씩 다르게. 49초짜리 녹음이 되풀이되는 느낌이 없어짐. 대문 밖에선 낱파도가 가깝게(크게).
+const WAVE_N = 5, WAVE_BUF = {}, WAVE_EL = {};
+let waveNext = 0;
+function waveLoad(){
+  for (let i = 1; i <= WAVE_N; i++){ const n = 'wave' + i; if (WAVE_BUF[n] || WAVE_EL[n]) continue;
+    if (SND_WEB){ const a = ac(); if (!a) return; fetch('snd/' + n + '.mp3').then(r => r.arrayBuffer()).then(b => a.decodeAudioData(b)).then(buf => { WAVE_BUF[n] = buf; }).catch(() => {}); }
+    else { const el = new Audio('snd/' + n + '.mp3'); el.preload = 'auto'; WAVE_EL[n] = el; } }
+}
+function waveOne(vol){
+  const n = 'wave' + (1 + Math.floor(Math.random() * WAVE_N)), rate = 0.9 + Math.random() * 0.2;
+  if (SND_WEB){ const a = ac(), buf = WAVE_BUF[n]; if (!a || !buf) return;
+    const src = a.createBufferSource(), g = a.createGain(); src.buffer = buf; src.playbackRate.value = rate; g.gain.value = vol; src.connect(g);
+    let last = g; if (a.createStereoPanner){ const p = a.createStereoPanner(); p.pan.value = (Math.random() - 0.5) * 0.7; g.connect(p); last = p; }
+    last.connect(a.destination); src.start(); return; }
+  const base = WAVE_EL[n]; if (!base || base.error) return;
+  const el = base.cloneNode(); el.volume = Math.max(0, Math.min(1, vol)); el.playbackRate = rate; el.preservesPitch = false; el.play().catch(() => {});
+}
+['pointerdown', 'keydown'].forEach(ev => document.addEventListener(ev, () => { startAmb(); ambLoopsStart(); waveLoad(); }, { once:true }));
 const seaNear = () => !!(S.goRead || (S.dig && S.dig.n) || (S.mapFound && (S.mapStudy || 0) >= 999));   // 바닷가 일이 시작된 뒤
 function cricket(){
   const a = amb.a, t = a.currentTime, o = a.createOscillator(), g = a.createGain();
@@ -44,10 +62,19 @@ setInterval(() => {
   const h = gameHour(), out = S.scene === 'gate', dusk = h >= 19 || h < 5;
   if (AMBL.wind) AMBL.wind.set(on * (out ? 0.16 : 0.07) * (0.8 + 0.2*Math.sin(t*0.13)));          // 대문 밖에선 바람이 더 큼
   if (AMBL.night) AMBL.night.set(on * (dusk ? (out ? 0.16 : 0.09) : 0));
-  if (AMBL.sea) AMBL.sea.set(on * (seaNear() ? (out ? 0.13 : 0.06) : 0));
+  if (AMBL.sea) AMBL.sea.set(on * (seaNear() ? (out ? 0.08 : 0.035) : 0));                                 // 바닥: 먼 바다(낱파도 밑에 깔림)
+  if (on && seaNear() && Date.now() >= waveNext){ waveNext = Date.now() + 5000 + Math.random() * 7000; waveOne((out ? 0.24 : 0.11) * (0.7 + Math.random() * 0.6)); }   // 낱파도 하나
   if (!on) return;
   // 풀벌레·개 짖는 소리는 합성음이 '삐비빅'처럼 들려 끔(10/7 선생님) — 진짜 녹음을 구하면 다시
 }, 1000);
+
+// 문 없는 문(기획서 20절 2, 10/8): 서고 뒷벽, 창과 뒷문 사이에 아주 희미한 문 윤곽 — 첫 책을 풀수록 진해짐(불투명도 = 해독도). 열세 번째 방의 문 자리, 엔딩에서 열림. 설명 없음.
+M.ghostDoor = model(8, 1, 20, (x, y, z) => (x === 0 || x === 7 || z === 19) ? '#7a6a52' : (z === 0 ? '#5a4a38' : null));
+const doorRatio = () => Math.min(1, (S.D || 0) / T.jEnd);
+OBJ.push({ id:'ghostDoor', x:18, y:-25.5, rot:0, m:()=>'ghostDoor', show:()=> !!S.owned.lamp && doorRatio() > 0.05, alpha:()=> 0.03 + 0.55 * doorRatio(),
+  click:()=> openOv('<h3>벽</h3>' + (doorRatio() < 0.35 ? '벽에 희미한 자국이 있다. 문틀 모양인 것도 같고, 벽지가 바랜 것도 같다.'
+    : doorRatio() < 0.8 ? '벽에 문틀 모양의 자국. 처음 볼 때보다 또렷해졌다.<br>문고리 자리는 없다. 손을 대니 서늘하다.'
+    : '문의 윤곽이 또렷하다. 문짝도 문고리도 없이 틀만 있다.<br>손을 대니 서늘하다. 벽 너머에서 종이 넘기는 소리가 나는 것도 같다.')) });
 
 // 세 번 두드림: 편지는 늘 두 번 두드리는데, 한서진이 온 뒤 어느 밤 세 번 — 문 앞엔 아무것도 없고 기록도 남지 않음(1대에 두 번까지)
 setInterval(() => {

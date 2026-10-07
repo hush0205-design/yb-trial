@@ -2,3 +2,4 @@
 - amb_crickets: Night cricket ambience (pixabay.com/sound-effects/nature-night-cricket-ambience-22484/)
 - amb_wind: Soft Wind (pixabay.com/sound-effects/nature-soft-wind-318856/)
 - amb_sea: Sea Waves (pixabay.com/sound-effects/nature-sea-waves-169411/) — 10/7 바꿈(옛 것: Gentle Ocean Shore Waves)
+- wave1~5: 낱파도 조각(각 5.4초). 10/8 '소리 후보\se1.mp3'(Pixabay 바다 녹음 후보, 10/7 받은 것)에서 파도 하나가 밀려왔다 빠지는 자리 다섯 곳(8초·37초·56초·69초·86초 부근)을 잘라 6kHz 위를 깎고 음량을 맞춘 것. 15_small에서 5~12초마다 하나씩 무작위로 틀어 amb_sea(바닥) 위에 겹침.
