@@ -216,3 +216,6 @@
 .jd { font-size:13px; opacity:.75; margin-left:6px; }
 .jsheet .row { margin:8px 0; }
 .bwhy { font-size:14px; line-height:1.8; margin:0 0 10px; opacity:.85; }
+/* 기이록 (10/7) */
+.oddL { margin:8px 0; padding-bottom:6px; border-bottom:1px solid #00000014; font-style:italic; color:#3a2a1c; }
+.oddL.empty { min-height:1.4em; }

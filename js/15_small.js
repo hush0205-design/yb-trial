@@ -52,7 +52,7 @@ setInterval(() => {
 // 세 번 두드림: 편지는 늘 두 번 두드리는데, 한서진이 온 뒤 어느 밤 세 번 — 문 앞엔 아무것도 없고 기록도 남지 않음(1대에 두 번까지)
 setInterval(() => {
   if (S.stage !== 'room' || !S.rArrived || !isNight() || (S.knock3 || 0) >= 2 || Math.random() > 0.06) return;
-  S.knock3 = (S.knock3 || 0) + 1; save();
+  S.knock3 = (S.knock3 || 0) + 1; S.knock3At = Date.now(); save();   // 1분 반 안에 대문에 나가 보면 기이록(19_odd)
   [0, 260, 520].forEach(ms => setTimeout(() => noise(0.12, 110, 0.4, 'lowpass'), ms));
 }, 60000);
 

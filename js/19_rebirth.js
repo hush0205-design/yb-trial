@@ -299,12 +299,13 @@ M.docbox = model(9, 6, 5, (x, y, z) => {
   if (y === 5 && x === 4 && z === 2) return '#c8a85e';
   return z === 3 ? '#2a1a10' : '#3a2416';
 });
-OBJ.push({ id:'docbox', x:-12, y:12, rot:0.15, show:()=> LINE.jokbo.length > 0, click:()=>showDocbox() });
+OBJ.push({ id:'docbox', x:-12, y:12, rot:0.15, show:()=> LINE.jokbo.length > 0 || (!!S.owned.desk && (Object.keys(LINE.odd || {}).length > 0 || (typeof glHas === 'function' && glHas()))), click:()=>showDocbox() });   // 1대엔 기이록·낱말 장부가 생기면
 function showDocbox(){
-  openOv('<h3>문서함</h3><div style="font-size:12px;opacity:.6;margin-bottom:8px">앞 대들이 남긴 것. 책장에 꽂지 않고 서안 곁에 둔다.</div>'
-    + [['dJ', '집안 족보 — 대마다 한 줄'], ['dC', '가환록(家患錄)'], ['dG', '가훈첩(家訓帖)'], ['dR', '유품 — ' + LINE.relics.map(r => RELIC[r] ? RELIC[r].name : r).join(' · ')]]
+  openOv('<h3>문서함</h3><div style="font-size:12px;opacity:.6;margin-bottom:8px">' + (LINE.jokbo.length ? '앞 대들이 남긴 것.' : '집안의 기록을 모아 두는 함.') + ' 책장에 꽂지 않고 서안 곁에 둔다.</div>'
+    + [['dJ', '집안 족보 — 대마다 한 줄'], ...(Object.keys(LINE.codex).length ? [['dC', '가환록(家患錄)']] : []), ...(typeof oddCount === 'function' && oddCount() ? [['dO', '기이록(奇異錄)']] : []), ...(typeof glHas === 'function' && glHas() ? [['dW', '낱말 장부']] : []), ['dG', '가훈첩(家訓帖)'], ...(LINE.relics.length ? [['dR', '유품 — ' + LINE.relics.map(r => RELIC[r] ? RELIC[r].name : r).join(' · ')]] : [])]
       .map(([id, t]) => `<div class="rec" id="${id}" style="margin:8px 0">${t}</div>`).join(''));
-  const on = (id, f) => document.getElementById(id).addEventListener('click', ev => { ev.stopPropagation(); f(); });
+  const on = (id, f) => { const el = document.getElementById(id); if (el) el.addEventListener('click', ev => { ev.stopPropagation(); f(); }); };
+  on('dO', () => openOv(oddHtml())); on('dW', () => openOv(recGloss()));
   on('dJ', () => showJokboSheet());
   on('dC', () => openOv('<h3>가환록(家患錄)</h3><div style="font-size:12px;opacity:.6;margin-bottom:8px">집안에 든 우환을 대마다 적어 둔 책. 겪은 일만 적혀 있다.</div>'
     + Object.keys(LINE.codex).map(id => `<div style="margin:12px 0"><b>${END[id] ? END[id].name : id}</b>${LINE.codex[id].n > 1 ? ` <span style="font-size:12px;opacity:.55">— ${LINE.codex[id].n}번</span>` : ''}<br>${esc(LINE.codex[id].line)}${END[id] && END[id].only ? `<div style="font-size:13px;margin-top:6px">${END[id].only()}</div>` : ''}</div>`).join('')));

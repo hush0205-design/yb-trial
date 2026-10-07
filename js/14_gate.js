@@ -43,7 +43,8 @@ M.mungap = mungapModel(false); M.mungapOpen = mungapModel(true);
 
 // 문갑에 새 기록이 있나: 기록 목록·일지 수·낱말 정리 수로 '본 적 있는 상태'를 비교
 const libSig = () => buildRecs().map(r => r[0].replace(/ — 새로.*$/, '')).join('|') + '#' + diaryCount() + '#' + ['smw', 'ojr'].map(k => staffDiary(k).length).join(',') + '#' + (S.gl.fresh||0) + '#' + (S.whyLog || []).length + '#' + (S.sideLog || []).length;
-const libNew = () => S.D >= T.door && libSig() !== S.libSig;
+// 10/7(기획서 18-1): 새 '종류'의 기록이 처음 생길 때만, 하루 한 번까지 + 섬뜩한 서랍(19_odd)
+const libNew = () => S.D >= T.door && (!!S.libGhost || (S.libDay !== dayKey() && recKinds().some(k => !(S.libKinds || []).includes(k))));
 OBJ.push({ id:'mungap', x:16, y:-22, rot:0, m:()=> libNew() ? 'mungapOpen' : 'mungap', show:()=> S.D >= T.door, click:()=>showLibrary() });
 { const d = OBJ.find(o => o.id === 'door'); d.click = () => goScene('gate'); }
 
