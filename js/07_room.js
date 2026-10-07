@@ -308,7 +308,7 @@ function frame(now){
     const lit = lab || gate || (S.owned.lamp && !S.lampOut) ? 1 : 0, out = !lab && !gate && S.owned.lamp && S.lampOut;
     const g = cx.createRadialGradient(ox, oy-20*DPR, Math.min(W,H)*(out ? 0.04 : 0.18+0.12*lit), ox, oy, Math.max(W,H)*(out ? 0.38 : 0.62));
     g.addColorStop(0, out ? 'rgba(8,6,4,0.55)' : 'rgba(8,6,4,0)'); g.addColorStop(1,'rgba(8,6,4,' + (out ? 0.97 : 0.92) + ')'); cx.fillStyle = g; cx.fillRect(0,0,W,H);
-    if (!lab && !gate && !S.owned.lamp){ cx.fillStyle = 'rgba(8,6,4,0.38)'; cx.fillRect(0,0,W,H); }   // 등잔을 들이기 전: 방 전체가 한층 어두움(10/7 선생님)
+    if (!lab && !gate && !S.owned.lamp){ cx.fillStyle = 'rgba(8,6,4,0.58)'; cx.fillRect(0,0,W,H); }   // 등잔을 들이기 전: 방 전체가 한층 어두움(10/7 선생님, 한 번 더 어둡게)
     if (out && lampPt){                                                   // 꺼진 심지의 불씨: 캄캄한 방에서 유일하게 밝은 점, 숨 쉬듯 떨림(어둠 위에 그려 가려지지 않게)
       const [lx, ly] = lampPt, em = 0.55 + 0.45*Math.sin(t*2.3) * Math.sin(t*0.7 + 1);
       const eg = cx.createRadialGradient(lx, ly, 0, lx, ly, 26*DPR); eg.addColorStop(0, `rgba(255,120,50,${0.45*em + 0.2})`); eg.addColorStop(0.4, `rgba(255,90,40,${0.18*em})`); eg.addColorStop(1, 'rgba(255,90,40,0)');

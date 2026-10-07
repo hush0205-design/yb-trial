@@ -122,7 +122,9 @@ function buildLeaf(face, frontHtml, frontBg, backHtml, backBg){
     parent.appendChild(st); parent = st; strips.push(st); shades.push(st.querySelectorAll(':scope > .sface > .sh'));
   }
 }
+let animDone = null;   // 지금 도는 애니메이션의 마무리 — 다른 넘김이 끼어들어 취소돼도 반드시 실행(10/7: 책을 펴고 덮는 중에 저절로 넘기기가 끼면 '움직이는 중'이 안 풀려 갇혔음)
 function animateLeaf(dur, done, o = {}){
+  animDone = done;
   const from = o.from ?? 0, to = o.to ?? 180, bendMax = o.bend ?? 85, sign = to >= from ? 1 : -1;
   const t0 = performance.now(); leaf.style.display = 'block';
   const step = now => {
@@ -137,15 +139,18 @@ function animateLeaf(dur, done, o = {}){
       const op = (0.03 + 0.2 * Math.abs(Math.sin(cum * Math.PI / 180))).toFixed(3);
       shades[i].forEach(x => x.style.opacity = op);
     }
-    if (t < 1) anim = requestAnimationFrame(step); else { anim = null; done(); }
+    if (t < 1) anim = requestAnimationFrame(step); else { anim = null; animDone = null; done(); }
   };
   anim = requestAnimationFrame(step);
 }
 function finishTurn(){
-  if (anim) { cancelAnimationFrame(anim); anim = null; }
+  let cut = null;
+  if (anim) { cancelAnimationFrame(anim); anim = null; cut = animDone; }
+  animDone = null;
   leaf.style.display = 'none'; leaf.innerHTML = '';
   if (pending) { pending.el.innerHTML = pending.html; pending.el.style.backgroundImage = pending.bg; pending = null; }
   if (loupeOn) buildLoupe();
+  if (cut && cut !== finishTurn) cut();                     // 끊긴 것이 책 펴기·덮기였으면 그 마무리를 바로(표지·상태를 제자리로)
 }
 function turnPage(slow, fast){
   finishTurn();

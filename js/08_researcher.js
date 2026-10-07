@@ -290,7 +290,7 @@ function tick(now){
     setTimeout(() => queueOv(`<h3>족보</h3>다 풀었다.<br><br>${esc((S.bon||'') + ' ' + S.sur)}씨 ${LINE.gen}세손 ${esc(S.sur + S.name)}.<br>${LINE.gen === 17 ? '18세와 19세는 이름 칸이 비어 있다. 끝난 자리만 적혀 있다.<br>20세 아래로는 아무것도 없다.' : LINE.gen <= 20 ? `${LINE.gen}세 칸에 내 이름이 적혀 있다. 적어 넣은 사람은 없다.<br>끝난 자리는 처음 읽을 때 그대로다.` : '20세 아래로는 아무것도 없다. 내 이름이 들어갈 칸이 없다.'}<br><br>그때 구석의 궤짝에서 무언가 들썩이는 소리가 났다.`), 1200);
     setTimeout(() => { noise(0.25, 90, 0.45, 'lowpass'); setTimeout(() => noise(0.18, 120, 0.3, 'lowpass'), 380); }, 700); }
   if (bookOpen && !bookView.classList.contains('hidden')) { threadPh += threadStir ? dt*5.5 : 0; drawThread(threadStir ? 5 : 0); }
-  if (S.owned.desk && (itemAt('desk') === 'first' || itemAt('desk') === 'dongui') && now - lastAuto > 9000 && now - lastFlip > 4000 && ov.classList.contains('hidden')){ lastAuto = now; flip(true); if (typeof GHOST !== 'undefined'){ GHOST.desk = Date.now(); FLIPT.desk = Date.now() + 500; } }   // 서안의 책이 펼쳐지며 한 장 넘어감(18_flip)
+  if (S.owned.desk && (itemAt('desk') === 'first' || itemAt('desk') === 'dongui') && now - lastAuto > 9000 && now - lastFlip > 4000 && ov.classList.contains('hidden') && !coverBusy){ lastAuto = now; flip(true); if (typeof GHOST !== 'undefined'){ GHOST.desk = Date.now(); FLIPT.desk = Date.now() + 500; } }   // 서안의 책이 펼쳐지며 한 장 넘어감(18_flip)
 }
 function roomNews(){
   const n = [];
