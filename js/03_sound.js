@@ -54,8 +54,9 @@ function play(kind, vol = 0.4, rate = 1){
   el.play().catch(() => {}); return true;
 }
 const vary = () => 0.92 + Math.random() * 0.16;
-function rustle(dur, gain){ if (!play('flip', Math.min(0.35, gain * 1.8), vary())) rustleSynth(dur, gain); }   // 저절로 넘어가는 장·지도 펼침
-const sFlip = () => { if (!play('flip', 0.32, vary())) rustleSynth(0.42, 0.22); };
+const varyLow = () => 0.84 + Math.random() * 0.1;   // 책 넘김은 조금 낮게(10/7 시험자 "날카롭다" — 파일도 3kHz 위를 깎음)
+function rustle(dur, gain){ if (!play('flip', Math.min(0.28, gain * 1.5), varyLow())) rustleSynth(dur, gain); }   // 저절로 넘어가는 장·지도 펼침
+const sFlip = () => { if (!play('flip', 0.26, varyLow())) rustleSynth(0.42, 0.22); };
 const sBoil = () => noise(2.6, 380, 0.09, 'lowpass');
 const sPlace = () => { if (!play('place', 0.28, vary())) noise(0.14, 140, 0.35, 'lowpass'); };
 const sCoin = () => { if (!play('coin', 0.3)) { noise(0.08, 3000, 0.04); setTimeout(() => noise(0.06, 2600, 0.03), 90); } };
