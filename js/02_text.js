@@ -54,21 +54,21 @@ const DLINES = (() => { const L = []; DONGUI_SRC.forEach((p,i) => {
 const PER = 60;
 const BF = { id:'first',  L:()=>LINES,  start:i => lineStart(i), per:60, D:()=>S.D };
 const BD = { id:'dongui', L:()=>DLINES, start:i => i*15, per:25, D:()=>S.dD||0 };
-const curB = () => S.curBook === 'dongui' ? BD : BF;
-const ITEMS = ['first', 'dongui', 'map'];
-const INAME = { first:'제목 없는 책', dongui:'동의보감 三', map:'지도' };
+const curB = () => S.curBook === 'dongui' ? BD : S.curBook === 'wet' ? BW : BF;   // BW = 젖은 장(19_sea)
+const ITEMS = ['first', 'dongui', 'map', 'wet'];
+const INAME = { first:'제목 없는 책', dongui:'동의보감 三', map:'지도', wet:'젖은 책 조각' };
 function ensureLoc(){
   if (S.loc) return;
   S.loc = { first: S.owned.desk ? 'desk' : 'desk', dongui: S.rArrived ? 'shelf' : null, map: S.mapFound ? 'shelf' : null };   // 동의보감 三은 한서진이 들고 옴(10/7)
   if (S.curBook === 'dongui') { S.loc.dongui = 'desk'; S.loc.first = 'shelf'; }
 }
 const itemAt = where => ITEMS.find(k => S.loc && S.loc[k] === where) || null;
-const itemModel = id => id === 'map' ? 'mapFold' : (id === 'dongui' || id === 'c_dongui') ? 'bookDongui' : 'bookFirst';
+const itemModel = id => id === 'map' ? 'mapFold' : id === 'wet' ? 'wetLeaf' : (id === 'dongui' || id === 'c_dongui') ? 'bookDongui' : 'bookFirst';
 const dropAt = {};
 function dropZ(where){ const e = (performance.now() - (dropAt[where] || -1e9)) / 420; return e >= 1 ? 0 : Math.pow(1 - e, 2) * 16; }   // 위에서 내려앉는 높이
 function placeItem(id, where){                        // 놓던 자리에 다른 것이 있으면 책장으로 돌려놓음
   if (where === 'desk' || where === 'rdesk'){ dropAt[where] = performance.now(); setTimeout(() => noise(0.18, 150, 0.35, 'lowpass'), 400); }
-  const prev = itemAt(where); if (prev && prev !== id) S.loc[prev] = 'shelf';
+  const prev = itemAt(where); if (prev && prev !== id) S.loc[prev] = prev === 'wet' ? 'box' : 'shelf';   // 젖은 장은 바다 궤로
   S.loc[id] = where; save();
 }
 const bDone = (b, i) => b.start(i) + (b.L()[i].length-1)*b.per;

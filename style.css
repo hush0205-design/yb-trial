@@ -219,3 +219,6 @@
 /* 기이록 (10/7) */
 .oddL { margin:8px 0; padding-bottom:6px; border-bottom:1px solid #00000014; font-style:italic; color:#3a2a1c; }
 .oddL.empty { min-height:1.4em; }
+  /* 젖은 장(19_sea): 물에 불었다 마른 얼룩 */
+  #book.wetb .face::after { content:''; position:absolute; inset:0; pointer-events:none;
+    background:radial-gradient(ellipse at 30% 70%, #4e6a6a2e 0, #0000 45%), radial-gradient(ellipse at 75% 25%, #3a52521f 0, #0000 38%), linear-gradient(#5a6a6a14, #5a6a6a14); }

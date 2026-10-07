@@ -34,7 +34,7 @@ function errPos(w){
   const t = e / d, l = Math.hypot(st.b[0] - st.a[0], st.b[1] - st.a[1]) || 1;
   return { x: lerp(st.a[0], st.b[0], t), y: lerp(st.a[1], st.b[1], t), pose:'walk', f: [(st.b[0] - st.a[0]) / l, (st.b[1] - st.a[1]) / l], chair: out };
 }
-function errCarry(D){ const w = dKey(D), n = errNow(w); if (!n || !n.st.carry || n.st.k === 'up' || n.st.k === 'down') return null; if ((n.st.act === 'potPut' || n.st.act === 'shelfPut' || n.st.act === 'deskPut' || n.st.act === 'packIn') && S.errs[w].acted === n.i) return null; return n.st.carry; }
+function errCarry(D){ const w = dKey(D), n = errNow(w); if (!n || !n.st.carry || n.st.k === 'up' || n.st.k === 'down') return null; if ((n.st.act === 'potPut' || n.st.act === 'shelfPut' || n.st.act === 'deskPut' || n.st.act === 'packIn' || n.st.act === 'boxPut') && S.errs[w].acted === n.i) return null; return n.st.carry; }
 { const sj0 = sjState; sjState = function(){ return errPos('sj') || sj0(); }; }
 
 // 심부름 끝에 일어나는 일

@@ -200,11 +200,16 @@ digResult = function(){
     if (first){
       const finds = DIG_FINDS.map(f => f[0]).filter(id => pack.paper === 'in' || id !== 'wetleaf');
       S.dig.found = finds; S.dig.foundAt = Date.now();
-      if (finds.includes('wetleaf') && lead === 'sj') S.D += 50;
+      if (typeof seaGot === 'function') seaGot(finds);
+      if (finds.includes('wetleaf') && lead === 'sj' && typeof wetEnd === 'function') S.wD = Math.max(S.wD || 0, Math.round(wetEnd() / 2));   // 한서진이 반장이면 젖은 장이 반쯤 풀려 옴(19_sea)
       L.push('물이 빠진 자리에서', `${['', '한', '두', '세'][finds.length] || finds.length} 가지를 주워 궤짝 곁에 두었습니다.`);
       if (pack.paper === 'in') L.push(lead === 'sj' ? '젖은 장의 글은 제가 조금 읽었습니다.' : '젖은 장은 서진 씨가 보셔야겠습니다.');
       else L.push('글이 적힌 젖은 장도 있었으나', '종이가 없어 그대로 두고 왔습니다.');
-    } else L.push('이번엔 조개껍질뿐이었습니다.', '물이 더 빠지는 날을 기다려야겠습니다.');
+    } else if (pack.paper === 'in' && !(S.dig.found || []).includes('wetleaf')){         // 처음에 종이가 없어 두고 온 젖은 장을 이번엔 싸 옴
+      S.dig.found = (S.dig.found || []).concat(['wetleaf']); S.dig.wetAt = Date.now(); if (typeof seaGot === 'function') seaGot(['wetleaf']); if (lead === 'sj' && typeof wetEnd === 'function') S.wD = Math.max(S.wD || 0, Math.round(wetEnd() / 2));
+      L.push('지난번 두고 온 젖은 장을', '이번엔 종이에 싸 왔습니다.', S.relicBox ? '바다 궤에 넣어 두었습니다.' : '궤짝 곁에 두었습니다.');
+    } else { S.sea = S.sea || { kelp:0, shell:0 }; S.sea.shell = (S.sea.shell || 0) + 2 + Math.floor(Math.random() * 3);
+      L.push('이번엔 조개껍질뿐이었습니다.', ...(S.relicBox ? ['바다 궤에 넣어 두었습니다.'] : []), '물이 더 빠지는 날을 기다려야겠습니다.'); }
     if (pack.food !== 'in') L.push('찬이 없어 일찍 돌아왔습니다.');
     if (late.length) L.push(`${josa(late.join('·'), '은', '는')} 물속 깊이 들어가`, '늦게 나왔습니다.');
   }

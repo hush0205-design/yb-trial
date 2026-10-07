@@ -5,8 +5,9 @@ const INNER_BG = 'linear-gradient(#e6dcc4, #e6dcc4)';              // 표지 안
 function coverSpot(){ return { offsetLeft: 0, offsetWidth: FW, offsetHeight: FH }; }
 let coverBusy = false;
 function openBook(){
-  const di = itemAt('desk'); if (di === 'first' || di === 'dongui') S.curBook = di;
-  cover.querySelector('.slip').textContent = S.curBook === 'dongui' ? '東醫寶鑑' : (typeof titleSlip === 'function' ? titleSlip() : '□□');
+  const di = itemAt('desk'); if (di === 'first' || di === 'dongui' || di === 'wet') S.curBook = di;
+  book.classList.toggle('wetb', S.curBook === 'wet');
+  cover.querySelector('.slip').textContent = S.curBook === 'dongui' ? '東醫寶鑑' : S.curBook === 'wet' ? '' : (typeof titleSlip === 'function' ? titleSlip() : '□□');
   stage.style.setProperty('--cc', (BOOKCOL[S.curBook] || BOOKCOL.first)[0]);
   S.ack = roomNews(); S.blown = (S.blown || []).concat(S.ack);   // 책을 펴기 전에 서고에서 본 것은 '본 것'
   bookView.classList.remove('hidden'); layoutBook(); book.style.visibility = 'visible'; cover.style.visibility = 'visible';
@@ -77,6 +78,7 @@ function mult(){ return (1 + (S.owned.brush?0.5:0) + (S.owned.glass?1:0)) * (S.f
 function addBook(id, v){
   if (id === 'map'){ S.mapStudy = (S.mapStudy||0) + v; return; }
   if (id === 'dongui' && !S.sideRead.dongui){ S.dD = (S.dD||0) + v; checkDongui(); }
+  else if (id === 'wet'){ if (typeof wetRead === 'function') wetRead(v); }   // 젖은 장(19_sea) — 다 풀면 더 넘겨도 아무것도 안 늘어남
   else S.D += v;
 }
 function checkDongui(){
