@@ -44,7 +44,7 @@ setInterval(() => {
   const h = gameHour(), out = S.scene === 'gate', dusk = h >= 19 || h < 5;
   if (AMBL.wind) AMBL.wind.set(on * (out ? 0.16 : 0.07) * (0.8 + 0.2*Math.sin(t*0.13)));          // 대문 밖에선 바람이 더 큼
   if (AMBL.night) AMBL.night.set(on * (dusk ? (out ? 0.16 : 0.09) : 0));
-  if (AMBL.sea) AMBL.sea.set(on * (seaNear() ? (out ? 0.10 : 0.035) : 0));
+  if (AMBL.sea) AMBL.sea.set(on * (seaNear() ? (out ? 0.13 : 0.06) : 0));
   if (!on) return;
   // 풀벌레·개 짖는 소리는 합성음이 '삐비빅'처럼 들려 끔(10/7 선생님) — 진짜 녹음을 구하면 다시
 }, 1000);
