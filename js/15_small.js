@@ -15,7 +15,20 @@ function startAmb(){
   src.connect(lp).connect(g).connect(master).connect(a.destination); src.start();
   amb = { a, g, master };
 }
-['pointerdown', 'keydown'].forEach(ev => document.addEventListener(ev, startAmb, { once:true }));
+// 녹음한 배경 소리(snd/amb_*.mp3 — Pixabay, 이어 돌게 다듬음, 10/7 선생님): 바람은 늘, 풀벌레는 저녁~새벽, 파도는 바다 일이 시작된 뒤 멀리서
+const AMB_FILES = { wind:'amb_wind', night:'amb_crickets', sea:'amb_sea' }, AMBL = {};
+function ambLoopsStart(){
+  for (const [k, n] of Object.entries(AMB_FILES)){
+    if (AMBL[k]) continue;
+    if (SND_WEB){ const a = ac(); if (!a) return;
+      fetch('snd/' + n + '.mp3').then(r => r.arrayBuffer()).then(b => a.decodeAudioData(b)).then(buf => {
+        const src = a.createBufferSource(), g = a.createGain(); src.buffer = buf; src.loop = true; g.gain.value = 0; src.connect(g).connect(a.destination); src.start();
+        AMBL[k] = { set: v => g.gain.setTargetAtTime(v, a.currentTime, 1.5) }; }).catch(() => {}); }
+    else { const el = new Audio('snd/' + n + '.mp3'); el.loop = true; el.volume = 0; el.play().catch(() => {}); AMBL[k] = { set: v => { el.volume = Math.max(0, Math.min(1, v)); } }; }
+  }
+}
+['pointerdown', 'keydown'].forEach(ev => document.addEventListener(ev, () => { startAmb(); ambLoopsStart(); }, { once:true }));
+const seaNear = () => !!(S.goRead || (S.dig && S.dig.n) || (S.mapFound && (S.mapStudy || 0) >= 999));   // 바닷가 일이 시작된 뒤
 function cricket(){
   const a = amb.a, t = a.currentTime, o = a.createOscillator(), g = a.createGain();
   o.frequency.value = 4300 + Math.random()*400; g.gain.value = 0; o.connect(g).connect(amb.master);
@@ -27,7 +40,11 @@ setInterval(() => {
   if (!amb) return;
   const t = amb.a.currentTime, on = !S.opt.mute && S.stage === 'room' ? 1 : 0;
   amb.master.gain.setTargetAtTime(on, t, 0.5);
-  amb.g.gain.setTargetAtTime(Math.max(0.01, 0.035 + 0.025*Math.sin(t*0.21)*Math.sin(t*0.13)), t, 1.5);
+  amb.g.gain.setTargetAtTime(AMBL.wind ? 0 : Math.max(0.01, 0.035 + 0.025*Math.sin(t*0.21)*Math.sin(t*0.13)), t, 1.5);   // 녹음 바람이 들어오면 합성 바람은 끔
+  const h = gameHour(), out = S.scene === 'gate', dusk = h >= 19 || h < 5;
+  if (AMBL.wind) AMBL.wind.set(on * (out ? 0.16 : 0.07) * (0.8 + 0.2*Math.sin(t*0.13)));          // 대문 밖에선 바람이 더 큼
+  if (AMBL.night) AMBL.night.set(on * (dusk ? (out ? 0.16 : 0.09) : 0));
+  if (AMBL.sea) AMBL.sea.set(on * (seaNear() ? (out ? 0.10 : 0.035) : 0));
   if (!on) return;
   // 풀벌레·개 짖는 소리는 합성음이 '삐비빅'처럼 들려 끔(10/7 선생님) — 진짜 녹음을 구하면 다시
 }, 1000);

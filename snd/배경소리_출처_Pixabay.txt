@@ -1,0 +1,4 @@
+배경 소리(amb_*.mp3)는 Pixabay(Pixabay Content License — 상업 사용 가능, 출처 표시 필요 없음)에서 받아 이어 돌게 다듬은 것.
+- amb_crickets: Night cricket ambience (pixabay.com/sound-effects/nature-night-cricket-ambience-22484/)
+- amb_wind: Soft Wind (pixabay.com/sound-effects/nature-soft-wind-318856/)
+- amb_sea: Gentle Ocean Shore Waves (pixabay.com/sound-effects/nature-gentle-ocean-shore-waves-499665/)
