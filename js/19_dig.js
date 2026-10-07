@@ -21,26 +21,7 @@ OBJ.push(
   { id:'seaPack', get x(){ return S.owned.desk ? -18 : 8; }, get y(){ return S.owned.desk ? 22 : 10; }, rot:-0.3, m:()=>'seaBundle', show:()=> !!S.dig.found && reveal('seaPack', true), click:()=>showSeaPack(), glow:()=> !S.dig.seen },
 );
 
-function showDigPack(){
-  if (digOn()){ openOv('<h3>보퉁이</h3>조사단이 여울에 가 있다. 돌아올 때까지 기다린다.'); return; }
-  if (isNight()){ openOv('<h3>보퉁이</h3>짚신과 마른 찬, 등롱 하나. 한서진이 꾸려 둔 것이다.<br><br>밤에는 바닷가에 가지 않는다. 해가 뜨면 보낸다.'); return; }
-  const L = digLeader(), H = digHands();
-  const pick = { lead: L[0] || null, hands: H.slice(0, 2) };
-  const render = () => {
-    const row = (k, on, kind) => `<div class="rec dpick" data-k="${k}" data-kind="${kind}" style="display:flex;justify-content:space-between"><span>${digName(k)}${k === 'sj' ? '(韓瑞眞)' : `(${DEF(k).hj})`}</span><span style="opacity:.6;font-size:12px">${fearState(fearOf(k)).split(' — ')[0]}${on ? ' · 간다' : ''}</span></div>`;
-    openOv(`<h3>바닷가에 갈 채비</h3>짚신과 마른 찬, 등롱 하나. 한서진이 꾸려 둔 것이다.<br>지도의 여울까지는 반나절 길. <b>반장 하나와 사람 둘</b>이 간다. ${S.dig.n ? `지금까지 ${S.dig.n}번 다녀왔다.` : ''}`
-      + `<div style="font-size:12px;opacity:.55;margin-top:10px">반장</div>` + (L.length ? L.map(k => row(k, pick.lead === k, 'lead')).join('') : '<div style="opacity:.6">자리에 있는 반장이 없다.</div>')
-      + `<div style="font-size:12px;opacity:.55;margin-top:10px">함께 갈 사람 (별채에서 둘)</div>` + (H.length ? H.map(k => row(k, pick.hands.includes(k), 'hand')).join('') : '<div style="opacity:.6">별채에 일하는 사람이 없다.</div>')
-      + (pick.lead && pick.hands.length === 2 ? `<div style="text-align:center;margin-top:14px"><button class="btn rec" id="bDig" style="color:var(--ink);border-color:#00000066">여울로 보낸다 — 한 시간쯤 걸린다</button></div>` : '<div style="font-size:12px;opacity:.6;margin-top:10px">반장 하나와 사람 둘을 골라야 한다.</div>')
-      + '<div style="font-size:12px;opacity:.55;margin-top:8px">겁 많은 사람은 물가에서 멀리 가지 않는다. 겁 없는 사람은 깊이 들어간다.</div>');
-    ovBody.querySelectorAll('.dpick').forEach(el => el.addEventListener('click', ev => { ev.stopPropagation(); const k = el.dataset.k;
-      if (el.dataset.kind === 'lead') pick.lead = pick.lead === k ? null : k;
-      else if (pick.hands.includes(k)) pick.hands = pick.hands.filter(x => x !== k); else if (pick.hands.length < 2) pick.hands = pick.hands.concat([k]);
-      render(); }));
-    const b = document.getElementById('bDig'); if (b) b.addEventListener('click', ev => { ev.stopPropagation(); ov.classList.add('hidden'); startDig(pick.lead, pick.hands); });
-  };
-  render();
-}
+// 보퉁이 창·조사단 꾸리기 과정(채비 넣기·반장 쪽지·대문 앞 모임)은 19_gather.js — 떠난 뒤는 여기.
 
 // 길: 자기 자리 → (별채면 서고로) → 서고 뒷문 → 바깥 → 대문 앞에 섬 → 서고 뒷문으로 들어와 자기 자리
 function digSteps(k, awayMs, order){
@@ -61,9 +42,10 @@ function startDig(lead, hands){
   const team = [lead, ...hands], now = Date.now();
   const brave = {}; team.forEach(k => { brave[k] = fearOf(k) < FEAR_AT[2]; });                   // 떠날 때 겁이 2단계 밑이면 깊이 들어감 → 늦게 돌아옴
   const order = team.slice().sort((a, b) => fearOf(b) - fearOf(a));                               // 겁 많은 사람이 먼저 돌아옴
+  const pack = Object.assign({}, S.pack || {}), food = pack.food === 'in';                           // 채비(19_gather) — 마른 찬이 없으면 반나절 만에
   team.forEach(k => { const i = order.indexOf(k);
-    S.errs[k] = { t0: now, dig: true, home: true, lead: k === lead, steps: digSteps(k, DIG_MS + i*DIG_GAP_MS + (brave[k] ? DIG_LATE_MS : 0), i) }; });
-  S.dig.cur = { lead, hands, t0: now, brave, back: [] }; save();
+    S.errs[k] = { t0: now, dig: true, home: true, lead: k === lead, steps: digSteps(k, (DIG_MS + i*DIG_GAP_MS + (brave[k] ? DIG_LATE_MS : 0)) * (food ? 1 : 0.5), i) }; });
+  S.dig.cur = { lead, hands, t0: now, brave, back: [], pack }; S.pack = {}; save();
   noise(0.3, 240, 0.12, 'lowpass');
   if (typeof tlog === 'function') tlog('발굴 떠남: ' + team.map(digName).join('·'));
 }
@@ -140,14 +122,4 @@ function digLeft(k){
     if (S.dig.n) recs.push(['발굴 — 여울', () => '<h3>발굴 — 여울</h3>' + (S.dig.log || []).slice().reverse().map(e => `<div style="margin:8px 0">${new Date(e.t).getMonth()+1}월 ${new Date(e.t).getDate()}일 — 반장 ${digName(e.lead)}, ${e.hands.map(digName).join('·')}.${e.first ? ' 젖은 책 조각·붓·해초 책갈피를 주움.' : ' 조개껍질뿐.'}${e.late.length ? ` ${josa(e.late.join('·'), '은', '는')} 늦게 나옴.` : ''}</div>`).join('')]); }; }
 DRAWERS.push(['다섯째 서랍 — 바다에서 온 것', /발굴/]);
 // 시험용: 구간 18 — 돌아오기 직전부터
-if (S.digJump){ delete S.digJump;                                  // 시험용 구간 18: 밤이거나 아직 자리를 못 잡았어도 보냄, 첫 사람이 20초 뒤 대문 앞에(그다음 15초씩)
-  const L = digLeader().length ? digLeader() : (S.rArrived ? ['sj'] : ['ojr']), H0 = digHands(), H = H0.length >= 2 ? H0 : genKeys().filter(k => S.st[k] && S.st[k].arr && !S.st[k].gone).slice(0, 2);
-  if (L.length && H.length >= 2){ startDig(L[0], H.slice(0, 2));
-    [L[0], ...H.slice(0, 2)].forEach((k, i) => { const er = S.errs[k]; let pre = 0; for (const st of er.steps){ if (st.k === 'wait' && st.sc === 'gate') break; pre += stepDur(st); } er.t0 = Date.now() + 20000 + i*15000 - pre; });
-    S.dig.cur.t0 = Date.now() - DIG_MS + 20000; save(); } }
-// 한서진의 마지막 쪽지: 끝 표시는 이제 발굴에서 돌아온 뒤에
-readGo = function(){
-  S.goRead = true; save();
-  openOv('<h3>쪽지</h3>' + vlet(['가주께.', '사람이 늘었습니다.', '새로 온 이들도 손이 제법입니다.', '정림 씨가 차를 맡아 주니', '이제 바닷가에 가 볼 수 있겠습니다.', '날을 잡아 주십시오.', '', '채비는 문 곁에 두었습니다.'], '한서진 올림.'));
-  if (typeof tlog === 'function') tlog('바닷가 쪽지');
-};
+// 구간 18(digJump) 처리는 19_gather.js 끝에서.
