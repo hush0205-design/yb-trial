@@ -6,6 +6,7 @@
 // 별채에 빈 책상이 있어야 사람을 받을 수 있음(책상은 권 단위).
 let sceneAt = -1e9;
 S.st = S.st || {};
+if (!S.scene) S.scene = 'seogo';   // 새 판(처음·환생 뒤)엔 장면이 비어 있어 서고의 사람(한서진)이 안 그려지던 것 — 대문에 나갔다 와야 보였음(10/7 시험자)
 const LAB_DOOR = [-27, -22];
 const LAB_DESKS = { ld1:[-30, 6], ld2:[-15, 6], ld3:[0, 6], ld4:[15, 6], ld5:[30, 6] };
 const DESK_COST = { ld1:100, ld2:150, ld3:250, ld4:400, ld5:600 };
