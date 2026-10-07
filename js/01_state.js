@@ -29,7 +29,7 @@ const GAHUN = [
 ];
 const gahunK = k => (GAHUN[S.gahun] || {})[k] || 1;
 // 훅: 뒤 파일이 앞 파일의 함수를 감싸는 대신 여기에 넣음(코드 정리 설계 3절 — 건드리는 것부터 하나씩)
-const HOOK = { tick:[] };
+const HOOK = { tick:[], dolls:{ gate:[] } };   // dolls.gate: 대문 앞 인형 목록을 주는 함수들(19_money 거간·19_dig 돌아오는 사람·19_safe 짐 싼 사람)
 const josa = (w, a, b) => { const c = w.charCodeAt(w.length - 1) - 0xAC00; return w + (c >= 0 && c < 11172 && c % 28 ? a : b); };   // 받침에 따라 은/는·이/가
 const esc = s => String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 

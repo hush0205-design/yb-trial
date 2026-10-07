@@ -142,6 +142,7 @@ function dealerDolls(){
     DEALER = { id:'dealer', doll:true, img: sets[0], imgL: sets, shadow:false, st:()=>({ x:-9, y:-11, pose:'stand', f:[0, 1], chair:0 }), fear:()=>0, steam:()=>0, arrT:()=>0, show:()=>true, click:()=>sellCopies() }; }
   return [DEALER];
 }
+HOOK.dolls.gate.push(dealerDolls);
 let dealerKnocked = false;
 function dealerTick(){ if (((S.copies || []).length || S.bookSale) && S.dealerAt && Date.now() >= S.dealerAt && !S.dealerKnock){ S.dealerKnock = true; save(); knock(S.scene === 'gate' ? 1 : 0.5); } }
 function sellCopies(){

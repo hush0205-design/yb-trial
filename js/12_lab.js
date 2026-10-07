@@ -450,7 +450,9 @@ LAB_OBJ.push(
   { id:'dtak', x:TEA_T[0], y:TEA_T[1], m:()=>'dtak', click:()=> S.potPut ? showTea() : openOv('<h3>다탁</h3>찻그릇을 올려 두는 낮은 상. 비어 있다.') },
   { id:'labTeapot', x:TEA_T[0] + 1, y:TEA_T[1], z:7, m:()=>'teapot', on:()=>'dtak', show:()=> !!S.potPut, click:()=>showTea() });
 let lastAssign = 0;
+const techOn = id => !!(S.tech && S.tech[id]);                 // 연구로 열린 것(테크트리 묶음 전엔 비어 있음)
 function autoAssign(){
+  if (!techOn('assign')) return;                               // 10/8 선생님: 한서진이 읽을 것을 나눠 주는 일은 연구 '일 나누는 법'으로 열림 — 그 전엔 가주가 책상마다 직접 고름
   if (!S.rArrived || diaryCount() < 1) return;                 // 한서진이 자리를 잡은 뒤부터
   if (S.errs.sj || isNight() || nightVisiting() || Date.now() - S.rArrived < T_PUSH) return;   // 직접 가져다 놓으므로, 자리에 있을 때만
   const ks = allKeys().filter(k => arrived(k) && !S.st[k].manual && !S.st[k].gone && LAB_DESKS[S.st[k].desk]);

@@ -34,7 +34,7 @@ function errPos(w){
   const t = e / d, l = Math.hypot(st.b[0] - st.a[0], st.b[1] - st.a[1]) || 1;
   return { x: lerp(st.a[0], st.b[0], t), y: lerp(st.a[1], st.b[1], t), pose:'walk', f: [(st.b[0] - st.a[0]) / l, (st.b[1] - st.a[1]) / l], chair: out };
 }
-function errCarry(D){ const w = dKey(D), n = errNow(w); if (!n || !n.st.carry || n.st.k === 'up' || n.st.k === 'down') return null; if (n.st.act === 'potPut' && S.errs[w].acted === n.i) return null; return n.st.carry; }
+function errCarry(D){ const w = dKey(D), n = errNow(w); if (!n || !n.st.carry || n.st.k === 'up' || n.st.k === 'down') return null; if ((n.st.act === 'potPut' || n.st.act === 'shelfPut' || n.st.act === 'deskPut') && S.errs[w].acted === n.i) return null; return n.st.carry; }
 { const sj0 = sjState; sjState = function(){ return errPos('sj') || sj0(); }; }
 
 // 심부름 끝에 일어나는 일
@@ -45,6 +45,10 @@ const ERR_ACT = {
   tea(k){ const s = S.st[k]; if (!s || !working(k) || DEF(k).tea === false || (s.fear||0) >= OJR_MAX) return; s.teaN = (s.teaN||0) + 1; s.steam = Date.now() + 3000; s.calm = Date.now() + 243000; if (S.scene === 'lab') sPlace(); },
   teaSJ(){ if (!S.rArrived || isNight() || (S.rFear||0) >= OJR_MAX) return; S.rSteam = Date.now() + 3000; S.rCalm = Date.now() + 243000; if (S.scene === 'seogo') sPlace(); },
   myCup(){ S.myCup = true; if (S.scene === 'seogo') sPlace(); },
+  // 한서진이 들고 들어온 책을 책장 자국에 꽂음 / 책장에서 꺼냄 / 제 책상에 놓음 (19_books — 10/8 선생님 "책장에서 가져다가 읽었으면")
+  shelfPut(id){ gainBook(id, 'shelf'); if (S.scene === 'seogo') sPlace(); if (typeof sjBookNote === 'function') sjBookNote(id); },
+  shelfTake(){ if (S.loc && S.loc.dongui === 'shelf'){ S.loc.dongui = 'hand'; save(); if (S.scene === 'seogo') noise(0.12, 900, 0.04); } else { for (const st of (S.errs.sj || { steps:[] }).steps) st.carry = null; } },   // 그새 누가 치웠으면 빈손으로 돌아옴
+  deskPut(){ if (S.loc && S.loc.dongui === 'hand') placeItem('dongui', 'rdesk'); },
   give([k, it]){ const s = S.st[k]; if (!s || s.manual || s.gone) return; s.item = it; s.auto = true; if (S.scene === 'lab') sPlace();
     if (!S.autoNoteDone){ S.autoNoteDone = true;
       S.pendingNotes = (S.pendingNotes || []).concat(['<h3>쪽지</h3>' + vlet(['가주께.', '별채 사람들이 읽을 것은', '제가 나누어 두겠습니다.', '바꾸시려면 언제든', '그 사람 책상에서 고르십시오.'], '한서진 올림.', 'min(40vh,280px)')]); } },

@@ -112,7 +112,7 @@ function showSeaPack(){
 if ((S.dig.found || []).includes('brush13')) ITEM.brush[1] = ITEM.brush[1].replace('붓이 넷. 하나는 쓴 적이 없는데 먹이 묻어 있다.', '붓이 다섯. 하나는 쓴 적이 없는데 먹이 묻어 있고, 하나는 바다에서 왔다. 둘의 먹이 같다.');
 { const oldBack = ERR_ACT.digBack; ERR_ACT.digBack = function(k){ oldBack(k); if ((S.dig.found || []).includes('brush13') && !ITEM.brush[1].includes('다섯')) ITEM.brush[1] = ITEM.brush[1].replace('붓이 넷. 하나는 쓴 적이 없는데 먹이 묻어 있다.', '붓이 다섯. 하나는 쓴 적이 없는데 먹이 묻어 있고, 하나는 바다에서 왔다. 둘의 먹이 같다.'); }; }
 
-// 대문 앞에 서 있는 사람(돌아오는 길): 대문 화면에서만 보이는 인형 — 거간 목록에 얹음(14_gate gateDolls가 dealerDolls를 부름)
+// 대문 앞에 서 있는 사람(돌아오는 길): 대문 화면에서만 보이는 인형 — 대문 인형 훅(HOOK.dolls.gate)에 얹음
 const DIG_GATE_DOLLS = {};
 function digGateDoll(k){
   if (DIG_GATE_DOLLS[k]) return DIG_GATE_DOLLS[k];
@@ -121,7 +121,7 @@ function digGateDoll(k){
     st:()=> errPos(k) || { x:0, y:-12, pose:'stand', f:[0, 1], chair:0 }, fear:()=>fearOf(k), steam:()=>0, arrT:()=>0,
     show:()=> errScene(k) === 'gate', click:()=>openOv(`<h3>${digName(k)}</h3>대문 앞에 서 있다. 옷이 젖어 있고 소금 냄새가 난다.<br>${S.dig.cur && S.dig.cur.brave[k] ? '남들보다 늦었다. 얼굴이 환하다.' : '숨을 고르고 있다.'}<br><br>곧 들어온다.`) });
 }
-{ const dd = dealerDolls; dealerDolls = function(){ return [...dd(), ...Object.keys(S.errs).filter(k => S.errs[k] && S.errs[k].dig && errScene(k) === 'gate').map(digGateDoll)]; }; }
+HOOK.dolls.gate.push(() => Object.keys(S.errs).filter(k => S.errs[k] && S.errs[k].dig && errScene(k) === 'gate').map(digGateDoll));
 
 // 빈자리(또는 떠나는 사람)를 누르면
 { const ss = showStaff; showStaff = function(k){ const er = k && S.errs[k]; if (er && er.dig){ const sc = errScene(k); return openOv(`<h3>${digName(k)}</h3>${sc === 'away' ? '여울에 갔다. 자리가 비어 있다.' : sc === 'gate' ? '대문 앞에 서 있다. 바닷가에서 돌아온 것이다.' : S.dig.cur && S.dig.cur.back.includes(k) ? '여울에서 돌아와 자리로 가는 중이다.' : '보퉁이를 메고 여울로 떠나는 중이다.'}<br>${digLeft(k)}`); } return ss(k); }; }
@@ -140,7 +140,11 @@ function digLeft(k){
     if (S.dig.n) recs.push(['발굴 — 여울', () => '<h3>발굴 — 여울</h3>' + (S.dig.log || []).slice().reverse().map(e => `<div style="margin:8px 0">${new Date(e.t).getMonth()+1}월 ${new Date(e.t).getDate()}일 — 반장 ${digName(e.lead)}, ${e.hands.map(digName).join('·')}.${e.first ? ' 젖은 책 조각·붓·해초 책갈피를 주움.' : ' 조개껍질뿐.'}${e.late.length ? ` ${josa(e.late.join('·'), '은', '는')} 늦게 나옴.` : ''}</div>`).join('')]); }; }
 DRAWERS.push(['다섯째 서랍 — 바다에서 온 것', /발굴/]);
 // 시험용: 구간 18 — 돌아오기 직전부터
-if (S.digJump){ delete S.digJump; const L = digLeader(), H = digHands(); if (L.length && H.length >= 2){ startDig(L[0], H.slice(0, 2)); const back = DIG_MS - 20000; for (const k of [L[0], ...H.slice(0, 2)]) S.errs[k].t0 = Date.now() - back; S.dig.cur.t0 = Date.now() - back; save(); } }
+if (S.digJump){ delete S.digJump;                                  // 시험용 구간 18: 밤이거나 아직 자리를 못 잡았어도 보냄, 첫 사람이 20초 뒤 대문 앞에(그다음 15초씩)
+  const L = digLeader().length ? digLeader() : (S.rArrived ? ['sj'] : ['ojr']), H0 = digHands(), H = H0.length >= 2 ? H0 : genKeys().filter(k => S.st[k] && S.st[k].arr && !S.st[k].gone).slice(0, 2);
+  if (L.length && H.length >= 2){ startDig(L[0], H.slice(0, 2));
+    [L[0], ...H.slice(0, 2)].forEach((k, i) => { const er = S.errs[k]; let pre = 0; for (const st of er.steps){ if (st.k === 'wait' && st.sc === 'gate') break; pre += stepDur(st); } er.t0 = Date.now() + 20000 + i*15000 - pre; });
+    S.dig.cur.t0 = Date.now() - DIG_MS + 20000; save(); } }
 // 한서진의 마지막 쪽지: 끝 표시는 이제 발굴에서 돌아온 뒤에
 readGo = function(){
   S.goRead = true; save();
