@@ -228,7 +228,10 @@ function drawModel(m, sx, sy, a, alpha, z0=0){
   }
   cx.setTransform(1, 0, 0, 1, 0, 0); cx.globalAlpha = 1;
 }
-function frame(now){
+const FRAME_ERR = {};
+function frameErr(e, where){ const k = where + ':' + (e && e.message); if (FRAME_ERR[k]) return; FRAME_ERR[k] = 1; console.error('그리기 오류', where, e); if (typeof tlog === 'function') tlog('그리기 오류(' + where + '): ' + (e && e.message)); }
+function frame(now){ try { frameBody(now); } catch (e) { frameErr(e, 'frame'); } requestAnimationFrame(frame); }   // 한 번의 오류로 화면이 멈추지 않게
+function frameBody(now){
   const lowQ = typeof down !== 'undefined' && !!down && down.moved && bookView.classList.contains('hidden');
   if (lowQ) beginLow();
   const t = (now - t0)/1000, a = viewA = ang + Math.sin(t*0.12)*0.1 + drag, c = Math.cos(a), s = Math.sin(a), ox = W/2, oy = H*0.58;
@@ -238,7 +241,7 @@ function frame(now){
     const gate = S.scene === 'gate';
     drawModel(lab ? M.labFloor : gate ? M.yard : M.floor, ox, oy, a, 1, -1);
     const list = []; let lampPt = null;
-    for (const o of curObjs()){
+    for (const o of curObjs()){ try {
       const owned = !o.buy || S.owned[o.id];
       if (o.show && !o.show()) { o.hit=null; continue; }
       const ghost = o.buy && !owned;
@@ -246,8 +249,8 @@ function frame(now){
       if (ghost && !reveal('g_' + o.id, true)) { o.hit=null; continue; }   // 불이 꺼진 동안 나타난 살 물건은 다시 켜야 보임
       const rx = o.x*c - o.y*s, ry = o.x*s + o.y*c;
       list.push({ o, ghost, sx: ox + rx*SC, sy: oy + ry*SC*0.6, ry: ry + (o.z||0)*0.8 });
-    }
-    for (const dl of ALL_DOLLS()){ if (!curDolls().includes(dl) || !dl.show()){ dl.hit = null; continue; } const st = dl.st(), rx = st.x*c - st.y*s, ry = st.x*s + st.y*c; list.push({ o:dl, ghost:false, sx: ox + rx*SC, sy: oy + ry*SC*0.6, ry }); }
+    } catch (e) { o.hit = null; frameErr(e, o.id); } }
+    for (const dl of ALL_DOLLS()){ try { if (!curDolls().includes(dl) || !dl.show()){ dl.hit = null; continue; } const st = dl.st(), rx = st.x*c - st.y*s, ry = st.x*s + st.y*c; list.push({ o:dl, ghost:false, sx: ox + rx*SC, sy: oy + ry*SC*0.6, ry }); } catch (e) { dl.hit = null; frameErr(e, dl.id); } }
     const deskIt = list.find(it => it.o.id === 'desk' && !it.ghost);
     if (deskIt) for (const it of list) if ((it.o.id === 'glass' || it.o.id === 'ditem' || it.o.id === 'note') && !it.ghost && S.owned.desk) it.ry = deskIt.ry + 0.01;   // 서안 위 물건
     const rdIt = list.find(it => it.o.id === 'rdesk'); if (rdIt) for (const it of list) if (it.o.id === 'ritem') it.ry = rdIt.ry + 0.01;
@@ -255,7 +258,7 @@ function frame(now){
     for (const it of list) if (it.o.on){ const base = list.find(b => b.o.id === it.o.on()); if (base) it.ry = base.ry + (it.o.onOrder || 0.01); }   // 책상 위 물건은 그 책상 바로 다음에(돌려도 사람 위로 뜨지 않게)
     list.sort((p,q)=>p.ry-q.ry);
     const labels = [];
-    for (const it of list){
+    for (const it of list){ try {
       if (it.o.doll){
         const D = it.o, st = D.st(), walking = st.pose === 'walk', e = Date.now() - D.arrT(), fr0 = D.fear(), I = (D.imgL && D.imgL[fearStage(fr0) >= 4 ? 2 : fearStage(fr0) >= 2 ? 1 : 0]) || D.img;   // 겁먹으면 표정이 바뀌고 땀(2단계 땀, 4단계 겁먹은 얼굴 — 17_why의 FEAR_AT)
         const face = st.f[0]*s + st.f[1]*c;                        // 바라보는 쪽이 화면(앞)으로 향한 정도
@@ -290,7 +293,7 @@ function frame(now){
         cx.fillStyle=g; cx.fillRect(it.sx-30*DPR, fy-30*DPR, 60*DPR, 60*DPR); }
       if ((it.o.id==='teapot' || it.o.id==='labTeapot') && now < steamUntil){ cx.fillStyle='rgba(220,215,200,0.5)';
         for (let k=0;k<6;k++){ const ph=(t*1.5+k/6)%1; cx.fillRect(it.sx + Math.sin(t*3+k)*4*DPR, it.sy - (6 + (it.o.z||0))*SC*0.85 - ph*40*DPR, SC*0.8, SC*0.8); } }
-    }
+    } catch (e) { it.o.hit = null; frameErr(e, it.o.id); } }   // 물건 하나가 잘못돼도 나머지는 그림(10/10: 방이 바닥만 남던 일)
     // 흐린 물건 이름표: 서로 겹치면 위로 비켜 쓰고, 화면 밖으로 나가지 않게
     cx.font = `${12*DPR}px serif`; cx.textAlign = 'center';
     const placed = [];
@@ -320,6 +323,6 @@ function frame(now){
     if (since < 900){ const k = since < 120 || (since > 260 && since < 380) || (since > 520 && since < 600) ? 0.85 : 0; if (k){ cx.fillStyle = `rgba(8,6,4,${k})`; cx.fillRect(0,0,W,H); } }   // 다시 붙인 불의 깜빡임
   }
   if (lowQ) endLow();
-  tick(now); requestAnimationFrame(frame);
+  tick(now);
 }
 
