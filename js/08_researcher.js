@@ -105,7 +105,7 @@ function showResearcher(){
   const speed = er ? (er.home ? '겁에 질려 집에 다녀오는 길이다' : er.dig ? '여울에 다녀오는 길이다' : '심부름을 하러 자리를 비웠다') : !rItemNow ? '쉬고 있다' : fearSpeedTxt(S.rFear, S.owned.sundial, 60/R_SEC);
   const n = diaryCount(), rf = S.rFear || 0, st = fearState(rf);
   const rb = itemAt('rdesk'), o = (id, label) => `<span data-rb="${id}" class="${rb === id ? 'on' : ''}">${label}</span>`;
-  openOv(`<h3>연구원 — 한서진(韓瑞眞)</h3>직업: 해독가<br>상태: ${st}${typeof whyHtml === 'function' ? whyHtml('sj') : '<br>'}${er ? "지금" : "읽는 빠르기"}: ${speed}<br>넘긴 것: ${fmtP(S.rPages||0)}<br><div style="font-size:12px;opacity:.6">밤에는 일하지 않는다.</div>`
+  openOv(`<h3>연구원 — 한서진(${S.jin ? '韓瑞津' : '韓瑞眞'})</h3>직업: 해독가<br>상태: ${st}${typeof whyHtml === 'function' ? whyHtml('sj') : '<br>'}${er ? "지금" : "읽는 빠르기"}: ${speed}<br>넘긴 것: ${fmtP(S.rPages||0)}<br><div style="font-size:12px;opacity:.6">밤에는 일하지 않는다.</div>`
     + (S.teaArrived && !er ? `<div style="text-align:center;margin:8px 0"><button class="btn rec" id="bRTea" style="color:var(--ink);border-color:#00000066">차를 한 잔 내준다</button></div>` : '')
     + `<div style="margin-top:8px">책상 위: ${rb ? INAME[rb] : '<i>비어 있다 — 아무것도 하지 않고 앉아 있다</i>'}</div>`
     + '<div class="bsec">책장에서 가져다 놓기</div>' + bookRows('rb', rb || '', [['first', '제목 없는 책', fearWord('first')], ...(hasBook('dongui') ? [['dongui', '동의보감 三', fearWord('dongui')]] : []), ...(S.mapFound ? [['map', '지도', fearWord('map')]] : []), ...(rb ? [['', '치운다', '']] : [])])

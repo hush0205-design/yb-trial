@@ -75,8 +75,8 @@ function linesHtml(from, to, Dv, mark, b = curB()){
 function marginHtml(){ const nm = (hanjaOf(S.sur||'') + '氏 ' + genHj(LINE.gen) + '世 ' + (S.name||'')).replace(/[&<>]/g,''); return alienHtml(glyphs('토끼 아래 두고왔다', 99)) + `<span class="tiny">${nm}</span>`; }
 function faceInner(kind, Dv, mark){
   const b = curB(), D = Dv === undefined ? b.D() : Dv;
-  if (typeof BW !== 'undefined' && b === BW){                       // 젖은 장 한 장(19_sea): 두 면이면 오른쪽에 앞 다섯 줄
-    const n = WLINES.length, lines = kind === 'all' ? linesHtml(0, n, D, mark, b) : kind === 'ledger' ? linesHtml(0, 5, D, mark, b) : linesHtml(5, n, D, mark, b);
+  if (b.leaf){                                                        // 젖은 장·13세 일지(19_sea·19_deep): 두 면이면 오른쪽에 앞 절반
+    const n = b.L().length, h = Math.ceil(n / 2), lines = kind === 'all' ? linesHtml(0, n, D, mark, b) : kind === 'ledger' ? linesHtml(0, h, D, mark, b) : linesHtml(h, n, D, mark, b);
     return `<div class="rule"></div><div class="txt">${lines}</div>`;
   }
   if (b === BD){

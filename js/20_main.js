@@ -32,6 +32,10 @@ JUMPS.push(['20. 일반 연구원 셋이 떠난 뒤 (한 명 더 내보내면 �
   st: Object.assign(JSON.parse(JSON.stringify(JUMPS[14][1].st)), { g4:{ at:-1, read:true, replied:true, arr:-2, gone:true, quit:-1, fired:true }, g5:{ at:-1, read:true, replied:true, arr:-2, gone:true, quit:-1 }, g6:{ at:-1, read:true, replied:true, arr:-2, gone:true, quit:-1, fired:true } }), omen:{ nobody:true } })]);
 JUMPS.push(['21. 쌀독이 비기 직전 (들어가면 서안에 빈 편지지 — 돈을 꾸는 편지, 하드면 곧 끝남)', Object.assign(JSON.parse(JSON.stringify(JUMPS[14][1])), { genN:3, money:0, riceN:4, riceDay:-1, omen:{ rice:true },
   st: { g1:{ at:-1, read:true, replied:true, arr:-2, gone:true, quit:-1 }, g2:{ at:-1, read:true, replied:true, arr:-2, gone:true, quit:-1 }, g3:{ at:-1, read:true, replied:true, arr:-2, gone:true, quit:-1 } } })]);
+// 10/11 첫 엔딩 시험용: 22 굴에서 일지를 가져온 뒤(궤에 일지 — 서안에 올려 다 풀면 벽의 문이 열림, 첫 책은 다 풂)
+JUMPS.push(['22. 굴에서 일지를 가져온 뒤 (일지를 다 풀면 문 없는 방이 열림 — 첫 엔딩)', Object.assign(JSON.parse(JSON.stringify(JUMPS[14][1])), { goNote:true, goRead:true, D:3200,
+  dig:{ n:3, went:{ yeoul:1, rock:1, cave:1 }, found:['wetleaf', 'brush13', 'kelp'], foundAt:1, foundDay:0, seen:true, log:[] }, deep:{ seal13:1, rub:1, jour:1, gwito:1 },
+  sea:{ kelp:1, shell:3, rub:1 }, relicBox:{ at:1, day:0, seen:true }, sideRead:{ wet:true }, wD:240, loc:{ first:'shelf', dongui:'shelf', map:'shelf', wet:'box', jour:'box' } })]);
 function jumpGen2(){
   const nm = S.name || '서하';
   Object.assign(LINE, { sur: S.sur || LINE.sur || '윤', bon: S.bon || LINE.bon || '파평', gen:18, jokbo:[{ gen:17, name:nm, end:'아무도 오지 않다', endId:'nobody', days:4, gahun:0 }],
@@ -49,6 +53,7 @@ function jumpTo(i){
   if (fresh.caveAt === -2) fresh.caveAt = Date.now() - 600000;
   if (!fresh.loc) fresh.loc = { first:'desk', dongui: fresh.rArrived ? 'rdesk' : null, map: fresh.mapFound ? (fresh.rArrived ? 'shelf' : 'shelf') : null };
   if (fresh.mapFound && fresh.rArrived) fresh.loc = { first:'desk', dongui:'shelf', map:'rdesk' };
+  if (fresh.deep) Object.assign(fresh.loc, { wet:'box', jour:'box' });   // 구간 22
   fresh.revealed = (fresh.revealed || []).concat(['letter']);
   fresh.revealed = ['door', 'teapot', 'sj'].concat(fresh.revealed || []);
   if (fresh.replied && !fresh.rArrived) fresh.rDue = Date.now() + 6000;

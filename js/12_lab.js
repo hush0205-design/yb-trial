@@ -286,7 +286,7 @@ function readApplicant(k){
 }
 function showRoster(){
   const names = [];
-  if (S.rArrived) names.push(['한서진', '韓瑞眞', '해독가']);
+  if (S.rArrived) names.push(['한서진', S.jin ? '韓瑞津' : '韓瑞眞', '해독가']);
   for (const k of allKeys().filter(arrived).sort((a, b) => S.st[a].arr - S.st[b].arr)) names.push([DEF(k).name, DEF(k).hj, DEF(k).job, !!S.st[k].quit]);   // 그만둔 사람은 이름에 줄
   const n = names.length + 1;
   openOv(`<h3>명부 — ${KNUM[n] || n}</h3><div style="font-size:13px;opacity:.7;margin-bottom:8px">별채에 드나드는 사람을 적는 명부. 첫 장은 한서진의 글씨다.</div>`

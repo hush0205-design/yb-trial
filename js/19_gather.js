@@ -215,7 +215,7 @@ digResult = function(){
   }
   digNote(L, lead === 'sj' ? '한서진 올림.' : '오정림 올림.');
   S.dig.log = (S.dig.log || []).concat([{ t: Date.now(), lead, hands: cur.hands, late, first: first && !lost, lost, pack }]).slice(-10);
-  if (first && !lost) setTimeout(() => { const en = document.getElementById('endnote'); if (en){ en.innerHTML = '— 체험판은 여기까지입니다 —<br><span style="font-size:12px">해 보신 분은 설정 → 시험 기록 → 복사해서 보내 주시면 큰 도움이 됩니다.</span>'; en.style.opacity = 1; } }, 1500);
+  // 10/11: '체험판은 여기까지' 문구는 뺌 — 이제 첫 엔딩(19_deep)까지 이어짐
   if (typeof tlog === 'function') tlog('발굴 돌아옴' + (lost ? '(허탕)' : first ? '(유물)' : ''));
 };
 // 시험용·구간 18: 과정을 건너뛰고 바로 보냄(채비 넷 다)

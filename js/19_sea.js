@@ -27,8 +27,9 @@ const WET_SRC = [
   { o:'나ᄂᆞᆫ ▒▒▒ ▒▒',                              m:'나는 ▒▒▒ ▒▒' },
 ];
 const WLINES = WET_SRC.map((l, i) => [glyphs(l.m, 500 + i), l.o, l.m]);
-const BW = { id:'wet', L:()=>WLINES, start:i => i*20, per:30, D:()=>S.wD||0 };
+const BW = { id:'wet', leaf:true, L:()=>WLINES, start:i => i*20, per:30, D:()=>S.wD||0 };
 const wetEnd = () => bDone(BW, WLINES.length - 1);
+const LEAF = { wet: BW };                                          // 한 장짜리·낱권 책(02 curB) — 19_deep이 일지를 더함
 BOOKCOL.wet = ['#55625a', '#3f4a43'];                              // 젖은 장을 싼 종이(싸개)
 M.wetLeaf = model(7, 9, 1, (x, y) => (x + y*3) % 7 === 0 ? '#a9b0a0' : (x === 0 || y === 8) ? '#b8baa8' : '#cfd0bf');   // 서안 위 젖은 종이 한 장(물 얼룩)
 M.seaBox = model(9, 7, 6, (x, y, z) => {                           // 바다 궤: 거친 나무, 소금기 밴 쇠 장식
@@ -149,7 +150,7 @@ function showSeaFolk(){
 }
 function seaSell(id, again){
   if (!S.sea || !S.sea[id]) return;
-  const n = id === 'shell' ? S.sea.shell : 1, sum = SEA_PRICE[id] * n, nm = id === 'kelp' ? '해초 책갈피' : `조개껍질 ${n}개`;
+  const n = id === 'shell' ? S.sea.shell : 1, sum = SEA_PRICE[id] * n, nm = id === 'kelp' ? '해초 책갈피' : id === 'rub' ? '비석 탁본' : `조개껍질 ${n}개`;
   S.sea[id] = 0; S.money = (S.money || 0) + sum; ledger(`물가의 사람들에게 ${josa(nm, '을', '를')} 넘김 + ${fmtM(sum)}`); sCoin(); save();
   if (typeof tlog === 'function') tlog('유물 팜: ' + nm + ' ' + fmtM(sum));
   again();
