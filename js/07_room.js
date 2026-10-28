@@ -39,6 +39,7 @@ function closedBook(x, y, x0, y0, col = '#8a6a34', edge = '#6e5228'){
   if (dx === 1 && dy >= 1 && dy <= 4) return '#e2d6b8';
   return (dx === 0 || dy === 0 || dy === 8) ? edge : col;
 }
+const inkDot = (x, y, c) => c && (x === 2 || x === 3) && (y === 1 || y === 2) ? '#140c06' : c;   // 다 푼 책: 제목표 곁에 붓 점
 const BOOKCOL = { first:['#8a6a34', '#6e5228'], dongui:['#3e4a6e', '#2a3352'] };
 // 서안(書案): 상판 양 끝이 두루마리처럼 말려 오름, 상판 아래 서랍 두 칸(놋쇠 고리), 다리 대신 옆판(판족)에 구름 모양 구멍(풍혈)
 function seoanModel(withBook){
@@ -115,6 +116,8 @@ const M = {
   seoanMap: seoanModel('map'),
   bookFirst: model(7,9,2,(x,y,z)=>{ const c = closedBook(x, y, 0, 0, ...BOOKCOL.first); return z === 1 ? c : (c ? '#e2d6b8' : null); }),
   bookDongui: model(7,9,2,(x,y,z)=>{ const c = closedBook(x, y, 0, 0, ...BOOKCOL.dongui); return z === 1 ? c : (c ? '#e2d6b8' : null); }),
+  bookFirstD: model(7,9,2,(x,y,z)=>{ const c = closedBook(x, y, 0, 0, ...BOOKCOL.first); return z === 1 ? inkDot(x, y, c) : (c ? '#e2d6b8' : null); }),
+  bookDonguiD: model(7,9,2,(x,y,z)=>{ const c = closedBook(x, y, 0, 0, ...BOOKCOL.dongui); return z === 1 ? inkDot(x, y, c) : (c ? '#e2d6b8' : null); }),
   chestClosed: model(16,11,9,(x,y,z)=>{
     const BR = '#9a7a3a';
     const edge = x===0||x===15||y===1||y===10;

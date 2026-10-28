@@ -25,7 +25,7 @@ const SHELF_SLOT = m => m < 6 ? [1, m] : [0, m - 6];               // [단(1=위
 const SHELF_COL = { first: BOOKCOL.first[0], dongui: BOOKCOL.dongui[0], dong1:'#36425f', dong2:'#3a4668', sohak:'#6b2d22', nong1:'#2f4a3a', nong2:'#34503f', sijo:'#3b3550' };
 function shelfModel(key){
   const name = 'shelf_' + key; if (M[name]) return name;
-  const ids = key.split(','), filled = ids.map(id => !!id);
+  const ids = key.split(',').map(s => s.replace('.', '')), done = key.split(',').map(s => s.endsWith('.')), filled = ids.map(id => !!id);   // 끝에 '.' = 다 푼 책
   M[name] = model(20, 6, 26, (x, y, z) => {
     if (x === 0 || x === 19 || z === 0 || z === 25 || z === 12) return WOOD;
     if (y === 0) return DARK;
@@ -33,13 +33,15 @@ function shelfModel(key){
     if (bi > 5) return null;
     const m = filled.findIndex((f, i) => { const [r, c] = SHELF_SLOT(i); return r === row && c === bi; });
     if (m < 0) return zz === 0 && y <= 4 ? '#4a3a2a' : null;            // 자국 없는 칸: 먼지만
-    if (filled[m]){ const hgt = 8 + ((bi*7 + row*3) % 4); return y <= 4 && zz < hgt && (x - 1) % 3 !== 2 ? (SHELF_COL[ids[m]] || BOOKC[(bi + row*2) % 6]) : null; }
+    if (filled[m]){ const hgt = 8 + ((bi*7 + row*3) % 4); if (!(y <= 4 && zz < hgt && (x - 1) % 3 !== 2)) return null;
+      if (done[m] && y === 4 && zz >= hgt - 4 && zz <= hgt - 2) return (x - 1) % 3 === 0 ? '#e2d6b8' : zz === hgt - 2 ? '#140c06' : SHELF_COL[ids[m]];   // 다 푼 책: 등에 제목표, 그 곁에 붓 점
+      return SHELF_COL[ids[m]] || BOOKC[(bi + row*2) % 6]; }
     if (zz === 0 && y <= 4) return (x - 1) % 3 === 2 ? '#5e4c38' : '#2c2016';   // 책 자국: 먼지 사이에 어두운 네모
     return null;
   });
   return name;
 }
-{ const sh = OBJ.find(o => o.id === 'shelf'); sh.m = () => shelfModel(shelfMarks().map(id => id && (!ITEMS.includes(id) || S.loc[id] === 'shelf') ? id : '').join(',')); }   // 서안·책상에 가 있는 책은 자국만
+{ const sh = OBJ.find(o => o.id === 'shelf'); sh.m = () => shelfModel(shelfMarks().map(id => id && (!ITEMS.includes(id) || S.loc[id] === 'shelf') ? id + (bookDone(id) ? '.' : '') : '').join(',')); }   // 서안·책상에 가 있는 책은 자국만
 function showShelf(){
   ensureLoc();
   if (!S.owned.lamp) { openOv('<h3>책장</h3>어두워서 잘 보이지 않는다. 손으로 더듬으니 먼지뿐이다.'); return; }

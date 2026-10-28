@@ -63,7 +63,7 @@ function ensureLoc(){
   if (S.curBook === 'dongui') { S.loc.dongui = 'desk'; S.loc.first = 'shelf'; }
 }
 const itemAt = where => ITEMS.find(k => S.loc && S.loc[k] === where) || null;
-const itemModel = id => id === 'map' ? 'mapFold' : id === 'wet' ? 'wetLeaf' : id === 'jour' ? 'jourBook' : (id === 'dongui' || id === 'c_dongui') ? 'bookDongui' : 'bookFirst';
+const itemModel = id => id === 'map' ? 'mapFold' : id === 'wet' ? 'wetLeaf' : (id === 'jour' ? 'jourBook' : (id === 'dongui' || id === 'c_dongui') ? 'bookDongui' : 'bookFirst') + (bookDone(id) ? 'D' : '');   // D = 다 푼 책(제목표 곁 붓 점)
 const dropAt = {};
 function dropZ(where){ const e = (performance.now() - (dropAt[where] || -1e9)) / 420; return e >= 1 ? 0 : Math.pow(1 - e, 2) * 16; }   // 위에서 내려앉는 높이
 function placeItem(id, where){                        // 놓던 자리에 다른 것이 있으면 책장으로 돌려놓음
@@ -76,6 +76,7 @@ const J0 = 1400;
 const lineStart = i => i < 8 ? i*70 : i < 11 ? 780 + (i-8)*70 : J0 + (i-11)*140;
 const lineDone  = i => lineStart(i) + (LINES[i].length-1)*PER;
 const T = { door: lineDone(7), fearOn: lineDone(8), tea: lineDone(9), glitch: 1150, letter: 1300, fearPage: 700, jEnd: lineDone(21) };
+const bookDone = id => id === 'first' ? (S.D || 0) >= T.jEnd : !!S.sideRead[id];   // 다 푼 책(묶음 ⑥): 넘겨도 글자 그대로, 표지 제목표 곁에 붓 점 — 동의보감·젖은 장·일지는 sideRead
 function mix(a, b, f, seed){ const A = Array.from(a), B = Array.from(b), n = Math.max(A.length, B.length); let o = ''; for (let k=0;k<n;k++) o += hash(seed,k) < f ? (B[k]||'') : (A[k]||''); return o; }
 function lineText(i, Dv, b = BF){
   const D = Dv === undefined ? b.D() : Dv, v = b.L()[i], p = Math.max(0, Math.min(v.length-1, (D - b.start(i))/b.per));

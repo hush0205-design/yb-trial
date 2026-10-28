@@ -82,6 +82,7 @@ HOOK.tick.push(() => { for (const k of allKeys()){ const s = S.st[k]; if (s && s
 
 // ── 궤 목록에 바위·굴 유물 ──
 M.jourBook = model(7, 9, 2, (x, y, z) => z === 1 ? ((x === 0 || x === 6 || y === 0 || y === 8) ? '#3a3a2e' : '#4a4a3a') : '#d8d0b8');
+M.jourBookD = model(7, 9, 2, (x, y, z) => z === 1 ? inkDot(x, y, (x === 0 || x === 6 || y === 0 || y === 8) ? '#3a3a2e' : '#4a4a3a') : '#d8d0b8');   // 다 푼 일지
 { const rr = relicRows; relicRows = function(sell){ const R = rr(sell), d = S.deep || {}, sp = '<br><span style="font-size:12px;opacity:.6">';
     if (d.seal13) R.push(`<div style="margin:10px 0"><b>${DEEP_FINDS.seal13[0]}</b><br><span style="font-size:13px">${DEEP_FINDS.seal13[1]}</span>${sell ? sp + '물가의 사람들이 도장을 보더니 고개를 젓는다. 그건 그 댁 것입니다.</span>' : ''}</div>`);
     if (S.sea && S.sea.rub) R.push(`<div style="margin:10px 0"><b>${DEEP_FINDS.rub[0]}</b><br><span style="font-size:13px">${DEEP_FINDS.rub[1]}</span>${sell ? '<br>' + rbtn('sell:rub', '판다 — ' + fmtM(SEA_PRICE.rub)) : ''}</div>`);
@@ -156,8 +157,23 @@ HOOK.dolls.gate.push(() => { const er = S.errs.sj; if (!er || !er.cave || errSce
 
 // ── 엔딩 0차: 문 없는 방 ──
 const endReady = () => (S.D || 0) >= T.jEnd && !!S.sideRead.jour;
-{ const gd = OBJ.find(o => o.id === 'ghostDoor'); if (gd){ const c0 = gd.click, a0 = gd.alpha, s0 = gd.show;
-    gd.click = () => endReady() ? showDoor13() : c0(); gd.alpha = () => endReady() ? 0.75 + 0.2 * Math.sin(performance.now() / 700) : a0(); gd.show = () => endReady() || s0(); } }
+// 가까워짐이 보이게: 일지를 풀수록 문틀 안이 어두워짐 → 반쯤부터 문갑 밑으로 짠물이 배어 나옴 → 다 되면 문틀 안에 물방울이 떨어지고 문이 크게 숨 쉼
+const nearStage = () => endReady() ? 4 : !(S.deep && S.deep.jour) ? 0 : (S.sideRead.jour || (S.jD || 0) >= jourEnd() * 0.85) ? 3 : (S.jD || 0) >= jourEnd() / 2 ? 2 : (S.jD || 0) > 0 ? 1 : 0;
+const doorBreath = () => 0.5 + 0.5 * Math.sin(performance.now() / 520);
+const ghostD = OBJ.find(o => o.id === 'ghostDoor');
+{ const c0 = ghostD.click, a0 = ghostD.alpha, s0 = ghostD.show;
+  ghostD.click = () => endReady() ? showDoor13() : c0(); ghostD.alpha = () => endReady() ? 0.4 + 0.6 * doorBreath() : a0(); ghostD.show = () => endReady() || s0(); }
+const door13In = (x, z) => x > 0 && x < 7 && z > 0 && z < 19;
+M.door13 = model(8, 1, 20, (x, y, z) => door13In(x, z) ? (z > 15 ? '#0e1416' : '#090c0d') : null);
+const DRIP_N = 6;                                                                        // 물방울: 문틀 위에서 떨어지는 그림 여섯 장을 돌려 씀
+for (let f = 0; f < DRIP_N; f++) M['door13d' + f] = model(8, 1, 20, (x, y, z) => !door13In(x, z) ? null
+  : (x === 3 && z === 18 - f * 3) || (x === 5 && z === 18 - ((f + 3) % DRIP_N) * 3) ? '#8fb0b4' : (z > 8 && z < 13 ? '#1d4048' : '#07090a'));
+const seepModel = r => model(12, 5, 1, (x, y) => { const dx = (x - 5.5) / r, dy = (y - 0.5) / (r * 0.45); return dx * dx + dy * dy + hash(x, y) * 0.5 < 1 ? (hash(y, x) > 0.8 ? '#4c6064' : '#1d2729') : null; });
+M.seep1 = seepModel(2.5); M.seep2 = seepModel(4.2); M.seep3 = seepModel(6.5);
+OBJ.push({ id:'door13', x:18, y:-25.5, rot:0, m:() => nearStage() < 4 ? 'door13' : 'door13d' + Math.floor(performance.now() / 260) % DRIP_N,
+    show:() => ghostD.show() && nearStage() > 0, alpha:() => nearStage() < 4 ? [0, 0.25, 0.45, 0.65][nearStage()] : 0.35 + 0.65 * doorBreath(), click:() => ghostD.click() },
+  { id:'seep', x:18, y:-17, rot:0, m:() => 'seep' + (nearStage() - 1), show:() => ghostD.show() && nearStage() >= 2, alpha:() => 0.8,
+    click:() => nearStage() === 4 ? ghostD.click() : openOv('<h3>물</h3>문갑 밑으로 물이 배어 나와 있다. 찍어 보니 짜다.' + (nearStage() > 2 ? '<br>닦아도 다시 젖는다.' : '')) });
 END.sea0 = { name:'마지막 장을 잇다', kind:'엔딩', n: () => 0, lim: () => 1, omen(){},
   scene: () => ['마지막 장에 붓을 대자 먹이 번졌다. 집 밑으로 무엇이 한 번 지나갔다. 물소리가 났다.',
     '명부의 마지막 줄, 읽히지 않던 이름이 풀렸다 — 守津. 그리고 지워졌다.',
@@ -178,17 +194,47 @@ function room13(){
   const lines = [`${genHj(LINE.gen)}世 ${josa((S.sur || '') + (S.name || ''), '이', '가')} 이 장을 잇는다.`, '읽은 이는 읽힌다.', '여기서 덮는다.'];
   const all = Array.from(lines.join('\n')); let i = 0, passed = false;
   const el = document.createElement('div'); el.id = 'endScene'; el.style.background = '#0b0907'; document.body.appendChild(el);
-  el.innerHTML = `<div class="hanji endRec"><h3>열세 번째 방</h3><p class="el on">서안 하나. 그 위에 펼친 책. 마지막 장이 비어 있다.</p><p class="el on">곁에 붓 한 자루 — 붓걸이의 쓴 적 없는 붓과 같은 먹이 묻어 있다.</p>
-    <div id="w13" style="min-height:5.4em;margin:16px 0;font-size:17px;line-height:1.8;white-space:pre-line"></div><div class="el on endTap" id="t13">— 눌러서 쓴다 —</div></div>`;
+  el.innerHTML = `<div class="sh13"><b>${glyphs('바', 13)}</b></div><div class="hanji endRec r13"><h3>열세 번째 방</h3><p class="el on">서안 하나. 그 위에 펼친 책. 마지막 장이 비어 있다.</p><p class="el on">곁에 붓 한 자루 — 붓걸이의 쓴 적 없는 붓과 같은 먹이 묻어 있다.</p>
+    <div class="bk13"><div class="pg13 old">${alienHtml(glyphs('남은 장은 굴에 두고 간다 간도 함께 나는', 613))}</div><div class="pg13" id="w13"></div></div><div class="el on endTap" id="t13">— 눌러서 쓴다 —</div></div>`;
   const w = el.querySelector('#w13'), tap = el.querySelector('#t13');
   el.addEventListener('click', () => {
     if (i >= all.length) return;
-    for (let n = 0; n < 2 && i < all.length; n++) w.textContent += all[i++];
+    for (let n = 0; n < 2 && i < all.length; n++){ const ch = all[i++];                     // 한 자씩 붓으로 긋듯 나타남(style.css .bc)
+      w.insertAdjacentHTML('beforeend', ch === '\n' ? '<br>' : ch === ' ' ? ' ' : `<span class="bc" style="animation-delay:${n * 0.2}s">${esc(ch)}</span>`); }
     noise(0.12, 900, 0.05, 'bandpass');
-    if (!passed && i > all.length / 2){ passed = true;                                       // 예고 하나: 집 밑으로 큰 그림자가 한 번, 물소리
-      el.animate([{ background:'rgba(0,0,0,0)' }, { background:'rgba(0,10,20,0.85)' }, { background:'rgba(0,0,0,0)' }], { duration: 2600 });
+    if (!passed && i > all.length / 2){ passed = true;                                       // 예고 하나: 물빛이 한 번 비치고, 책장 너머로 큰 글자 모양의 그림자가 지나감. 물소리
+      el.animate([{ background:'#0b0907' }, { background:'#173840' }, { background:'#0b0907' }], { duration: 2600 });
+      el.querySelector('.sh13').classList.add('go');
       noise(2.2, 90, 0.3, 'lowpass'); if (typeof waveOne === 'function') { waveOne(0.5); setTimeout(() => waveOne(0.35), 900); } }
-    if (i >= all.length){ tap.textContent = ''; setTimeout(() => { el.remove(); LINE.ending.sea = (LINE.ending.sea || 0) + 1; endGame('sea0'); }, 1800); }
+    if (i >= all.length){ tap.textContent = ''; setTimeout(() => { el.remove(); LINE.ending.sea = (LINE.ending.sea || 0) + 1; endGame('sea0'); sea0Fx(); }, 1800); }
   });
+}
+// 끝 장면 여섯 줄에 그림 하나씩: 19_rebirth endScene이 줄(.endRec p.el)에 on을 붙일 때 같은 차례의 그림을 띄움(그 함수는 건드리지 않음)
+function sea0Fx(){
+  const el = document.getElementById('endScene'), rec = el && el.querySelector('.endRec'); if (!rec || S.ended !== 'sea0') return;
+  const rnd = n => Math.round((Math.random() - 0.5) * n);
+  const sj = ['守', '津'].map(ch => `<span class="sjc">${[0, 1, 2, 3, 4].map(k => `<i style="--t:${k * 20}%;--b:${80 - k * 20}%;--dx:${rnd(90)}px;--dy:${rnd(60)}px;--r:${rnd(50)}deg">${ch}</i>`).join('')}</span>`).join('');
+  const names = [85, 110, 135].map(x => [0, 1, 2, 3].map(k => `M${x - 5} ${22 + k * 22}h10M${x} ${19 + k * 22}v10M${x - 4} ${30 + k * 22}l8 3`).join('')).join('');
+  const P = 'fill="#d6cab0"', L = 'fill="none" stroke="#cfc3a8" stroke-width="2.5"';
+  rec.insertAdjacentHTML('afterbegin', `<div class="sx" aria-hidden="true">
+    <div class="sv s0"><svg viewBox="0 0 220 120"><defs><filter id="sxInk"><feTurbulence baseFrequency=".09" numOctaves="2"/><feDisplacementMap in="SourceGraphic" scale="9"/><feGaussianBlur stdDeviation="1.2"/></filter></defs>
+      <rect x="40" y="8" width="140" height="104" ${P}/><g class="ink" fill="#140e09" filter="url(#sxInk)"><circle cx="110" cy="58" r="34"/><circle cx="134" cy="76" r="14"/><circle cx="90" cy="82" r="9"/><circle cx="126" cy="38" r="7"/></g></svg></div>
+    <div class="sv s1"><div class="sj">${sj}</div></div>
+    <div class="sv s2"><svg viewBox="0 0 220 120"><defs><clipPath id="sxPot"><path d="M78 52Q78 104 110 104Q142 104 142 52Z"/></clipPath></defs>
+      <g clip-path="url(#sxPot)"><rect class="wt" x="70" y="56" width="80" height="50" fill="#35565c"/></g><rect class="salt" x="86" y="99" width="48" height="3" fill="#e9e5da"/>
+      <path d="M78 52Q78 104 110 104Q142 104 142 52ZM142 64Q164 58 170 40M78 62Q58 62 62 80Q66 92 82 90M90 52Q110 40 130 52" ${L}/><circle cx="110" cy="43" r="3" fill="#cfc3a8"/></svg></div>
+    <div class="sv s3"><svg viewBox="0 0 220 120"><rect x="50" y="6" width="120" height="108" ${P}/><path class="nm" d="${names}" fill="none" stroke="#3a2a1c" stroke-width="2" stroke-linecap="round"/>
+      <g class="st" fill="#1a120b"><rect x="80" y="14" width="10" height="92" rx="4"/><rect x="105" y="12" width="10" height="94" rx="4"/><rect x="130" y="15" width="10" height="90" rx="4"/></g></svg></div>
+    <div class="sv s4"><svg viewBox="0 0 220 120"><defs><radialGradient id="sxSun"><stop offset="0" stop-color="#ffe2a0"/><stop offset=".35" stop-color="#e8a050" stop-opacity=".7"/><stop offset="1" stop-color="#e8a050" stop-opacity="0"/></radialGradient><clipPath id="sxSky"><rect width="220" height="86"/></clipPath></defs>
+      <g clip-path="url(#sxSky)"><g class="sun"><circle cx="110" cy="86" r="48" fill="url(#sxSun)"/><circle cx="110" cy="86" r="13" fill="#ffe8b0"/></g></g><path d="M10 86H210" stroke="#cfc3a8" stroke-opacity=".5"/>
+      <path class="wv" d="M84 93h22M118 93h22M92 100h36M100 107h20" stroke="#e8b070" stroke-opacity=".6"/>
+      <g fill="#0a0806">${[28, 40, 50, 170, 183].map((x, k) => `<rect x="${x - 2}" y="${102 - k % 2 * 3}" width="4" height="12"/><circle cx="${x}" cy="${99 - k % 2 * 3}" r="2.6"/>`).join('')}</g></svg></div>
+    <div class="sv s5"><div class="bk"><div class="bl"></div><div class="br"></div></div></div></div>`);
+  el.classList.add('sea0'); el.insertAdjacentHTML('afterbegin', '<div class="sxl"></div>');
+  const ps = [...rec.querySelectorAll('p.el')], sv = [...rec.querySelectorAll('.sv')], light = el.querySelector('.sxl');
+  const mo = new MutationObserver(() => { const n = ps.filter(p => p.classList.contains('on')).length - 1;
+    sv.forEach((v, k) => v.classList.toggle('on', k === n)); light.classList.toggle('on', n >= 4);
+    if (n === 5){ mo.disconnect(); setTimeout(() => sFlip(), 900); } });
+  ps.forEach(p => mo.observe(p, { attributes:true, attributeFilter:['class'] }));
 }
 HOOK.tick.push(() => { if (S.stage !== 'room' || S.ended) return; lostTick(); caveTick(); });

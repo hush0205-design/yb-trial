@@ -5,6 +5,7 @@
 // 알림은 물건으로: 한서진의 마지막 쪽지를 읽으면 서고 문 곁에 보퉁이가 놓임 → 누르면 조사단을 꾸림. 돌아오면 궤짝 곁에 젖은 보퉁이.
 const DIG_MS = 60*60e3, DIG_LATE_MS = 10*60e3, DIG_GAP_MS = 150e3, DIG_GATE_MS = 120e3;   // 한 시간 · 겁 없던 사람은 10분 늦게 · 한 명씩 2분 30초 간격 · 대문 앞에 2분
 S.dig = S.dig || { n:0 };
+if (S.packOld === undefined) S.packOld = !!S.goRead;   // 묶음 ⑥ 전 판: 바닷가 쪽지만 읽으면 보퉁이가 있었음 — 그대로 둠
 // 보퉁이: 무명천에 싼 짐, 위에 매듭
 M.bundle = model(7,7,5,(x,y,z)=>{ const r = Math.hypot(x-3, y-3); if (z === 4) return r <= 1.2 ? '#8a7a5a' : null; if (z === 3) return r <= 2.3 ? '#d8cdb0' : null; return r <= 3.2 - z*0.3 ? ((x + y + z) % 3 ? '#cfc2a3' : '#bfb08c') : null; });
 M.seaBundle = model(8,8,4,(x,y,z)=>{ const r = Math.hypot(x-3.5, y-3.5); if (z === 3) return r <= 1.3 ? '#3a4a3a' : null; return r <= 3.6 - z*0.4 ? ((x*3 + y*5 + z) % 4 ? '#4e5a48' : '#3a4232') : null; });   // 젖은 보퉁이: 해초빛
@@ -17,7 +18,7 @@ const fearOf = k => k === 'sj' ? (S.rFear||0) : ((S.st[k] && S.st[k].fear)||0);
 
 // 서고 문 곁의 보퉁이(채비) · 궤짝 곁의 젖은 보퉁이(바다에서 온 것들)
 OBJ.push(
-  { id:'digPack', x:34, y:-14, rot:0.2, m:()=>'bundle', show:()=> !!S.goRead && !digOn() && reveal('digPack', true), click:()=>showDigPack(), glow:()=> !S.dig.n },
+  { id:'digPack', x:34, y:-14, rot:0.2, m:()=>'bundle', show:()=> !!S.goRead && (S.packOld || !!S.doneSeen) && !digOn() && reveal('digPack', true), click:()=>showDigPack(), glow:()=> !S.dig.n },
   { id:'seaPack', get x(){ return S.owned.desk ? -18 : 8; }, get y(){ return S.owned.desk ? 22 : 10; }, rot:-0.3, m:()=>'seaBundle', show:()=> !!S.dig.found && reveal('seaPack', true), click:()=>showSeaPack(), glow:()=> !S.dig.seen },
 );
 
@@ -50,6 +51,11 @@ function startDig(lead, hands){
   if (typeof tlog === 'function') tlog('발굴 떠남: ' + team.map(digName).join('·'));
 }
 const digNote = (lines, sign) => pushNote('<h3>쪽지</h3>' + vlet(['가주께.', ...lines], sign, 'min(44vh,320px)'));
+function firstDoneSeen(){                                   // 다 푼 첫 책이 넘어가는 걸 처음 봄(06_turn flip) → 한서진 쪽지, 바닷가 쪽지를 읽었으면 문 곁에 보퉁이
+  if (S.doneSeen || !S.rArrived) return;
+  S.doneSeen = Date.now(); digNote(['다 읽었습니다.', '바다에서 가져올 것이 있을 겁니다.'], '한서진 올림.'); save();
+  if (typeof tlog === 'function') tlog('첫 책 다 읽음 쪽지');
+}
 Object.assign(ERR_ACT, {
   digLeave(k){ if (S.errs[k] && S.errs[k].lead) digNote(['여울로 갑니다.', '물이 빠지는 때를 보고 들어가', '해 지기 전에 돌아오겠습니다.', `${josa(S.dig.cur.hands.map(digName).join('·'), '이', '가')} 함께 갑니다.`], k === 'sj' ? '한서진 올림.' : '오정림 올림.'); },
   digGate(k){ if (S.scene === 'gate') knock(0.8); else knock(0.4); if (typeof tlog === 'function') tlog('대문 앞: ' + digName(k)); },

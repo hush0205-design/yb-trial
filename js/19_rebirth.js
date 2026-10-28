@@ -54,6 +54,51 @@ const END = {
 };
 const gahunOpen = () => (LINE.gahun.unlocked = LINE.gahun.unlocked || [0]);
 
+// ── 끝이 다가오는 것이 방 안 물건으로 보임(10/25 선생님 "더 가시적이었으면") — 설명 없이 물건만, 누르는 물건이 아님(터치 범위 없음) ──
+// 아무도 오지 않다: 떠난 사람 수만큼 별채 앞쪽 마루에 빈 방석, 먼저 떠난 사람 방석일수록 먼지 / 빈 별채 책상에도 먼지(한도에 가까울수록)
+// 쌀독이 비다: 방을 붙인 뒤 서고 앞쪽 마루에 쌀독 — 쌀이 날마다 줄고, 마지막 날엔 바닥에 긁힌 자국
+const DUST = '#8a8478', JAR_IN = 5;                                   // 먼지 빛 / 쌀독 안 깊이(층) — 얕고 아가리가 넓어야 위에서 쌀 높이가 보임
+const dusty = (x, y, lv) => lv > 0 && hash(x + 11, y + 7) < lv * 0.2;
+for (let lv = 0; lv <= 3; lv++){
+  M['cushion' + lv] = model(7, 7, 2, (x, y, z) => { const rim = x === 0 || x === 6 || y === 0 || y === 6;
+    if (z === 0) return '#3e2420';
+    if (dusty(x, y, lv)) return DUST;
+    return rim ? '#4a2a26' : (x === 3 && y === 3 ? '#3e2420' : '#6a3a32'); });
+  M['deskDust' + lv] = model(12, 8, 1, (x, y) => !(x >= 8 && x <= 9 && y >= 2 && y <= 3) && dusty(x * 3, y * 5, lv) ? DUST : null);
+}
+const jarR = z => [4.6, 5.6, 6.3, 6.4, 6.4, 6.1, 6.0][z];                  // 옹기 배가 부른 모양(아래가 좁음)
+for (let f = 0; f <= JAR_IN; f++) M['riceJar' + f] = model(13, 13, 7, (x, y, z) => {
+  const d = Math.hypot(x - 6, y - 6), r = jarR(z), inner = d <= r - 1.7;
+  if (d > r) return null;
+  if (z === 6) return inner ? null : '#6a4a30';                                           // 아가리 전
+  if (z === 0) return inner && !f ? '#1c120a' : '#3e2a1c';                                // 바닥
+  if (!inner){ if (!f && y < 4 && z >= 2 && (x + z * 2) % 3 === 0) return '#8a7a5c';       // 다 비면 안쪽 벽에 긁힌 자국
+    return (x + z) % 5 ? '#3e2a1c' : '#4a3424'; }                                       // 잿물 옹기
+  if (z <= f) return (x * 7 + y * 3 + z) % 9 ? '#e6dfcc' : '#cfc6ae';                    // 쌀
+  return null; });
+const riceFill = () => { const n = S.riceN || 0, L = END.rice.lim(); return n >= L - 1 ? 0 : Math.round(JAR_IN * (1 - n / Math.max(1, L - 1))); };
+const quitN = () => Math.min(END.nobody.n(), END.nobody.lim() - 1);
+const SIGN_OBJ = [
+  { id:'riceJar', x:11, y:21, rot:0, m:()=> 'riceJar' + riceFill(), show:()=> !!S.bangAt },
+];
+OBJ.push(SIGN_OBJ[0]);
+for (let i = 0; i < 8; i++){                                          // 빈 방석(한도는 유품·가훈으로 늘어도 여덟을 넘지 않음)
+  const o = { id:'cushion' + i, x:-27 + i * 9, y:20, rot:0, m:()=> 'cushion' + Math.min(3, quitN() - 1 - i), show:()=> i < quitN() };
+  SIGN_OBJ.push(o); LAB_OBJ.push(o);
+}
+for (const d of DESK_IDS){                                            // 빈 별채 책상 위 먼지
+  const o = { id:'dust_' + d, x:LAB_DESKS[d][0], y:LAB_DESKS[d][1], z:11, rot:0, on:()=>d, onOrder:0.015, m:()=> 'deskDust' + Math.min(3, Math.ceil(3 * END.nobody.n() / END.nobody.lim())),
+    show:()=> !!S.owned[d] && END.nobody.n() > 0 && !(deskOwner(d) && arrived(deskOwner(d))) };
+  SIGN_OBJ.push(o); LAB_OBJ.push(o);
+}
+HOOK.tick.push(() => { for (const o of SIGN_OBJ) o.hit = null; });   // 그리기 바로 뒤에 돌므로 누르기는 뒤 물건으로 감
+// 징조가 오는 순간: 등잔 불이 한 번 낮게 숙고(다시 붙인 불의 깜빡임을 빌림), 끝마다 소리 하나
+function omenSign(id){
+  if (S.owned.lamp && !S.lampOut) relitAt = performance.now();
+  if (id === 'nobody'){ noise(2.2, 160, 0.14, 'lowpass'); setTimeout(() => sChair(0.12), 900); }      // 대문 쪽에서 바람, 빈 의자 삐걱
+  else [0, 420, 900].forEach(t => setTimeout(() => noise(0.22, 1300, 0.05), t));                       // 독 바닥을 긁는 소리
+}
+
 // ── 새 대의 첫걸음: 유품을 풀고 흔적을 남김(서고에 처음 들어올 때 한 번) ──
 function genInit(){
   if (S.genInit) return; S.genInit = true; S.gen = LINE.gen; S.genDay = dayKey();
@@ -88,7 +133,7 @@ function endTick(){
   S.omen = S.omen || {};
   for (const id of Object.keys(END)){
     const E = END[id], v = E.n(), L = E.lim();
-    if (!S.omen[id] && v >= Math.ceil(L * 0.7) && v < L){ S.omen[id] = true; E.omen(); if (typeof tlog === 'function') tlog('징조: ' + E.name); save(); }
+    if (!S.omen[id] && v >= Math.ceil(L * 0.7) && v < L){ S.omen[id] = true; E.omen(); omenSign(id); if (typeof tlog === 'function') tlog('징조: ' + E.name); save(); }
     if (v >= L){ endGame(id); return; }
   }
 }
@@ -124,8 +169,9 @@ function endScene(E, was, got){
   const fadeIn = (html, gap) => { el.innerHTML = html; at = performance.now();
     el.querySelectorAll('.el').forEach((p, i) => setTimeout(() => p.classList.add('on'), 600 + i * gap)); };
   // 1) 끝의 기록
-  fadeIn(`<div class="hanji endRec"><h3>${esc(was.sur + was.name)}의 마지막 해</h3>${E.scene().map(t => `<p class="el">${esc(t)}</p>`).join('')}<div class="el endTap">— 눌러서 넘긴다 —</div></div>`, 1500);
+  fadeIn(`<div class="hanji endRec"><h3>${esc(was.sur + was.name)}의 마지막 해</h3><canvas class="endPic" width="160" height="80" style="display:block;width:min(320px,78vw);height:auto;aspect-ratio:2/1;margin:0 auto 6px;opacity:0;transition:opacity 2.4s"></canvas>${E.scene().map(t => `<p class="el">${esc(t)}</p>`).join('')}<div class="el endTap">— 눌러서 넘긴다 —</div></div>`, 1500);
   noise(1.2, 140, 0.18, 'lowpass');
+  endPic(el.querySelector('.endPic'), Object.keys(END).find(k => END[k] === E));
   const total1 = 600 + E.scene().length * 1500;
   el.addEventListener('click', () => {                    // 기록을 다 보이기 전엔 넘어가지 않음(2.5초 넘으면 눌러서 넘길 수 있음). 족보는 단추로만
     if (step !== 0 || performance.now() - at < Math.min(total1, 2500)) return;
@@ -155,6 +201,45 @@ function endScene(E, was, got){
       if (v){ cur.last = v; localStorage.setItem(LINE_KEY, JSON.stringify(LINE)); }
       location.reload(); });
   }
+}
+
+// 끝 장면의 그림 한 장(160×80 낱칸을 크게 늘림): 빈 방석들 위로 먼지가 내려앉음 / 빈 쌀독 안. 그림이 화면에 있는 동안만 움직임
+function endPic(cvs, id){
+  const g = cvs.getContext('2d'), t0 = performance.now();
+  setTimeout(() => { cvs.style.opacity = 1; }, 200);
+  const motes = Array.from({ length: 26 }, (_, k) => [hash(k, 3) * 160, hash(k, 9) * 80, 2 + hash(k, 5) * 4]);   // 먼지 알갱이: x, 처음 높이, 빠르기(낱칸/초)
+  const vox = (list, a, sc) => { const keep = [cx, SC]; cx = g; SC = sc;                      // 방 그리기(drawModel)를 이 그림판에 빌려 씀 — 같은 틀 안에서 바로 되돌림
+    try { const c = Math.cos(a), s = Math.sin(a);
+      for (const [m, x, y, z] of list.map(o => [o[0], o[1], o[2], o[3] || 0, o[1] * s + o[2] * c]).sort((p, q) => p[4] - q[4]))
+        drawModel(M[m], 80 + (x * c - y * s) * sc, 50 + (x * s + y * c) * sc * 0.6, a, 1, z);
+    } finally { [cx, SC] = keep; } };
+  const draw = now => {
+    if (!cvs.isConnected) return;
+    const t = (now - t0) / 1000;
+    g.setTransform(1, 0, 0, 1, 0, 0); g.globalAlpha = 1; g.imageSmoothingEnabled = false; g.fillStyle = '#0b0907'; g.fillRect(0, 0, 160, 80);
+    if (id === 'nobody'){
+      const lv = Math.max(0, Math.min(3, Math.floor(t / 2.2)));                                            // 방석에 먼지가 쌓여 감
+      vox([['labFloor', 0, 0, -1]], 0.12, 2);
+      vox([['ldesk', -22, -8], ['chair', -22, -15], ['ldesk', 0, -8], ['chair', 0, -15], ['ldesk', 22, -8], ['chair', 22, -15],
+           ['deskDust3', -22, -8, 11], ['deskDust3', 0, -8, 11], ['deskDust3', 22, -8, 11],
+           ...[-24, -12, 0, 12, 24].map((x, k) => ['cushion' + Math.min(3, lv + (k % 2)), x, 10])], 0.12, 2);
+      g.fillStyle = 'rgba(240,225,190,0.07)'; g.beginPath(); g.moveTo(38, 0); g.lineTo(70, 0); g.lineTo(122, 80); g.lineTo(66, 80); g.fill();   // 창으로 드는 빛줄기
+      for (const [x, y0, v] of motes){ const y = (y0 + t * v) % 80, inBeam = x > 38 + y * 0.35 && x < 70 + y * 0.65;
+        g.fillStyle = `rgba(207,198,174,${inBeam ? 0.7 : 0.18})`; g.fillRect(Math.floor(x + Math.sin(t + y0) * 2), Math.floor(y), 1, 1); }
+    } else {
+      g.fillStyle = '#1a120b'; for (let y = 0; y < 80; y += 6) g.fillRect(0, y, 160, 1);    // 마루 널
+      const e = (rx, ry, col, dy = 0) => { g.fillStyle = col; g.beginPath(); g.ellipse(80, 40 + dy, rx, ry, 0, 0, Math.PI * 2); g.fill(); };
+      e(46, 30, '#2a1c12', 6); e(44, 28, '#3e2a1c'); e(40, 24, '#6a4a30'); e(36, 21, '#24170d');   // 독 몸통·전·안
+      const ig = g.createRadialGradient(80, 44, 2, 80, 40, 36); ig.addColorStop(0, 'rgba(60,40,24,0.6)'); ig.addColorStop(1, 'rgba(0,0,0,0.5)'); e(36, 21, ig);
+      g.strokeStyle = '#8a7a5c'; g.lineWidth = 1;                                              // 긁힌 자국: 세 줄씩, 하나씩 드러남
+      [[62, 36], [86, 48], [96, 32], [70, 50]].forEach(([x, y], k) => { const on = Math.min(1, Math.max(0, t - 1.5 - k * 1.3)); if (!on) return;
+        g.globalAlpha = on * 0.8; for (let j = 0; j < 3; j++){ g.beginPath(); g.moveTo(x + j * 2, y); g.lineTo(x + j * 2 + 7, y + 4 - j); g.stroke(); } });
+      g.globalAlpha = 1; g.fillStyle = '#e6dfcc'; g.fillRect(57, 42, 1, 1); g.fillRect(101, 39, 1, 1); g.fillRect(83, 56, 1, 1);   // 남은 쌀알 셋
+    }
+    const vg = g.createRadialGradient(80, 40, 20, 80, 40, 92); vg.addColorStop(0, 'rgba(11,9,7,0)'); vg.addColorStop(1, 'rgba(11,9,7,0.95)'); g.fillStyle = vg; g.fillRect(0, 0, 160, 80);
+    requestAnimationFrame(draw);
+  };
+  requestAnimationFrame(draw);
 }
 
 // 가훈 족자(둘째 대부터): 물려받은 것 + 끝으로 풀린 것. 살아 본 가훈에만 족보 말투의 설명이 곁에 붙음
