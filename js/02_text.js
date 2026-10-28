@@ -63,7 +63,7 @@ function ensureLoc(){
   if (S.curBook === 'dongui') { S.loc.dongui = 'desk'; S.loc.first = 'shelf'; }
 }
 const itemAt = where => ITEMS.find(k => S.loc && S.loc[k] === where) || null;
-const itemModel = id => id === 'map' ? 'mapFold' : id === 'wet' ? 'wetLeaf' : (id === 'jour' ? 'jourBook' : (id === 'dongui' || id === 'c_dongui') ? 'bookDongui' : 'bookFirst') + (bookDone(id) ? 'D' : '');   // D = 다 푼 책(제목표 곁 붓 점)
+const itemModel = id => id === 'map' ? 'mapFold' : id === 'wet' ? 'wetLeaf' : id === 'jour' ? jourModel() : ((id === 'dongui' || id === 'c_dongui') ? 'bookDongui' : 'bookFirst') + (bookDone(id) ? 'D' : '');   // D = 다 푼 책(제목표 곁 붓 점)
 const dropAt = {};
 function dropZ(where){ const e = (performance.now() - (dropAt[where] || -1e9)) / 420; return e >= 1 ? 0 : Math.pow(1 - e, 2) * 16; }   // 위에서 내려앉는 높이
 function placeItem(id, where){                        // 놓던 자리에 다른 것이 있으면 책장으로 돌려놓음

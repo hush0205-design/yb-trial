@@ -68,13 +68,14 @@ setInterval(() => {
   // 풀벌레·개 짖는 소리는 합성음이 '삐비빅'처럼 들려 끔(10/7 선생님) — 진짜 녹음을 구하면 다시
 }, 1000);
 
-// 문 없는 문(기획서 20절 2, 10/8): 서고 뒷벽, 창과 뒷문 사이에 아주 희미한 문 윤곽 — 첫 책을 풀수록 진해짐(불투명도 = 해독도). 열세 번째 방의 문 자리, 엔딩에서 열림. 설명 없음.
-M.ghostDoor = model(8, 1, 20, (x, y, z) => (x === 0 || x === 7 || z === 19) ? '#7a6a52' : (z === 0 ? '#5a4a38' : null));
-const doorRatio = () => Math.min(1, (S.D || 0) / T.jEnd);
-OBJ.push({ id:'ghostDoor', x:18, y:-25.5, rot:0, m:()=>'ghostDoor', show:()=> !!S.owned.lamp && doorRatio() > 0.05, alpha:()=> 0.03 + 0.55 * doorRatio(),
-  click:()=> openOv('<h3>벽</h3>' + (doorRatio() < 0.35 ? '벽에 희미한 자국이 있다. 문틀 모양인 것도 같고, 벽지가 바랜 것도 같다.'
-    : doorRatio() < 0.8 ? '벽에 문틀 모양의 자국. 처음 볼 때보다 또렷해졌다.<br>문고리 자리는 없다. 손을 대니 서늘하다.'
-    : '문의 윤곽이 또렷하다. 문짝도 문고리도 없이 틀만 있다.<br>손을 대니 서늘하다. 벽 너머에서 종이 넘기는 소리가 나는 것도 같다.')) });
+// 첫 넘김 힌트(10/28 시험자 "처음에 뭘 해야 할지 몰랐다"): 처음 몇 쪽 동안 책을 펴 두고 가만있으면 아래 귀퉁이가 바람에 들린 듯 들썩 — 귀퉁이엔 늘 앞사람들의 손때(style.css #ear)
+let earLiftAt = 0;
+HOOK.tick.push((dt, now) => { if (!bookOpen || (S.earned || 0) >= K.earHintPages) return;
+  if (now - lastFlip < K.earHintIdle || now - bookOpenedAt < K.earHintIdle || now - earLiftAt < K.earHintEvery) return;
+  const e = document.getElementById('ear'); if (!e) return;
+  earLiftAt = now; e.classList.remove('lift'); void e.offsetWidth; e.classList.add('lift'); rustle(0.5, 0.05);
+  const r = e.getBoundingClientRect(); bookView.style.setProperty('--ex', (r.left + 15) + 'px'); bookView.style.setProperty('--ey', (r.bottom - 15) + 'px');
+  bookView.classList.add('earLit'); setTimeout(() => bookView.classList.remove('earLit'), 1300); });
 
 // 세 번 두드림: 편지는 늘 두 번 두드리는데, 한서진이 온 뒤 어느 밤 세 번 — 문 앞엔 아무것도 없고 기록도 남지 않음(1대에 두 번까지)
 setInterval(() => {

@@ -29,7 +29,7 @@ const GAHUN = [
 ];
 const gahunK = k => (GAHUN[S.gahun] || {})[k] || 1;
 // 훅: 뒤 파일이 앞 파일의 함수를 감싸는 대신 여기에 넣음(코드 정리 설계 3절 — 건드리는 것부터 하나씩)
-const HOOK = { tick:[], dolls:{ gate:[] } };   // dolls.gate: 대문 앞 인형 목록을 주는 함수들(19_money 거간·19_dig 돌아오는 사람·19_safe 짐 싼 사람)
+const HOOK = { tick:[], desk:[], dolls:{ gate:[] } };   // desk: 서안을 누를 때 먼저 묻는 함수들(true면 책을 펴지 않음, 19_deep 일지 마지막 장) · dolls.gate: 대문 앞 인형 목록을 주는 함수들(19_money 거간·19_dig 돌아오는 사람·19_safe 짐 싼 사람)
 const josa = (w, a, b) => { const c = w.charCodeAt(w.length - 1) - 0xAC00; return w + (c >= 0 && c < 11172 && c % 28 ? a : b); };   // 받침에 따라 은/는·이/가
 const esc = s => String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 
@@ -51,3 +51,4 @@ const isAlien = ch => { const c = ch.codePointAt(0); return c >= 0x2F00 && c <= 
 const agSpan = (ch,k) => `<span class="ag r${(ch.codePointAt(0)+k)%5}">${ch}</span>`;
 const alienHtml = str => Array.from(str).map((ch,k) => isAlien(ch) ? agSpan(ch,k) : esc(ch)).join('');
 
+const K = { earHintPages: 6, earHintIdle: 5000, earHintEvery: 7000 };   // 첫 넘김 힌트(15_small): 이 쪽 수 전까지, 이만큼 가만있으면, 이 간격으로 귀퉁이가 들썩

@@ -155,25 +155,29 @@ ERR_ACT.jinIn = () => { S.jin = true; S.rFear = 0; S.sideLog = (S.sideLog || [])
 HOOK.dolls.gate.push(() => { const er = S.errs.sj; if (!er || !er.cave || errScene('sj') !== 'gate') return [];
   const d = digGateDoll('sj'); if (!d._cave){ d._cave = true; const c0 = d.click; d.click = () => (S.errs.sj && S.errs.sj.cave) ? openOv('<h3>한서진</h3>대문 앞에 서 있다. 옷은 말라 있다. 이쪽을 보고 웃는다.') : c0(); } return [d]; });
 
-// ── 엔딩 0차: 문 없는 방 ──
+// ── 엔딩 0차: 일지의 빈 마지막 장(10/28 선생님 — 문 대신) ──
 const endReady = () => (S.D || 0) >= T.jEnd && !!S.sideRead.jour;
-// 가까워짐이 보이게: 일지를 풀수록 문틀 안이 어두워짐 → 반쯤부터 문갑 밑으로 짠물이 배어 나옴 → 다 되면 문틀 안에 물방울이 떨어지고 문이 크게 숨 쉼
+// 가까워짐이 보이게: 일지를 풀수록 1·2 여백이 젖어 옴 → 3 덮어 둔 일지가 펼쳐져 있음 → 4 빈 마지막 장에 펼쳐져 서안 위로 오고, 붓걸이 밑에 먹이 떨어짐
 const nearStage = () => endReady() ? 4 : !(S.deep && S.deep.jour) ? 0 : (S.sideRead.jour || (S.jD || 0) >= jourEnd() * 0.85) ? 3 : (S.jD || 0) >= jourEnd() / 2 ? 2 : (S.jD || 0) > 0 ? 1 : 0;
-const doorBreath = () => 0.5 + 0.5 * Math.sin(performance.now() / 520);
-const ghostD = OBJ.find(o => o.id === 'ghostDoor');
-{ const c0 = ghostD.click, a0 = ghostD.alpha, s0 = ghostD.show;
-  ghostD.click = () => endReady() ? showDoor13() : c0(); ghostD.alpha = () => endReady() ? 0.4 + 0.6 * doorBreath() : a0(); ghostD.show = () => endReady() || s0(); }
-const door13In = (x, z) => x > 0 && x < 7 && z > 0 && z < 19;
-M.door13 = model(8, 1, 20, (x, y, z) => door13In(x, z) ? (z > 15 ? '#0e1416' : '#090c0d') : null);
-const DRIP_N = 6;                                                                        // 물방울: 문틀 위에서 떨어지는 그림 여섯 장을 돌려 씀
-for (let f = 0; f < DRIP_N; f++) M['door13d' + f] = model(8, 1, 20, (x, y, z) => !door13In(x, z) ? null
-  : (x === 3 && z === 18 - f * 3) || (x === 5 && z === 18 - ((f + 3) % DRIP_N) * 3) ? '#8fb0b4' : (z > 8 && z < 13 ? '#1d4048' : '#07090a'));
-const seepModel = r => model(12, 5, 1, (x, y) => { const dx = (x - 5.5) / r, dy = (y - 0.5) / (r * 0.45); return dx * dx + dy * dy + hash(x, y) * 0.5 < 1 ? (hash(y, x) > 0.8 ? '#4c6064' : '#1d2729') : null; });
-M.seep1 = seepModel(2.5); M.seep2 = seepModel(4.2); M.seep3 = seepModel(6.5);
-OBJ.push({ id:'door13', x:18, y:-25.5, rot:0, m:() => nearStage() < 4 ? 'door13' : 'door13d' + Math.floor(performance.now() / 260) % DRIP_N,
-    show:() => ghostD.show() && nearStage() > 0, alpha:() => nearStage() < 4 ? [0, 0.25, 0.45, 0.65][nearStage()] : 0.35 + 0.65 * doorBreath(), click:() => ghostD.click() },
-  { id:'seep', x:18, y:-17, rot:0, m:() => 'seep' + (nearStage() - 1), show:() => ghostD.show() && nearStage() >= 2, alpha:() => 0.8,
-    click:() => nearStage() === 4 ? ghostD.click() : openOv('<h3>물</h3>문갑 밑으로 물이 배어 나와 있다. 찍어 보니 짜다.' + (nearStage() > 2 ? '<br>닦아도 다시 젖는다.' : '')) });
+const jourEdge = (x, y) => x === 0 || x === 6 || y === 0 || y === 8;
+for (const k of [1, 2]) M['jourBookW' + k] = model(7, 9, 2, (x, y, z) => { const wet = hash(x * 3 + k, y + 7) < [0, 0.3, 0.7][k] && (jourEdge(x, y) || k === 2 && hash(y, x) < 0.25);
+  return z === 1 ? (wet ? '#2c3a38' : jourEdge(x, y) ? '#3a3a2e' : '#4a4a3a') : (wet ? '#8c9c98' : '#d8d0b8'); });
+const jourOpenM = last => model(9, 7, 2, (x, y, z) => { const edge = x === 0 || x === 8 || y === 0 || y === 6;
+  if (z === 0) return edge ? '#2c3a38' : '#4a4a3a';
+  if (x === 4) return '#36362a'; if (edge) return null;
+  return (x < 4 || !last) && y % 2 === 1 && (x + y) % 3 !== 0 ? '#8a8070' : hash(x, y) < 0.3 ? '#b4bcb6' : '#e0d8c4'; });   // last: 오른쪽 장이 비어 있음
+M.jourOpen = jourOpenM(false); M.jourOpenL = jourOpenM(true);
+function jourModel(){ const n = nearStage(); return n === 4 ? 'jourOpenL' : n === 3 ? 'jourOpen' : n ? 'jourBookW' + n : bookDone('jour') ? 'jourBookD' : 'jourBook'; }   // 02 itemModel
+HOOK.tick.push(() => { if (S.stage !== 'room' || S.ended || bookOpen || !endReady() || !S.owned.desk || itemAt('desk') === 'jour') return;   // 책이 부름: 궤에 넣어 두어도 서안 위에 펼쳐져 있음
+  ensureLoc(); placeItem('jour', 'desk'); if (typeof tlog === 'function') tlog('일지가 서안 위에 펼쳐져 있음'); });
+M.inkDrop = model(3, 3, 1, (x, y) => (x === 1 || y === 1) && hash(x, y + 3) < 0.9 ? '#120d09' : null);
+OBJ.push({ id:'inkDrop', x:2.5, y:-17, rot:0, m:() => 'inkDrop', show:() => !!S.owned.brush && nearStage() === 4, alpha:() => 0.85,
+  click:() => openOv('<h3>먹</h3>붓걸이 밑 바닥에 먹이 떨어져 있다.<br>쓴 적 없는 붓 끝에 먹이 맺혀 있다. 아무도 먹을 갈지 않았다.') });
+HOOK.desk.push(() => { if (!endReady() || itemAt('desk') !== 'jour') return false;   // 서안의 일지: 읽는 대신 빈 마지막 장
+  openOv('<h3>반쯤 쓴 일지</h3>펼쳐져 있다. 덮어 둔 적이 없는데.<br>장마다 젖어 있는데 마지막 장만 말라 있다. 비어 있다.'
+    + '<div style="text-align:center;margin-top:14px"><button class="btn rec" id="bLastPg" style="color:var(--ink);border-color:#00000066">붓을 든다</button></div>');
+  document.getElementById('bLastPg').addEventListener('click', ev => { ev.stopPropagation(); ov.classList.add('hidden'); writeLast(); });
+  return true; });
 END.sea0 = { name:'마지막 장을 잇다', kind:'엔딩', n: () => 0, lim: () => 1, omen(){},
   scene: () => ['마지막 장에 붓을 대자 먹이 번졌다. 집 밑으로 무엇이 한 번 지나갔다. 물소리가 났다.',
     '명부의 마지막 줄, 읽히지 않던 이름이 풀렸다 — 守津. 그리고 지워졌다.',
@@ -184,17 +188,12 @@ END.sea0 = { name:'마지막 장을 잇다', kind:'엔딩', n: () => 0, lim: () 
   codex: '13세가 멈춘 장을 이어 쓰고, 책을 덮었다.',
   only: () => '<b>마른 찻주전자</b> — 뚜껑을 열면 바닥에 소금이 한 겹 앉아 있다.',
   relics: [], gahun: 1 };
-function showDoor13(){
-  openOv('<h3>문</h3>벽의 문틀 안이 어둡다. 문짝도 없는데 안이 보이지 않는다.<br>종이 넘기는 소리가 멎었다.'
-    + '<div style="text-align:center;margin-top:14px"><button class="btn rec" id="bDoor13" style="color:var(--ink);border-color:#00000066">들어간다</button></div>');
-  document.getElementById('bDoor13').addEventListener('click', ev => { ev.stopPropagation(); ov.classList.add('hidden'); room13(); });
-}
-function room13(){
-  if (typeof tlog === 'function') tlog('열세 번째 방');
+function writeLast(){
+  if (typeof tlog === 'function') tlog('마지막 장');
   const lines = [`${genHj(LINE.gen)}世 ${josa((S.sur || '') + (S.name || ''), '이', '가')} 이 장을 잇는다.`, '읽은 이는 읽힌다.', '여기서 덮는다.'];
   const all = Array.from(lines.join('\n')); let i = 0, passed = false;
   const el = document.createElement('div'); el.id = 'endScene'; el.style.background = '#0b0907'; document.body.appendChild(el);
-  el.innerHTML = `<div class="sh13"><b>${glyphs('바', 13)}</b></div><div class="hanji endRec r13"><h3>열세 번째 방</h3><p class="el on">서안 하나. 그 위에 펼친 책. 마지막 장이 비어 있다.</p><p class="el on">곁에 붓 한 자루 — 붓걸이의 쓴 적 없는 붓과 같은 먹이 묻어 있다.</p>
+  el.innerHTML = `<div class="sh13"><b>${glyphs('바', 13)}</b></div><div class="hanji endRec r13"><h3>마지막 장</h3><p class="el on">13세의 글씨가 멈춘 자리. 그다음 장이 비어 있다.</p><p class="el on">쓴 적 없는 붓 — 먹을 찍지 않았는데 붓 끝이 젖어 있다.</p>
     <div class="bk13"><div class="pg13 old">${alienHtml(glyphs('남은 장은 굴에 두고 간다 간도 함께 나는', 613))}</div><div class="pg13" id="w13"></div></div><div class="el on endTap" id="t13">— 눌러서 쓴다 —</div></div>`;
   const w = el.querySelector('#w13'), tap = el.querySelector('#t13');
   el.addEventListener('click', () => {

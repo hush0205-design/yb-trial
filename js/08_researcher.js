@@ -343,6 +343,7 @@ function deskClick(){
   ensureLoc();
   const it = itemAt('desk'), where = S.owned.desk ? '서안' : '궤짝 위';
   if (!it){ openOv(`<h3>${S.owned.desk ? '서안' : '궤짝'}</h3>${where}${S.owned.desk ? '이' : '가'} 비어 있다.<br>책장에서 읽을 것을 가져와 올려야 한다.`); return; }
+  if (HOOK.desk.some(f => f())) return;
   if (it === 'map') openMap(); else openBook();
 }
 // 책장의 책·지도를 어디에 둘지
