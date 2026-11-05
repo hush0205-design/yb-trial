@@ -12,7 +12,7 @@ const LAB_DESKS = { ld1:[-30, 6], ld2:[-15, 6], ld3:[0, 6], ld4:[15, 6], ld5:[30
 const DESK_COST = { ld1:100, ld2:150, ld3:250, ld4:400, ld5:600 };
 const TEA_T = [32, -20];   // 별채 다탁 자리
 const GEN_MAX = 3;   // 체험판에서 받는 일반 연구원 수(남은 두 자리는 메인 몫)
-const KNUM = ['', '하나', '둘', '셋', '넷', '다섯', '여섯', '일곱', '여덟'];
+const KNUM = ['', '하나', '둘', '셋', '넷', '다섯', '여섯', '일곱', '여덟', '아홉', '열', '열하나', '열둘', '열셋', '열넷', '열다섯', '열여섯', '열일곱', '열여덟', '열아홉', '스물'];   // 명부가 아홉을 넘으면 숫자로 나오던 것(11/5)
 const KCNT = n => ['', '한', '두', '세', '네', '다섯', '여섯', '일곱', '여덟', '아홉', '열', '열한', '열두', '열세', '열네', '열다섯', '열여섯', '열일곱', '열여덟', '열아홉', '스무'][n] || n;   // 세는 말 앞(한 줄·세 가지)
 
 // 마루: 길게 깐 널, 서고 바닥보다 밝음
@@ -226,7 +226,7 @@ for (const [d, [dx, dy]] of Object.entries(LAB_DESKS)){
   LAB_OBJ.push({ id:'t_' + d, x:dx + 3.5, y:dy + 1.5, z:11, rot:0, on:()=>d, onOrder:0.02, m:()=>'cup', show:()=>{ const k = who(); return !!k && present(k) && Date.now() < (S.st[k].calm||0); }, alpha:()=> cupAlpha(S.st[who()].calm), click:()=>showStaff(who()) });
 }
 const curObjs = () => S.scene === 'lab' ? LAB_OBJ : S.scene === 'sarang' ? SARANG_OBJ : S.scene === 'yeon' ? YEON_OBJ : S.scene === 'kitchen' ? KITCHEN_OBJ : S.scene === 'haeng' ? HAENG_OBJ : S.scene === 'teaf' ? TEAF_OBJ : S.scene === 'mill' ? MILL_OBJ : S.scene === 'museum' ? MUSEUM_OBJ : S.scene === 'gate' ? GATE_OBJ : OBJ;
-const DESK_TXT = { ld1:'의자 다리 하나가 조금 짧다.', ld2:'들인 지 하루도 안 됐는데 먹 자국이 있다.', ld3:'책상 밑에 붓 한 자루가 떨어져 있다. 우리 서고의 붓이 아니다.', ld4:'앉으면 창이 정면으로 보인다. 밤에는 창에 비친 얼굴이 하나 더 있다.', ld5:'아무도 앉지 않았는데 의자가 조금 빠져 있다.' };
+const DESK_TXT = { ld1:'의자 다리 하나가 조금 짧다.', ld2:'들일 때부터 먹 자국이 있었다. 닦아도 지워지지 않는다.', ld3:'책상 밑에 붓 한 자루가 떨어져 있다. 우리 서고의 붓이 아니다.', ld4:'앉으면 창이 정면으로 보인다. 밤에는 창에 비친 얼굴이 하나 더 있다.', ld5:'아무도 앉지 않았는데 의자가 조금 빠져 있다.' };
 for (const d of DESK_IDS) ITEM[d] = ['별채 책상', '별채에 들인 책상과 의자. 연구원 한 사람이 앉을 자리다.<br>서고의 책을 베껴 둔 사본을 놓고 읽는다.<br><br>' + DESK_TXT[d]];
 
 // 서고에 생기는 것: 방 종이, 별채 문, 지원서·편지
@@ -313,7 +313,7 @@ function showStaff(k){
   const o = (id, label) => `<span data-cp="${id}" class="${s.item === id ? 'on' : ''}">${label}</span>`;
   const dl = staffDiary(k), tea = Date.now() < (s.calm||0) ? '<div style="font-size:12px;opacity:.6">책상에 찻잔이 놓여 있다. 아직 따뜻하다.</div>' : '';
   openOv(`<h3>${isGen(k) ? '연구원' : '반장'} — ${P.name}(${P.hj})</h3>직업: ${P.job}<br>상태: ${st}${typeof whyHtml === 'function' ? whyHtml(k) : '<br>'}읽는 빠르기: ${speed}<br>넘긴 것: ${fmtP(s.pages||0)}<br><div style="font-size:12px;opacity:.6">${P.note}</div>${tea}`
-    + (S.teaArrived && P.tea === false ? '<div style="font-size:12px;opacity:.6;margin:6px 0">차는 마시지 않는다. 오정림이 놓고 간 잔도 돌려보낸다.</div>' : '') + (S.teaArrived && P.tea !== false ? `<div style="text-align:center;margin:8px 0"><button class="btn rec" id="bSTea" style="color:var(--ink);border-color:#00000066">차를 한 잔 내준다</button></div>` : '')
+    + (S.teaArrived && P.tea === false ? '<div style="font-size:12px;opacity:.6;margin:6px 0">차는 마시지 않는다. ' + (arrived('ojr') ? '오정림이 놓고 간 잔도' : '놓고 간 잔도') + ' 돌려보낸다.</div>' : '') + (S.teaArrived && P.tea !== false ? `<div style="text-align:center;margin:8px 0"><button class="btn rec" id="bSTea" style="color:var(--ink);border-color:#00000066">차를 한 잔 내준다</button></div>` : '')
     + '<div class="bsec">읽을 것 — 서고의 책을 베껴 둔 사본이라 여럿이 같은 책을 읽을 수 있다</div>'
     + bookRows('cp', s.item, [['first', '제목 없는 책', fearWord('first')], ...(hasBook('dongui') ? [['dongui', '동의보감 三', fearWord('dongui')]] : []), ...(S.mapFound ? [['map', '지도', fearWord('map')]] : [])])
     + `<div class="bsec">베껴 팔 것 — 맡기면 쓸 수 있는 쪽 ${fmtP(COPY_PAGES)}을 쓰고, 베끼는 동안은 쪽이 늘지 않는다</div>`

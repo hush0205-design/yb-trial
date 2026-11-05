@@ -177,8 +177,38 @@ function nightTick(dt){
     if (typeof tlog === 'function') tlog('밤일 변함: ' + k);
   }
 }
+// 명부의 한 명(이야기 끝, 기획서 9-1 · 11/5 ✳): 사람이 앉아 있던 별채 책상이 떠난 뒤 사흘(K.rosterDays) 비어 있으면, 13세가 그 자리에 앉아 '일함'.
+// 처음부터 안 쓰던 책상은 셈 밖. 징조(하루 앞): 빈 책상의 책이 아침마다 넘어가 있음 + 밤이면 빈 책상에서 넘기는 소리. 기본 모드는 비운 사이 끝 바로 앞에서 멈춤.
+const rosterN = () => { const t = dayKey(), e = S.deskEmpty || {}; return Object.keys(e).reduce((a, d) => Math.max(a, t - e[d]), 0); };
+END.roster = { name:'명부의 한 명', kind:'이야기',
+  n: rosterN, lim: () => K.rosterDays, omen(){},
+  scene: () => ['떠난 이의 책상은 끝내 채우지 않았다.',
+    '아침마다 그 책상의 책이 몇 장씩 넘어가 있었다. 먹이 마르지 않은 사본도 있었다.',
+    '밤이면 빈 자리에서 책장 넘기는 소리가 났다. 아무도 등잔을 켜지 않았다.',
+    '명부 맨 끝에 처음 보는 이름이 적혀 있었다. 누구도 받아 적은 적이 없었다.',
+    '가주는 그 자리에 앉은 이를 내쫓지 못했다.'],
+  codex: '빈자리에 앉은 이를 내쫓지 못했다.',
+  only: () => `<b>명부 맨 끝 줄</b> — 비워 둔 자리의 이름 칸에 낯선 손으로: ${alienHtml(glyphs('필경사', 91))}<br><span style="font-size:12px;opacity:.6">녹봉 칸은 비어 있다. 받아 간 적이 없다.</span>`,
+  relics: [], gahun: null };
+function rosterTick(){
+  if (S.stage !== 'room') return;
+  const used = S.deskUsed = S.deskUsed || {}, e = S.deskEmpty = S.deskEmpty || {}, t = dayKey(); let ch = false;
+  for (const d of Object.keys(LAB_DESKS)){
+    if (deskOwner(d)){ if (!used[d]){ used[d] = true; ch = true; } if (e[d] != null){ delete e[d]; ch = true; } }
+    else if (used[d] && e[d] == null){ e[d] = t; ch = true; }
+  }
+  const n = rosterN();
+  if (holdEnd() && n >= K.rosterDays) for (const d of Object.keys(e)) e[d] = Math.max(e[d], t - K.rosterDays + 1);   // 기본: 비운 사이엔 끝 바로 앞에서 멈춤
+  if (n === K.rosterDays - 1 && !(S.omen || {}).roster){ S.omen = S.omen || {}; S.omen.roster = true; ch = true;   // 징조(한도 바로 앞 — 사흘의 70%는 사흘이라 따로)
+    pushNote('<h3>쪽지</h3>' + vlet(['가주께.', '비워 둔 책상의 책이', '아침마다 몇 장씩 넘어가 있습니다.', '아무도 앉지 않았습니다.'], S.rArrived ? '한서진 올림.' : '오정림 올림.', 'min(40vh,280px)'));
+    if (typeof tlog === 'function') tlog('징조: 명부의 한 명'); }
+  if (ch) save();
+  if (n >= K.rosterDays - 1 && isNight() && !bookOpen && Date.now() > (S.rosterSndAt || 0)){   // 징조 뒤 밤: 빈 책상에서 책장 넘기는 소리
+    if (S.rosterSndAt) play('flip', S.scene === 'lab' ? 0.2 : 0.06, 0.7);
+    S.rosterSndAt = Date.now() + K.nightSnd[0] + Math.random() * (K.nightSnd[1] - K.nightSnd[0]); }
+}
 function endsTick(dt){
-  teaCutTick(); borrowTick(); liverTick(); seaTick(); nightTick(dt);
+  teaCutTick(); borrowTick(); liverTick(); seaTick(); nightTick(dt); rosterTick();
   if (S.trace === 'night' && isNight() && !bookOpen && Date.now() > (S.nightSndAt || 0)){   // 흔적(밤에 일 시키다): 밤이면 아무도 없는 별채에서 책장 넘기는 소리
     if (S.nightSndAt) { play('flip', S.scene === 'lab' ? 0.2 : 0.08, 0.8); S.nightSndN = (S.nightSndN || 0) + 1; }
     S.nightSndAt = Date.now() + K.nightSnd[0] + Math.random() * (K.nightSnd[1] - K.nightSnd[0]); save(); }

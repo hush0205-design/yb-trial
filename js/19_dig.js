@@ -119,7 +119,7 @@ HOOK.dolls.gate.push(() => Object.keys(S.errs).filter(k => S.errs[k] && S.errs[k
 function digLeft(k){
   const er = S.errs[k]; let back = er.t0; for (const st of er.steps){ back += stepDur(st); if (st.k === 'wait' && st.sc === 'away') break; }
   const m = Math.max(0, Math.round((back - Date.now())/60000));
-  return m > 0 ? `${m}분쯤 뒤에 대문으로 돌아온다.` : '곧 대문으로 돌아온다.';
+  return m > 0 ? `${m}분쯤 뒤에 대문으로 돌아온다.` : errScene(k) === 'gate' ? '곧 들어온다.' : '곧 대문으로 돌아온다.';   // 이미 대문 앞이면(11/5)
 }
 // 비운 동안: 여울에 가 있는 사람은 읽지 않음
 { const lo = labOffline; labOffline = function(){ const skip = Object.keys(S.errs).filter(k => S.errs[k] && S.errs[k].dig && errNow(k)); const keep = {}; for (const k of skip){ if (S.st[k]){ keep[k] = S.st[k].arr; S.st[k].arr = 0; } } const out = lo(); for (const k of skip) if (S.st[k]) S.st[k].arr = keep[k]; return out; }; }

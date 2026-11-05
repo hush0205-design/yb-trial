@@ -372,7 +372,7 @@ function showPlace(id){
 }
 function giveTea(){ S.rSteam = Date.now() + 3000; S.rCalm = Date.now() + 3000 + 240000; save(); sBoil(); }   // 차 효과 4분
 function showTea(){
-  openOv('<h3>찻주전자</h3>손이 떨리기 시작하자 서고 한쪽에 놓여 있었다. 누가 가져왔는지는 모른다.<br>차를 끓여 마시면 떨림이 가라앉고, 한동안은 두려움이 더디게 찾아온다.<br><br>찻잎은 줄지 않는다.'
+  openOv('<h3>찻주전자</h3>' + (S.scene === 'lab' && arrived('ojr') ? '오정림이 서고에서 가져와 다탁에 올려 두었다. 처음 서고에 두고 간 이가 누구인지는 아무도 모른다.' : '손이 떨리기 시작하자 서고 한쪽에 놓여 있었다. 누가 가져왔는지는 모른다.') + '<br>차를 끓여 마시면 떨림이 가라앉고, 한동안은 두려움이 더디게 찾아온다.<br><br>찻잎은 줄지 않는다.'
     + '<div style="text-align:center;margin-top:16px"><button class="btn rec" id="bBrew" style="color:var(--ink);border-color:#00000066">차를 끓인다</button>' + (S.rArrived ? '<button class="btn rec" id="bBrew2" style="color:var(--ink);border-color:#00000066;margin-left:6px">한서진에게 한 잔 내준다</button>' : '') + '</div>');
   const b2 = document.getElementById('bBrew2'); if (b2) b2.addEventListener('click', ev => { ev.stopPropagation(); ov.classList.add('hidden'); giveTea(); });
   document.getElementById('bBrew').addEventListener('click', ev => { ev.stopPropagation(); ov.classList.add('hidden'); brew(); });

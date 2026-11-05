@@ -87,7 +87,7 @@ function techNode(id, i){
 function showTech(){
   S.techSeen = true; save();
   const sp = techSpeed(), spT = sp > 1 ? `<div style="font-size:13px;margin-bottom:6px">이 공책대로 하면 넘기는 손이 처음보다 <b>${Math.round(sp * 100) / 100}배</b>.</div>` : '';
-  openOv('<h3>연구 공책</h3><div style="font-size:12px;opacity:.6;margin-bottom:6px">가주가 적어 두는 공책. 첫 장에 한서진이 갈래를 그려 두었다.</div>' + spT
+  openOv('<h3>연구 공책</h3><div style="font-size:12px;opacity:.6;margin-bottom:6px">가주가 적어 두는 공책. ' + (S.rArrived ? '첫 장에 한서진이 갈래를 그려 두었다.' : '첫 장에 누가 그렸는지 모를 갈래가 그려져 있다.') + '</div>' + spT
     + TECH_LINE.map(([nm, ids], g) => `<div style="margin-top:10px"><div style="font-size:12px;opacity:.55">${nm}</div><div style="margin-left:14px;padding-left:12px;border-left:2px solid #2a1a0e55">${ids.map((id, i) => techNode(id, g * 10 + i)).join('')}</div></div>`).join('')
     + `<div style="margin-top:14px;opacity:.55">${alienHtml(TECH_LAST)} <span style="font-size:12px">${alienHtml(glyphs('셀 수 없음', 1314))}</span></div>`
     + '<div style="font-size:12px;opacity:.55;margin-top:8px">맨 끝 줄은 내 글씨다. 적은 기억이 없다.</div>');

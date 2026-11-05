@@ -43,17 +43,18 @@ function madTick(dt){
   const near = d => allKeys().some(j => S.st[j] && (S.st[j].changed || rMadSt(j) >= 5) && !S.st[j].gone && LAB_DESKS[S.st[j].desk] && Math.abs(LAB_DESKS[S.st[j].desk][0] - LAB_DESKS[d][0]) === 15);   // 간을 두고 온 사람·넋이 나간 사람(5단계) 곁
   const gain = (item, f, k) => dt * K.madR * brakeK(f) * (item === 'map' || item === 'wet' || item === 'jour' ? 1.5 : 1) * (eyesOf(k) ? 1 : 0.3);   // 두 눈을 잃으면 보이는 것에서 오는 광기는 안 받음
   if (S.rArrived && !isNight() && !S.errs.sj && itemAt('rdesk')){ S.rMad = (S.rMad || 0) + gain(itemAt('rdesk'), S.jin ? 0 : S.rFear, 'sj') * oweMad('sj'); }
-  if ((S.rSteam || 0) > (S.rMadTea || 0)){ S.rMadTea = S.rSteam; S.rMad = (S.rMad || 0) + K.madTeaR * oweMad('ojr'); }
+  const potDry = hasRelic('pot_dry');   // 유품 마른 찻주전자: 이것으로 끓인 차는 연구원이 마셔도 광기가 안 쌓임(11/5 ✳)
+  if ((S.rSteam || 0) > (S.rMadTea || 0)){ S.rMadTea = S.rSteam; if (!potDry) S.rMad = (S.rMad || 0) + K.madTeaR * oweMad('ojr'); }
   for (const k of allKeys()){
     const s = S.st[k]; if (!s || !s.arr || s.gone) continue;
-    if ((s.steam || 0) > (s.madTea || 0)){ s.madTea = s.steam; s.mad = (s.mad || 0) + K.madTeaR * oweMad('ojr'); }
+    if ((s.steam || 0) > (s.madTea || 0)){ s.madTea = s.steam; if (!potDry) s.mad = (s.mad || 0) + K.madTeaR * oweMad('ojr'); }
     if (!working(k) || S.errs[k] || isCopy(s.item) || !s.item) continue;
     s.mad = (s.mad || 0) + gain(s.item, s.changed ? 0 : s.fear, k) * (LAB_DESKS[s.desk] && near(s.desk) ? 1.5 : 1);
   }
   if (S.docFrom == null && (rMadSt('sj') >= 3 || allKeys().some(k => S.st[k] && rMadSt(k) >= 3))){ S.docFrom = dayKey() + 1; save(); }
   if ((S.rMad || 0) >= K.madRAt[6]) S.rMad = K.madRAt[6] - 1;                             // 한서진은 6단계에서 멈춤(변형은 굴 이야기 — 韓瑞津, 19_deep)
   for (const k of allKeys()){ const s = S.st[k]; if (!s || s.gone || s.changed || s.mad7 || rMadSt(k) < 7 || S.errs[k] || !working(k)) continue;
-    s.mad7 = true; madLimit(k, Math.random() < 2/3); }   // 7단계 한계: 변형 2 : 소실 1(발굴 설계와 같은 규칙)
+    s.mad7 = true; madLimit(k, !!STAFF[k] || Math.random() < 2/3); }   // 7단계 한계: 변형 2 : 소실 1(발굴 설계와 같은 규칙) — 메인(서명우·오정림)은 책이 놓아주지 않아 늘 변형(11/5 ✳)
   // 가주 4~5단계: 숫자가 흐려짐(윗줄 쪽 수) · 없는 소리
   const ctr = document.getElementById('counter'); if (ctr) ctr.classList.toggle('madblur', myMad() >= 4);
   if (myMad() >= 5){ const now = Date.now(); if (!madSndAt) madSndAt = now + 120e3 + Math.random() * 240e3;

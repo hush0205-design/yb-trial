@@ -72,7 +72,8 @@ const K = { earHintPages: 6, earHintIdle: 5000, earHintEvery: 7000,   // 첫 넘
   fearRest: 0.003,   // 책을 덮어 두면 가주 겁이 초당 이만큼 가라앉음(08 tick — 한계 0.8에서 4분 반쯤)
   techIdu: 1.1, techCopy: 2/3, techSecPer: 1200, techTide: 0.5, techTideTime: 0.75, techMarginMad: 1.3,   // 연구(19_tech): 이두 해독 배수 · 필사 요령 시간 배수 · 한 권짜리 연구를 쓰는 초 · 물길 읽기 허탕 배수·머무는 시간 배수 · 여백 보는 눈 손 넘김 광기 배수
   seaFolkMore: 3,   // 물가의 사람들이 유물을 산 번수만큼 대문 앞에 더 서는 사람 수의 끝(19_ask)
-  nightChange: 7200, nightSnd: [40e3, 90e3],   // 밤에 일 시키다(19_ends): 낮 사람을 밤에 남겨 둔 시간(초)이 이만큼 쌓이면 변함 · 그 흔적으로 밤에 책장 넘기는 소리가 나는 간격(ms)
+  nightChange: 7200, nightSnd: [40e3, 90e3], rosterDays: 3,   // rosterDays: 명부의 한 명(19_ends) — 떠난 사람의 책상을 이 날수만큼 비워 두면 끝(11/5 ✳)
+    // 밤에 일 시키다(19_ends): 낮 사람을 밤에 남겨 둔 시간(초)이 이만큼 쌓이면 변함 · 그 흔적으로 밤에 책장 넘기는 소리가 나는 간격(ms)
   backDays: 1, backFear: 0.8,   // 되부르기(19_empty): 밀린 것을 보낸 뒤 며칠 만에 다시 지원서 · 돌아온 사람의 겁 차는 빠르기 배수
   bangWait: 1.5, bangLiver: 0.2, bangRotMad: 9, bangOld: 3, rumorGood: 0.7, rumorBad: 1.4,   // 방의 종류(19_bang): 조건 붙은 방일 때 다음 지원자까지 걸리는 시간 배수 · 겁 없는 이 방에 간땡이가 부은 사람이 섞이는 몫 · 가주 광기가 이 단계에 닿은 다음 날부터 방이 오염 · 붙인 지 며칠이면 방이 낡아 번짐 · 좋은·나쁜 소문일 때 기다림 배수
   oweMad: 1.5,   // 녹봉이 이틀 넘게 밀린 메인(한서진·오정림)의 광기 배수(19_mad)

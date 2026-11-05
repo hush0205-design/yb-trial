@@ -22,7 +22,7 @@ function sendRest(k){
 }
 const restBox = (k, f) => {
   const st = fearStage(f); if (st < 2) return '';
-  return (st >= 4 ? '<div style="font-size:12px;opacity:.75;margin-top:8px">간이 너무 오그라들어 오정림의 차로는 달래지지 않는다. 가주가 직접 살펴야 한다.</div>' : '')
+  return (st >= 4 ? '<div style="font-size:12px;opacity:.75;margin-top:8px">간이 너무 오그라들어 ' + (arrived('ojr') ? '오정림의 차로는' : '차로는') + ' 달래지지 않는다. 가주가 직접 살펴야 한다.</div>' : '')
     + `<div style="text-align:center;margin-top:8px"><button class="btn rec" id="bRest" style="color:var(--ink);border-color:#00000066">오늘은 들어가 쉬라고 한다</button></div><div style="font-size:11px;opacity:.55;text-align:center">${Math.round(homeMs() / 60e3)}분쯤 쉬고 겁을 털고 돌아온다.</div>`;
 };
 function addRest(k, f){
