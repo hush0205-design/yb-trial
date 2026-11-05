@@ -45,7 +45,7 @@ M.mungap = mungapModel(false); M.mungapOpen = mungapModel(true);
 const libSig = () => buildRecs().map(r => r[0].replace(/ — 새로.*$/, '')).join('|') + '#' + diaryCount() + '#' + ['smw', 'ojr'].map(k => staffDiary(k).length).join(',') + '#' + (S.gl.fresh||0) + '#' + (S.whyLog || []).length + '#' + (S.sideLog || []).length;
 // 10/7(기획서 18-1): 새 '종류'의 기록이 처음 생길 때만, 하루 한 번까지 + 섬뜩한 서랍(19_odd)
 const libNew = () => S.D >= T.door && (!!S.libGhost || (S.libDay !== dayKey() && recKinds().some(k => !(S.libKinds || []).includes(k))));
-OBJ.push({ id:'mungap', x:16, y:-22, rot:0, m:()=> libNew() ? 'mungapOpen' : 'mungap', show:()=> S.D >= T.door, click:()=>showLibrary() });
+OBJ.push({ id:'mungap', x:16, y:-22, rot:0, m:()=> libNew() ? 'mungapOpen' : 'mungap', show:()=> S.D >= T.door && !(typeof sarangOn === 'function' && sarangOn()), click:()=>showLibrary() });   // 사랑채가 열리면 그리로 옮김(19_sarang)
 { const d = OBJ.find(o => o.id === 'door'); d.click = () => goScene('gate'); }
 
 // 대문 화면

@@ -98,7 +98,7 @@ const glSeen = key => { if (!S.gl.seen.includes(key)) S.gl.seen.push(key); };
 // 기록 창 내용에 풀이 표시를 입힘
 function glossify(root){
   const used = new Set(), walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
-    acceptNode: n => n.parentElement.closest('button, .close, .ag, #sideP, .glw, .spine, [data-i], .jmp, .opt, #glTip, pre') ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT });
+    acceptNode: n => n.parentElement.closest('button, .close, .ag, #sideP, .glw, .spine, [data-i], [data-hm], [data-jk], .rec[id], .jmp, .opt, #glTip, pre') ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT });
   const nodes = []; while (walker.nextNode()) nodes.push(walker.currentNode);
   for (const n of nodes){
     const s = n.nodeValue, hits = [];

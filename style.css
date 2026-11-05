@@ -32,6 +32,9 @@
     background-image:repeating-linear-gradient(to left, transparent 0, transparent calc(var(--lh) - 1px), #6a4a2a2e calc(var(--lh) - 1px), #6a4a2a2e var(--lh)); }
   .horiz .txt { writing-mode:horizontal-tb; background-image:none; word-break:keep-all; line-height:1.7; padding:4px 2px; }
   .ln { white-space:pre-wrap; }
+  .ln.cv { position:relative; }
+  .pv { position:absolute; top:.2em; left:-.7em; font-size:.55em; line-height:1; white-space:nowrap; color:#4a3a26; opacity:.75; }   /* 앞 대 가주의 풀이(04_book) */
+  .horiz .pv { position:static; display:block; white-space:normal; }
   .tcy { text-combine-upright:all; -webkit-text-combine:horizontal; }
   .ln.red { color:#6a2a16; font-style:italic; }
   .ag { display:inline-block; color:#3a2c1e; }
@@ -144,6 +147,7 @@
   /* 기록 창 */
   #overlay { position:fixed; inset:0; background:#000c; display:flex; align-items:center; justify-content:center; z-index:30; }
   #overlay .hanji { max-height:84vh; overflow:auto; font-size:15px; line-height:1.9; }
+  #overlay .hanji.more::after { content:'▾'; position:sticky; bottom:0; display:block; height:30px; margin-top:-30px; text-align:center; line-height:40px; font-size:13px; color:#2a1a0e99; background:linear-gradient(#d9cdab00, var(--paper) 70%); pointer-events:none; }   /* 창이 화면보다 길면 아래가 더 있다는 표시(10/31 시험자: 바다 궤 창 아래 단추가 가려짐) */
   #overlay .hanji h3 { margin:0 0 12px; letter-spacing:6px; font-size:16px; }
   .rec { padding:8px 0; border-bottom:1px solid #00000022; cursor:pointer; }
   .close { margin-top:18px; text-align:center; font-size:13px; opacity:.6; }
@@ -276,3 +280,31 @@
 #endScene .bk::after { content:''; position:absolute; left:9px; top:9px; width:11px; height:42px; background:#e2d6b8; }
 #endScene .bk::before { content:''; position:absolute; left:calc(50% - 5px); top:0; width:3px; height:100%; background:repeating-linear-gradient(#e8e0cc 0 6px, #0000 6px 14px); }
 #endScene .sv.on .bk::after, #endScene .sv.on .bk::before { animation:sxSalt .6s ease 1.9s both; }
+/* 광기(19_mad): 기록 창 글자가 번짐 */
+.smear { filter:blur(1.4px); animation:smearIn 3s ease-out both; }
+@keyframes smearIn { 0% { filter:blur(0); } 30% { filter:blur(2px); } 100% { filter:blur(1.1px); } }
+/* 집 지도(19_house): 한지에 먹선 배치도 */
+.hmap { position:relative; display:grid; grid-template-columns:repeat(3, 1fr); grid-template-rows:repeat(3, 72px); grid-auto-rows:72px; gap:8px; padding:18px; background:#e9dfc4; border:1px solid #3a2a1c55; }
+.hmap.night { background:#b9b09a; }
+.hmCell { border:1.5px solid #2a1e14; display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:13px; text-align:center; cursor:pointer; position:relative; }
+.hmCell span { font-size:11px; opacity:.65; }
+.hmCell.empty { border-style:dashed; border-color:#2a1e1488; color:#2a1e14aa; }
+.hmCell.own { border-style:dashed; }
+.hmCell.work { border-style:dotted; background:repeating-linear-gradient(90deg, #0000 0 10px, #5a3a2033 10px 12px); }
+.hmCell.lit { box-shadow:inset 0 0 14px #e8b04a99; }
+.hmCell.smoke::after { content:''; position:absolute; right:8px; top:-10px; width:8px; height:14px; border-radius:50%; background:#7a706088; animation:hmSmoke 3s ease-in infinite; }
+@keyframes hmSmoke { from { transform:translateY(0); opacity:.7; } to { transform:translateY(-12px) scale(1.6); opacity:0; } }
+.hmOrb { position:absolute; width:12px; height:12px; margin:-6px 0 0 -6px; border-radius:50%; pointer-events:none; }
+.hmOrb.sun { background:#c0582a; }
+.hmOrb.moon { background:#f2ecd8; box-shadow:inset -4px 0 0 #b9b09a; }
+/* 기이록 다섯 줄 보상(19_odd): 장 사이에 끼어 있는 종잇조각 */
+#oddSlip { position:absolute; left:46%; bottom:-14px; width:26px; height:40px; z-index:4; display:none; cursor:pointer; transform:rotate(-8deg);
+  background:#d9cdab; box-shadow:0 2px 4px #0004; border-top:2px solid #c2b48e; }
+#oddSlip.on { display:block; }
+#counter.madblur { filter:blur(1.2px); opacity:.75; }   /* 광기 4단계(19_mad): 숫자가 흐려짐 */
+.ln.madHand { color:#6a2a16; opacity:.8; font-style:italic; }   /* 광기 10단계(19_mad): 가주의 손이 저절로 씀 */
+.hmCell.ghostRoom { border-width:2.5px; border-color:#1a120b; background:#2a1e1411; }   /* 광기 9(19_house): 지은 적 없는 방 */
+.hmCell.ghostRoom.door::after { content:''; position:absolute; left:calc(50% - 7px); bottom:0; width:14px; height:22px; border:1.5px solid #1a120b; border-bottom:none; background:#1a120bcc; }
+/* 목적지 고르기(19_deep): 지도 위에 붉은 점, 위에 한 줄 */
+#destHint { position:absolute; left:50%; top:64px; transform:translateX(-50%); color:#e8dcc0; font-size:15px; letter-spacing:3px; z-index:6; pointer-events:none; }
+.destDot { position:absolute; width:16px; height:16px; margin:-8px 0 0 -8px; border-radius:50%; background:#9a2a1a; box-shadow:0 0 6px #9a2a1a; z-index:5; pointer-events:none; }

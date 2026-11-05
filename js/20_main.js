@@ -33,7 +33,7 @@ JUMPS.push(['20. 일반 연구원 셋이 떠난 뒤 (한 명 더 내보내면 �
 JUMPS.push(['21. 쌀독이 비기 직전 (들어가면 서안에 빈 편지지 — 돈을 꾸는 편지, 하드면 곧 끝남)', Object.assign(JSON.parse(JSON.stringify(JUMPS[14][1])), { genN:3, money:0, riceN:4, riceDay:-1, omen:{ rice:true },
   st: { g1:{ at:-1, read:true, replied:true, arr:-2, gone:true, quit:-1 }, g2:{ at:-1, read:true, replied:true, arr:-2, gone:true, quit:-1 }, g3:{ at:-1, read:true, replied:true, arr:-2, gone:true, quit:-1 } } })]);
 // 10/11 첫 엔딩 시험용: 22 굴에서 일지를 가져온 뒤(궤에 일지 — 서안에 올려 다 풀면 벽의 문이 열림, 첫 책은 다 풂)
-JUMPS.push(['22. 굴에서 일지를 가져온 뒤 (일지를 다 풀면 문 없는 방이 열림 — 첫 엔딩)', Object.assign(JSON.parse(JSON.stringify(JUMPS[14][1])), { goNote:true, goRead:true, D:3200,
+JUMPS.push(['22. 굴에서 일지를 가져온 뒤 (일지를 다 풀면 서안에 빈 마지막 장이 펼쳐짐 — 첫 엔딩)', Object.assign(JSON.parse(JSON.stringify(JUMPS[14][1])), { goNote:true, goRead:true, D:3200,
   dig:{ n:3, went:{ yeoul:1, rock:1, cave:1 }, found:['wetleaf', 'brush13', 'kelp'], foundAt:1, foundDay:0, seen:true, log:[] }, deep:{ seal13:1, rub:1, jour:1, gwito:1 },
   sea:{ kelp:1, shell:3, rub:1 }, relicBox:{ at:1, day:0, seen:true }, sideRead:{ wet:true }, wD:240, loc:{ first:'shelf', dongui:'shelf', map:'shelf', wet:'box', jour:'box' } })]);
 function jumpGen2(){
@@ -99,7 +99,7 @@ function showSettings(){
     <div class="opt rec"><span>개발자 메뉴 잠그기</span><span class="ch"><span id="bDevLock">잠근다</span></span></div>`
           : `<div style="text-align:right;margin-top:14px"><span class="rec" id="bDev" style="font-size:12px;opacity:.45">개발자 메뉴</span></div>`));
   ovBody.querySelectorAll('.ch span[data-k]').forEach(el => el.addEventListener('click', ev => {
-    ev.stopPropagation(); S.opt[el.dataset.k] = el.dataset.v === '1'; save();
+    ev.stopPropagation(); const d0 = dayKey(); S.opt[el.dataset.k] = el.dataset.v === '1'; if (el.dataset.k === 'gameTime') S.opt.dayOff = (S.opt.dayOff || 0) + d0 - dayKey(); save();   // 밤낮을 바꿔도 오늘이 그대로(안 그러면 날 수가 수십만 튀어 녹봉·소작이 한꺼번에 쌓임, 11/2)
     if (!bookView.classList.contains('hidden')) layoutBook(); showSettings();
   }));
   document.getElementById('bLog').addEventListener('click', ev => { ev.stopPropagation(); showTlog(); });
@@ -134,11 +134,25 @@ document.getElementById('sGahun').addEventListener('click', e => {
 });
 
 // ───────── 서고 입력 ─────────
-let down = null;
-cv.addEventListener('pointerdown', e => { down = { x:e.clientX, y:e.clientY, a:drag, moved:false, th: e.pointerType === 'mouse' ? 6 : 16 }; try { cv.setPointerCapture(e.pointerId); } catch(_){} });
-cv.addEventListener('pointermove', e => { if (!down) return; const dx = e.clientX - down.x; if (Math.abs(dx) > down.th) down.moved = true; if (down.moved) drag = down.a + dx*0.008; });
-cv.addEventListener('pointercancel', () => { down = null; });
+let down = null, pinch = null;
+const touches = new Map();   // 두 손가락: 벌리면 방이 가까이(폰에서 물건이 작다는 시험자 보고, 11/1), 한 손가락은 전처럼 돌림
+const pinchMid = () => { const [a, b] = [...touches.values()]; return { x:(a.x + b.x) / 2, y:(a.y + b.y) / 2, d:Math.hypot(a.x - b.x, a.y - b.y) }; };
+function pinchMove(){
+  const r = cv.getBoundingClientRect(), m = pinchMid(), z = Math.max(1, Math.min(K.zoomMax, pinch.z * m.d / pinch.d)), k = z / pinch.z;
+  const ox = r.width * (0.5 + pinch.fx), oy = r.height * (0.58 + pinch.fy), mx = pinch.x - r.left, my = pinch.y - r.top;
+  const lim = (v, w) => Math.max(-w, Math.min(w, v));
+  zoom = z; zfx = lim((mx + (ox - mx) * k + m.x - pinch.x) / r.width - 0.5, (z - 1) / 2); zfy = lim((my + (oy - my) * k + m.y - pinch.y) / r.height - 0.58, (z - 1) / 2);
+  resize();
+}
+cv.addEventListener('pointerdown', e => {
+  if (e.pointerType === 'touch'){ touches.set(e.pointerId, { x:e.clientX, y:e.clientY });
+    if (touches.size === 2){ const m = pinchMid(); pinch = { ...m, z:zoom, fx:zfx, fy:zfy }; down = null; try { cv.setPointerCapture(e.pointerId); } catch(_){} return; } }
+  down = { x:e.clientX, y:e.clientY, a:drag, moved:false, th: e.pointerType === 'mouse' ? 6 : 16 }; try { cv.setPointerCapture(e.pointerId); } catch(_){} });
+cv.addEventListener('pointermove', e => { if (touches.has(e.pointerId)) touches.set(e.pointerId, { x:e.clientX, y:e.clientY }); if (pinch && touches.size === 2) return pinchMove(); if (!down) return; const dx = e.clientX - down.x; if (Math.abs(dx) > down.th) down.moved = true; if (down.moved) drag = down.a + dx*0.008; });
+const touchEnd = e => { touches.delete(e.pointerId); if (touches.size < 2) pinch = null; };
+cv.addEventListener('pointercancel', e => { down = null; touchEnd(e); });
 cv.addEventListener('pointerup', e => {
+  touchEnd(e);
   const d = down; down = null; if (!d || d.moved || S.stage !== 'room') return;
   const r = cv.getBoundingClientRect(), px = (e.clientX - r.left)*DPR, py = (e.clientY - r.top)*DPR;
   let best = null, bd = 1e9;
@@ -159,7 +173,7 @@ document.getElementById('bWrite').onclick = () => {
   const sur = val(iSur), nm = val(iName), typed = !!iName.value.trim();
   try { localStorage.setItem(LAST, JSON.stringify({ sur, bon: val(iBon), name: nm })); } catch(_){}
   if (!/^[가-힣]{1,2}$/.test(sur) || !/^[가-힣]{1,3}$/.test(nm)) { document.getElementById(!/^[가-힣]{1,2}$/.test(sur)?'iSur':'iName').focus(); return; }
-  S.sur = sur; S.name = nm; S.bon = val(iBon); S.bookNamed = LINE.gen > 17 && !typed; sFlip();   // 흐리게 적혀 있던 이름을 그대로 둠 → 기이록(19_odd, 기획서 20절 4)
+  S.sur = sur; S.name = nm; S.bon = val(iBon); S.bookNamed = S.nameKept = LINE.gen > 17 && !typed; sFlip();   // 흐리게 적혀 있던 이름을 그대로 둠 → 기이록(19_odd, 기획서 20절 4)
   if (LINE.gen <= 17){ S.gahun = 0; save(); enterRoom(); }          // 1대: 가훈을 고르지 않음 — 벽에 이미 걸려 있음(환생 명세 10-10)
   else { S.stage = 'gahun'; save(); scr('sGahun'); }
   if (LINE.gen <= 17 && !LINE.jokbo.length){ LINE.sur = S.sur; LINE.bon = S.bon; saveLine(); }
@@ -178,7 +192,8 @@ window.BOOTING = false;
 if (away.r || labAway.length){ S.awayNoted = dayKey(); save(); }      // 오늘 아침 비움 쪽지가 숫자를 말함 → 아침 보고는 총량을 되풀이하지 않음
 if (labAway.length){ S.pendingNotes = (S.pendingNotes || []).concat(labAway); save(); }
 if (away.r || away.night) setTimeout(() => {
-  if (S.rArrived) { S.pendingNote = `<h3>쪽지</h3><div class="vletter rec" style="height:min(50vh,360px)">가주께.<br>${away.r ? `안 계신 동안 ${fmtP(away.r)}을 넘겼습니다.<br>` : ''}밤에는 일하지 않았습니다.${away.night ? `<br><br>아침에 와 보니 서안의 책이<br>${fmtP(away.night)} 넘어가 있었습니다.<br>저는 밤에 오지 않았습니다.` : ''}<div class="sign">한서진 올림.</div></div>`; save(); }
+  if (S.rArrived) { if (S.pendingNote) S.pendingNotes = (S.pendingNotes || []).concat([S.pendingNote]);   // 읽지 않은 쪽지는 더미로(점검 11/5 — 덮어써 사라지던 것)
+    S.pendingNote = `<h3>쪽지</h3><div class="vletter rec" style="height:min(50vh,360px)">가주께.<br>${away.r ? `안 계신 동안 ${fmtP(away.r)}을 넘겼습니다.<br>` : ''}밤에는 일하지 않았습니다.${away.night ? `<br><br>아침에 와 보니 서안의 책이<br>${fmtP(away.night)} 넘어가 있었습니다.<br>저는 밤에 오지 않았습니다.` : ''}<div class="sign">한서진 올림.</div></div>`; save(); }
   else openOv(`<h3>서안</h3>자리를 비운 사이, 서안에 펼쳐 둔 책이 ${fmtP(away.night)} 넘어가 있다.<br>아무도 손대지 않았다.<br><br>창은 닫혀 있었다.`);
 }, 900);
 S.lastSeen = Date.now();

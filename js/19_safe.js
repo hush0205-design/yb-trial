@@ -20,7 +20,7 @@ const STAND_MS = 180000;
 function startStand(k, kind){
   const P = DEF(k), s = S.st[k];
   // 하드에서 비운 동안 생긴 일이면 그날이 바뀐 때(또는 자리를 비운 때)부터 이미 기다리고 있었던 것으로
-  const dayStart = S.opt.gameTime ? dayKey() * 7200e3 : dayKey() * 86400e3 - 9*3600e3;
+  const day = dayKey() - (S.opt.dayOff || 0), dayStart = S.opt.gameTime ? day * 7200e3 : day * 86400e3 - 9*3600e3;
   const t0 = S.mode === 'hard' && catchingUp() ? Math.max(PREV_SEEN, dayStart) : Date.now();
   S.standUsed = true; S.stand = { k, kind, ms:0, t0 }; s.stand = true;
   pushNote('<h3>쪽지</h3>' + vlet(kind === 'wage'
@@ -135,7 +135,7 @@ function riceTick(){
   if (S.riceDay == null){ S.riceDay = today; return; }
   if (S.riceDay >= today) return;
   const days = today - S.riceDay; S.riceDay = today;
-  const broke = !!S.bangAt && (S.money || 0) < 30 && !genKeys().some(k => S.st[k] && S.st[k].arr && !S.st[k].gone);
+  const broke = !!S.bangAt && (S.money || 0) < WAGE('g1') && !genKeys().some(k => S.st[k] && S.st[k].arr && !S.st[k].gone);
   let n = broke ? (S.riceN || 0) + days : 0; const L = END.rice.lim();
   if (n >= L && holdEnd()){ n = L - 1; S.riceOwed = true; }        // 기본: 마지막 하루는 들어와 있을 때 셈
   else if (n >= L) n = riceReach(L);
@@ -144,7 +144,7 @@ function riceTick(){
 function riceOwedTick(){                                            // 돌아와 1분 넘게 머물렀는데도 여전히 궤짝이 바닥·별채가 비었으면 그 하루를 셈
   if (!S.riceOwed || holdEnd() || performance.now() - LOAD_T < 68000) return;
   S.riceOwed = false;
-  if (!!S.bangAt && (S.money || 0) < 30 && !genKeys().some(k => S.st[k] && S.st[k].arr && !S.st[k].gone)) S.riceN = riceReach(END.rice.lim());
+  if (!!S.bangAt && (S.money || 0) < WAGE('g1') && !genKeys().some(k => S.st[k] && S.st[k].arr && !S.st[k].gone)) S.riceN = riceReach(END.rice.lim());
   save();
 }
 HOOK.tick.push(dt => { if (S.stage !== 'room' || S.ended) return; standTick(dt); creditTick(dt); riceTick(); riceOwedTick(); });

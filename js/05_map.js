@@ -128,3 +128,7 @@ document.getElementById('bMapGlass').addEventListener('click', e => { e.stopProp
 document.getElementById('mapGlass').addEventListener('click', e => { e.stopPropagation(); toggleMapLoupe(); });
 document.getElementById('bMapClose').addEventListener('click', e => { e.stopPropagation(); closeMap(); });
 
+// 접힌 지도의 바깥면(기획서 19절 추천 7개 중 3번, ✳ 11/3): 지도 창에 겉면의 낯선 넉 자 — 바다의 글을 다 풀 무렵 「펴지 마라」로 풀림
+HOOK.ov.push(() => { const h = ovBody.querySelector('h3'); if (!h || h.textContent !== '지도' || !S.mapFound) return;
+  const t = mapLabel('펴지마라', 903, MAP_NEED, 60), done = t === '펴지마라', d = document.createElement('div'); d.style.cssText = 'font-size:13px;margin-top:6px';
+  d.innerHTML = '접으면 겉면에 넉 자가 보인다. ' + (done ? '「펴지 마라」.' : alienHtml(t)); h.after(d); if (done) notice('mapback'); });

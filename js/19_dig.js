@@ -19,7 +19,7 @@ const fearOf = k => k === 'sj' ? (S.rFear||0) : ((S.st[k] && S.st[k].fear)||0);
 // 서고 문 곁의 보퉁이(채비) · 궤짝 곁의 젖은 보퉁이(바다에서 온 것들)
 OBJ.push(
   { id:'digPack', x:34, y:-14, rot:0.2, m:()=>'bundle', show:()=> !!S.goRead && (S.packOld || !!S.doneSeen) && !digOn() && reveal('digPack', true), click:()=>showDigPack(), glow:()=> !S.dig.n },
-  { id:'seaPack', get x(){ return S.owned.desk ? -18 : 8; }, get y(){ return S.owned.desk ? 22 : 10; }, rot:-0.3, m:()=>'seaBundle', show:()=> !!S.dig.found && reveal('seaPack', true), click:()=>showSeaPack(), glow:()=> !S.dig.seen },
+  { id:'seaPack', get x(){ return S.owned.desk ? -18 : 8; }, get y(){ return S.owned.desk ? 22 : 10; }, rot:-0.3, m:()=>'seaBundle', show:()=> !!S.dig.found && reveal('seaPack', true), click:()=>showSeaPack(), glow:()=> !S.dig.seen || (typeof wetReady === 'function' && wetReady()) },
 );
 
 // 보퉁이 창·조사단 꾸리기 과정(채비 넣기·반장 쪽지·대문 앞 모임)은 19_gather.js — 떠난 뒤는 여기.
@@ -50,6 +50,7 @@ function startDig(lead, hands){
   noise(0.3, 240, 0.12, 'lowpass');
   if (typeof tlog === 'function') tlog('발굴 떠남: ' + team.map(digName).join('·'));
 }
+const digWhere = () => typeof DEST !== 'undefined' && S.dig.cur && S.dig.cur.dest ? DEST[S.dig.cur.dest].n : '여울';   // 간 곳 이름(목적지는 19_deep)
 const digNote = (lines, sign) => pushNote('<h3>쪽지</h3>' + vlet(['가주께.', ...lines], sign, 'min(44vh,320px)'));
 function firstDoneSeen(){                                   // 다 푼 첫 책이 넘어가는 걸 처음 봄(06_turn flip) → 한서진 쪽지, 바닷가 쪽지를 읽었으면 문 곁에 보퉁이
   if (S.doneSeen || !S.rArrived) return;
@@ -67,7 +68,7 @@ Object.assign(ERR_ACT, {
     else if (S.st[k]){ S.st[k].fear = brave ? 0 : Math.min(1, (S.st[k].fear||0) + 0.15); S.st[k].n5 = false; }
     if (cur.lead === 'ojr' && !brave){ if (k === 'sj') S.rFear = Math.max(0, S.rFear - 0.1); else if (S.st[k]) S.st[k].fear = Math.max(0, S.st[k].fear - 0.1); }   // 오정림이 반장이면 덜 무서워함
     cur.back.push(k);
-    S.sideLog = (S.sideLog || []).concat([['sj', brave ? `${josa(digName(k), '이', '가')} 여울에서 돌아왔다. 남들보다 늦었다. 바다가 좋았다고 한다. 손이 떨리지 않는다.` : `${josa(digName(k), '이', '가')} 여울에서 돌아왔다. 바닷바람 소리에 멀리 가지 않았다고 한다.`]]).slice(-40);
+    S.sideLog = (S.sideLog || []).concat([['sj', brave ? `${josa(digName(k), '이', '가')} ${digWhere()}에서 돌아왔다. 남들보다 늦었다. 바다가 좋았다고 한다. 손이 떨리지 않는다.` : `${josa(digName(k), '이', '가')} ${digWhere()}에서 돌아왔다. 바닷바람 소리에 멀리 가지 않았다고 한다.`]]).slice(-40);
     if (k === cur.lead) digResult();
     save();
   },
@@ -88,7 +89,7 @@ function digResult(){
   if (late.length) L.push(`${josa(late.join('·'), '은', '는')} 물속 깊이 들어가`, '늦게 나왔습니다.');
   digNote(L, lead === 'sj' ? '한서진 올림.' : '오정림 올림.');
   S.dig.log = (S.dig.log || []).concat([{ t: Date.now(), lead, hands: cur.hands, late, first }]).slice(-10);
-  if (first) setTimeout(() => { const en = document.getElementById('endnote'); if (en){ en.innerHTML = '— 체험판은 여기까지입니다 —<br><span style="font-size:12px">해 보신 분은 설정 → 시험 기록 → 복사해서 보내 주시면 큰 도움이 됩니다.</span>'; en.style.opacity = 1; } }, 1500);
+  if (first && LINE.gen <= 17) setTimeout(() => { const en = document.getElementById('endnote'); if (en){ en.innerHTML = '— 체험판은 여기까지입니다 —<br><span style="font-size:12px">해 보신 분은 설정 → 시험 기록 → 복사해서 보내 주시면 큰 도움이 됩니다.</span>'; en.style.opacity = 1; } }, 1500);
   if (typeof tlog === 'function') tlog('발굴 돌아옴' + (first ? '(유물 셋)' : ''));
 }
 function showSeaPack(){
@@ -112,9 +113,9 @@ function digGateDoll(k){
 HOOK.dolls.gate.push(() => Object.keys(S.errs).filter(k => S.errs[k] && S.errs[k].dig && errScene(k) === 'gate').map(digGateDoll));
 
 // 빈자리(또는 떠나는 사람)를 누르면
-{ const ss = showStaff; showStaff = function(k){ const er = k && S.errs[k]; if (er && er.dig){ const sc = errScene(k); return openOv(`<h3>${digName(k)}</h3>${sc === 'away' ? '여울에 갔다. 자리가 비어 있다.' : sc === 'gate' ? '대문 앞에 서 있다. 바닷가에서 돌아온 것이다.' : S.dig.cur && S.dig.cur.back.includes(k) ? '여울에서 돌아와 자리로 가는 중이다.' : '보퉁이를 메고 여울로 떠나는 중이다.'}<br>${digLeft(k)}`); } return ss(k); }; }
-{ const sa = showAway; showAway = function(k){ const er = S.errs[k]; if (er && er.dig) return openOv(`<h3>${digName(k)}의 자리</h3>비어 있다. 여울에 갔다.<br>${digLeft(k)}`); return sa(k); }; }
-{ const sr = showResearcher; showResearcher = function(){ const er = S.errs.sj; if (er && er.dig && errScene('sj') !== 'seogo') return openOv(`<h3>연구원의 자리</h3>비어 있다. 한서진은 여울에 갔다.<br>${digLeft('sj')}`); return sr(); }; }
+{ const ss = showStaff; showStaff = function(k){ const er = k && S.errs[k]; if (er && er.dig){ const sc = errScene(k); return openOv(`<h3>${digName(k)}</h3>${sc === 'away' ? `${digWhere()}에 갔다. 자리가 비어 있다.` : sc === 'gate' ? '대문 앞에 서 있다. 바닷가에서 돌아온 것이다.' : S.dig.cur && S.dig.cur.back.includes(k) ? `${digWhere()}에서 돌아와 자리로 가는 중이다.` : `보퉁이를 메고 ${digWhere()}로 떠나는 중이다.`}<br>${digLeft(k)}`); } return ss(k); }; }
+{ const sa = showAway; showAway = function(k){ const er = S.errs[k]; if (er && er.dig) return openOv(`<h3>${digName(k)}의 자리</h3>비어 있다. ${digWhere()}에 갔다.<br>${digLeft(k)}`); return sa(k); }; }
+{ const sr = showResearcher; showResearcher = function(){ const er = S.errs.sj; if (er && er.dig && errScene('sj') !== 'seogo') return openOv(`<h3>연구원의 자리</h3>비어 있다. 한서진은 ${digWhere()}에 갔다.<br>${digLeft('sj')}`); return sr(); }; }
 function digLeft(k){
   const er = S.errs[k]; let back = er.t0; for (const st of er.steps){ back += stepDur(st); if (st.k === 'wait' && st.sc === 'away') break; }
   const m = Math.max(0, Math.round((back - Date.now())/60000));

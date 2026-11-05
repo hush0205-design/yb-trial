@@ -42,8 +42,8 @@ const ERR_ACT = {
   potTake(){ S.potTaken = Date.now(); if (S.scene === 'seogo') noise(0.15, 700, 0.04); },
   potPut(){ S.potPut = Date.now(); if (S.scene === 'lab') sPlace(); },
   pour(){ if (S.scene === 'lab') sBoil(); const s = S.st.ojr; if (s && (s.fear||0) > 0.3){ s.steam = Date.now() + 3000; s.calm = Date.now() + 243000; } },   // 따르면서 자기 잔도 한 모금
-  tea(k){ const s = S.st[k]; if (!s || !working(k) || DEF(k).tea === false || (s.fear||0) >= OJR_MAX) return; s.teaN = (s.teaN||0) + 1; s.steam = Date.now() + 3000; s.calm = Date.now() + 243000; if (S.scene === 'lab') sPlace(); },
-  teaSJ(){ if (!S.rArrived || isNight() || (S.rFear||0) >= OJR_MAX) return; S.rSteam = Date.now() + 3000; S.rCalm = Date.now() + 243000; if (S.scene === 'seogo') sPlace(); },
+  tea(k){ const s = S.st[k]; if (!s || !working(k) || DEF(k).tea === false || (s.fear||0) >= ojrMax()) return; s.teaN = (s.teaN||0) + 1; s.steam = Date.now() + 3000; s.calm = Date.now() + 243000; if (S.scene === 'lab') sPlace(); },
+  teaSJ(){ if (!S.rArrived || isNight() || (S.rFear||0) >= ojrMax()) return; S.rSteam = Date.now() + 3000; S.rCalm = Date.now() + 243000; if (S.scene === 'seogo') sPlace(); },
   myCup(){ S.myCup = true; if (S.scene === 'seogo') sPlace(); },
   // 한서진이 들고 들어온 책을 책장 자국에 꽂음 / 책장에서 꺼냄 / 제 책상에 놓음 (19_books — 10/8 선생님 "책장에서 가져다가 읽었으면")
   shelfPut(id){ gainBook(id, 'shelf'); if (S.scene === 'seogo') sPlace(); if (typeof sjBookNote === 'function') sjBookNote(id); },
@@ -87,9 +87,9 @@ function potErrand(){
 // 다탁 앞에서 시작: 차를 따르고 → 떨고 있는 사람·빈 가주 서안에 날라 주고 → 제자리에 앉음
 function serveSteps(first){
   const now = Date.now(), sd = homeSide('ojr'), steps = [];
-  const labT = allKeys().filter(k => k !== 'ojr' && working(k) && DEF(k).tea !== false && (S.st[k].fear||0) >= 0.3 && (S.st[k].fear||0) < OJR_MAX && LAB_DESKS[S.st[k].desk]).sort((a, b) => LAB_DESKS[S.st[a].desk][0] - LAB_DESKS[S.st[b].desk][0]);
+  const labT = allKeys().filter(k => k !== 'ojr' && working(k) && DEF(k).tea !== false && (S.st[k].fear||0) >= 0.3 && (S.st[k].fear||0) < ojrMax() && LAB_DESKS[S.st[k].desk]).sort((a, b) => LAB_DESKS[S.st[a].desk][0] - LAB_DESKS[S.st[b].desk][0]);
   const sjSeated = !!S.rArrived && !isNight() && !nightVisiting() && now - S.rArrived > T_PUSH && !S.errs.sj;
-  const sjT = sjSeated && (S.rFear||0) >= 0.3 && (S.rFear||0) < OJR_MAX, myT = !!S.owned.desk && !S.myCup && (first || now - (S.myCupAt||0) > 300000);
+  const sjT = sjSeated && (S.rFear||0) >= 0.3 && (S.rFear||0) < ojrMax(), myT = !!S.owned.desk && !S.myCup && (first || now - (S.myCupAt||0) > 300000);
   let cur = TEA_STAND;
   const go = (sc, pts, carry) => { steps.push(...walkPts(sc, [cur, ...pts], carry)); cur = pts[pts.length - 1]; };
   const selfT = (S.st.ojr.fear||0) >= 0.3;                         // 자기가 떨려도 다탁에 가서 한 잔
@@ -113,12 +113,12 @@ function serveSteps(first){
 }
 function teaRound(){
   const steps = serveSteps(false);
-  if (steps.length <= 3) return;                                 // 날라 줄 사람이 없으면 앉아 있음
+  if (!steps.some(st => st.k === 'wait')) return;                // 날라 줄 사람이 없으면 앉아 있음(점검 11/4 — 걸음 셋+앉기로 늘 넷이라 <=3이 안 걸려 90초마다 빈걸음)
   const sd = homeSide('ojr');
   S.errs.ojr = { t0: Date.now(), steps: [{ k:'up', sc:'lab' }, ...walkPts('lab', [sd, [sd[0], LC], [TEA_STAND[0], LC], TEA_STAND]), ...steps] }; save();
 }
 // 한서진: 별채 사람들 책상에 읽을 사본을 가져다 놓음
-function bookRound(changes){
+function bookRound(changes, act = 'give'){   // act: 책상에 놓을 때 할 일(19_ask는 의뢰 종이 askGive)
   const now = Date.now(), side = homeSide('sj');
   changes.sort((a, b) => LAB_DESKS[S.st[a[0]].desk][0] - LAB_DESKS[S.st[b[0]].desk][0]);
   const steps = [{ k:'up', sc:'seogo' }];
@@ -129,7 +129,7 @@ function bookRound(changes){
   go('lab', [[LAB_DOOR[0], LC]], bookOf(0));
   changes.forEach(([k, it], i) => { const [dx, dy] = LAB_DESKS[S.st[k].desk], px = dx + 7.5;
     go('lab', [[px, LC], [px, dy - 1]], bookOf(i));
-    steps.push(waitAt('lab', cur, [-1, 0], 1200, 'give', [k, it], bookOf(i)));
+    steps.push(waitAt('lab', cur, [-1, 0], 1200, act, [k, it], bookOf(i)));
     go('lab', [[px, LC]], bookOf(i + 1)); });
   go('lab', [[LAB_DOOR[0], LC], LAB_DOOR]); cur = SG_DOOR;
   go('seogo', [SG_IN, SG_HUB, [SG_HUB[0], SGC], [side[0], SGC], side]);

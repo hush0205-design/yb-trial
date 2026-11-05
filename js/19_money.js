@@ -42,7 +42,7 @@ buy = function(o){
 const ledger = (t) => { S.ledger = (S.ledger || []).concat([t]).slice(-60); };
 
 // ── 녹봉: 날이 바뀔 때마다 밀린 녹봉이 쌓임. 가주가 궤짝에서 내줌(돈 관리하는 사람이 오면 저절로) ──
-const WAGE = k => k === 'sj' || k === 'ojr' ? 50 : 30;      // 반장 5전, 일반 3전(쌀 값으로)
+const WAGE = k => Math.round((k === 'sj' || k === 'ojr' ? 50 : 30) * (typeof wageK === 'function' ? wageK() : 1));      // 반장 5전, 일반 3전(쌀 값으로) — 부엌이 있으면 덜 듦(19_house)
 const payees = () => [...(S.rArrived ? ['sj'] : []), ...allKeys().filter(k => S.st[k] && S.st[k].arr && !S.st[k].gone)];
 const wName = k => k === 'sj' ? '한서진' : DEF(k).name;
 function payTick(){
@@ -59,10 +59,12 @@ function payTick(){
   // 밀린 녹봉의 대가: 사흘 밀린 일반 연구원은 떠남(돌아와 보면 짐을 싸서 나가는 중 → 쪽지)
   for (const k of Object.keys(S.owe || {})){
     const o = S.owe[k]; if (!o.days) continue;
-    if (k !== 'sj' && isGen(k) && o.days >= 3 && S.st[k] && !S.st[k].gone && !S.errs[k] && working(k) && !(typeof holdQuit === 'function' && holdQuit(k, 'wage'))){   // 기본 모드: 넷째는 대문 앞에서 기다림 / 비운 셈으로는 끝 바로 앞에서 멈춤(19_rebirth)
+    if (k !== 'sj' && isGen(k) && o.days >= 3 + ((GAHUN[S.gahun] || {}).oweHold || 0) && DEF(k).stay && S.st[k] && !S.st[k].stayNote){ S.st[k].stayNote = true; ledger(`${josa(DEF(k).name, '은', '는')} 녹봉이 밀렸는데도 서안을 떠나지 않았다`); changed = true; }
+    if (k !== 'sj' && isGen(k) && !DEF(k).stay && o.days >= 3 + ((GAHUN[S.gahun] || {}).oweHold || 0) && S.st[k] && !S.st[k].gone && !S.errs[k] && working(k) && !(typeof holdQuit === 'function' && holdQuit(k, 'wage'))){   // 기본 모드: 넷째는 대문 앞에서 기다림 / 비운 셈으로는 끝 바로 앞에서 멈춤(19_rebirth)
       S.st[k].wageQuit = true; S.st[k].homeN = 3; goHome(k); changed = true;
     }
-    if (k === 'sj' && o.days >= 2 && !S.oweNoteSJ){ S.oweNoteSJ = true; pushNote('<h3>쪽지</h3>' + vlet(['가주께.', '녹봉이 이틀째 밀렸습니다.', '쌀독이 비어 갑니다.', '궤짝을 한번 살펴 주십시오.'], '한서진 올림.', 'min(40vh,280px)')); changed = true; }
+    if (k === 'sj' && o.days >= 2 && !S.oweNoteSJ){ S.oweNoteSJ = true; pushNote('<h3>쪽지</h3>' + vlet(['가주께.', '녹봉이 이틀째 밀렸습니다.', '녹봉은 뒤에 주셔도 됩니다.', '다만 서안의 책은 치우지 말아 주십시오.'], '한서진 올림.', 'min(40vh,280px)')); changed = true; }   // 메인은 떠나지 않음(기획서 14-4 '메인 연구원이 떠나지 않는 까닭') — 대신 광기가 당겨짐(19_mad oweMad)
+    if (k === 'ojr' && o.days >= 2 && !S.oweNoteOJR){ S.oweNoteOJR = true; pushNote('<h3>쪽지</h3>' + vlet(['가주께.', '차는 끊기지 않으니 괜찮습니다.', '찻잎이 줄지 않는 집에서', '굶는 사람은 없습니다.'], '오정림 올림.', 'min(40vh,280px)')); changed = true; }
   }
   if (changed) save();
 }
@@ -74,7 +76,7 @@ function payAll(auto){
     const o = S.owe[k]; if (!o.amt) continue;
     if ((S.money||0) < o.amt) continue;
     S.money -= o.amt; paid += o.amt; who.push(`${wName(k)} ${fmtM(o.amt)}`); o.amt = 0; o.days = 0;
-    if (k === 'sj') S.oweNoteSJ = false;
+    if (k === 'sj') S.oweNoteSJ = false; if (k === 'ojr') S.oweNoteOJR = false;
   }
   if (paid){ ledger(`녹봉(쌀) ${fmtM(paid)} — ${who.join(', ')}${auto ? ' (청지기가 내줌)' : ''}`); save(); }
   return paid;
@@ -103,6 +105,7 @@ const ledgerHtml = () => '<h3>치부책(置簿冊)</h3><div style="font-size:12p
 // ── 필사: 다 읽을 수 있는 책을 베껴 세책점에 팖(1권 = 100쪽을 쓰고, 일한 시간 30분) ──
 const COPY = { c_sohak:{ name:'소학(小學)', price:50 }, c_nong:{ name:'농가집성(農家集成)', price:80 }, c_dongui:{ name:'동의보감(東醫寶鑑)', price:120 } };
 const COPY_SEC = 1800, COPY_PAGES = 100;
+const copySec = () => COPY_SEC * (techOn('copy') ? K.techCopy : 1) * (typeof eraOn === 'function' && eraOn('type') ? K.eraTypeCopy : 1);   // 연구 '필사 요령'(19_tech): 30분 → 20분 · 타자기(19_era, 21세부터)
 const isCopy = it => !!it && it.startsWith('c_');
 function setStaffItem(k, it){
   const s = S.st[k], was = s.item;
@@ -110,54 +113,77 @@ function setStaffItem(k, it){
     if (S.pages < COPY_PAGES){ openOv(`<h3>필사</h3>베낄 종이와 먹이 모자란다.<br>쓸 수 있는 쪽이 ${fmtP(COPY_PAGES)}은 있어야 한다.`); return false; }
     S.pages -= COPY_PAGES; s.copyAcc = 0;
   } else if (isCopy(was) && !isCopy(it)){
-    S.pages += Math.round(COPY_PAGES * (1 - Math.min(1, (s.copyAcc||0) / COPY_SEC)));   // 베끼다 만 만큼 돌려받음
+    S.pages += Math.round(COPY_PAGES * (1 - Math.min(1, (s.copyAcc||0) / copySec())));   // 베끼다 만 만큼 돌려받음
     s.copyAcc = 0;
   } else if (isCopy(was) && isCopy(it)) s.copyAcc = 0;
   s.item = it; return true;
 }
 function copyWork(k, s, dt){
   s.copyAcc = (s.copyAcc||0) + dt;
-  if (s.copyAcc < COPY_SEC) return;
+  if (s.copyAcc < copySec()) return;
   const c = COPY[s.item]; S.copies = (S.copies || []).concat([s.item]);
   S.sideLog = (S.sideLog || []).concat([['sj', `${josa(DEF(k).name, '이', '가')} ${c.name.split('(')[0]} 한 권을 다 베꼈다. 문갑 위에 올려 두었다.`]]).slice(-40);
   if (!S.copyNoteDone){ S.copyNoteDone = true; pushNote('<h3>쪽지</h3>' + vlet(['가주께.', '베낀 사본은 문갑 위에 올려 두었습니다.', '세책점 거간이 대문 앞에 오면', '넘겨주시면 값을 쳐 줄 것입니다.'], '한서진 올림.', 'min(44vh,320px)')); }
   if (!S.dealerAt) S.dealerAt = Date.now() + 60000;
-  s.item = 'first'; s.manual = false; s.copyAcc = 0;
+  if (techOn('yakjo') && S.pages >= COPY_PAGES){ S.pages -= COPY_PAGES; s.copyAcc = 0; }   // 연구 '세책점 약조': 같은 책을 이어 베낌
+  else { s.item = 'first'; s.manual = false; s.copyAcc = 0; }
   if (typeof tlog === 'function') tlog('필사 끝: ' + DEF(k).name + ' ' + c.name);
   save();
 }
 const copyOpts = (s, o) => `<div class="opt rec"><span>필사(베껴 팔 것)</span><span class="ch">${o('c_sohak', '소학')}${o('c_nong', '농가집성')}${S.sideRead.dongui ? o('c_dongui', '동의보감') : ''}</span></div>`
-  + (isCopy(s.item) ? `<div style="font-size:12px;opacity:.6">${COPY[s.item].name}을 베끼는 중 — ${Math.floor(100 * (s.copyAcc||0) / COPY_SEC)}%. 베끼는 동안은 쪽이 늘지 않는다.</div>` : `<div style="font-size:12px;opacity:.6">필사를 맡기면 쓸 수 있는 쪽 ${fmtP(COPY_PAGES)}을 쓴다. 다 베끼면 세책점에 팔 수 있다.</div>`);
+  + (isCopy(s.item) ? `<div style="font-size:12px;opacity:.6">${COPY[s.item].name}을 베끼는 중 — ${Math.floor(100 * (s.copyAcc||0) / copySec())}%. 베끼는 동안은 쪽이 늘지 않는다.</div>` : `<div style="font-size:12px;opacity:.6">필사를 맡기면 쓸 수 있는 쪽 ${fmtP(COPY_PAGES)}을 쓴다. 다 베끼면 세책점에 팔 수 있다.</div>`);
 // 문갑 위의 사본 묶음
 M.copyPile = model(7,9,4,(x,y,z)=> (x === 6 ? (y % 2 ? '#e8e0cc' : '#c9bfa6') : (x === 0 || y === 0 || y === 8) ? '#8a7a5a' : '#d8cdb0'));
-OBJ.push({ id:'copies', x:12, y:-22, z:9, rot:0, on:()=>'mungap', onOrder:0.02, m:()=>'copyPile', show:()=> (S.copies || []).length > 0 && S.D >= T.door,
+const copiesShow = () => (S.copies || []).length > 0 && S.D >= T.door;
+OBJ.push({ id:'copies', x:12, y:-22, z:9, rot:0, on:()=>'mungap', onOrder:0.02, m:()=>'copyPile', show:()=> copiesShow() && !sarangOn(),
   click:()=>openOv(`<h3>사본 묶음</h3>베껴 둔 사본 ${(S.copies || []).length}권: ${S.copies.map(c => COPY[c].name.split('(')[0]).join(', ')}.<br><br>세책점 거간이 대문 앞에 오면 넘긴다.`) });
 
 // ── 세책점 거간: 사본이 있으면 대문 앞에 옴 ──
 const DEALER_O = { robe:['#4a4e52', '#3e4246', '#2e3236'], belt:'#2a2a2a', belt2:'#1a1a1a', hat:'gat' };
 let DEALER = null;
 function dealerDolls(){
-  if (!((S.copies || []).length || S.bookSale) || !S.dealerAt || Date.now() < S.dealerAt) return [];   // 사본을 사러 오거나, 처음엔 책을 팔러 옴(19_rebirth)
+  if (!((S.copies || []).length || S.bookSale || S.pageVisit) || !S.dealerAt || Date.now() < S.dealerAt) return [];   // 사본을 사러 오거나, 처음엔 책을 팔러 옴(19_rebirth)
   if (!DEALER){ const sets = dollSet(drawSeonbi, DEALER_O);
     DEALER = { id:'dealer', doll:true, img: sets[0], imgL: sets, shadow:false, st:()=>({ x:-9, y:-11, pose:'stand', f:[0, 1], chair:0 }), fear:()=>0, steam:()=>0, arrT:()=>0, show:()=>true, click:()=>sellCopies() }; }
   return [DEALER];
 }
 HOOK.dolls.gate.push(dealerDolls);
 let dealerKnocked = false;
-function dealerTick(){ if (((S.copies || []).length || S.bookSale) && S.dealerAt && Date.now() >= S.dealerAt && !S.dealerKnock){ S.dealerKnock = true; save(); knock(S.scene === 'gate' ? 1 : 0.5); } }
+function dealerTick(){
+  if ((S.copies || []).length && techOn('yakjo') && S.dealerAt && Date.now() >= S.dealerAt && !S.errs.sj) return sellAll();   // 세책점 약조: 한서진이 문 앞에서 넘김
+  if (((S.copies || []).length || S.bookSale || S.pageVisit) && S.dealerAt && Date.now() >= S.dealerAt && !S.dealerKnock){ S.dealerKnock = true; save(); knock(S.scene === 'gate' ? 1 : 0.5); } }
+const copyK = () => gahunK('copy') * (typeof techOn === 'function' && techOn('eonhae') ? K.techEonhae : 1);   // 가훈 「곡간을 먼저 채워라」 · 연구 '언해'
 function sellCopies(){
+  if (!(S.copies || []).length && !S.bookSale && S.pageVisit) return openOv('<h3>세책점 거간</h3>장터 세책점에서 왔다고 한다.' + pageSaleHtml(), dealerGo), pageSaleBind();
   if (!(S.copies || []).length && typeof showBookSale === 'function') return showBookSale();
-  const cs = S.copies || [], sum = Math.round(cs.reduce((a, c) => a + COPY[c].price, 0) * gahunK('copy'));   // 가훈 「곡간을 먼저 채워라」
-  openOv(`<h3>세책점 거간</h3>장터 세책점에서 왔다며 사본을 들여다본다.<br><br>${cs.map(c => `${COPY[c].name} — ${fmtM(COPY[c].price * gahunK('copy'))}`).join('<br>')}<br><br>모두 ${fmtM(sum)}을 쳐 주겠다고 한다.${S.debt ? `<br>그중 ${fmtM(Math.min(S.debt, Math.floor(sum / 2)))}은 외상 갚음으로 뗀다.` : ''}`
-    + '<div style="text-align:center;margin-top:12px"><button class="btn rec" id="bSell" style="color:var(--ink);border-color:#00000066">넘긴다</button></div>' + (typeof bookSaleHtml === 'function' ? bookSaleHtml() : ''));
+  const cs = S.copies || [], sum = Math.round(cs.reduce((a, c) => a + COPY[c].price, 0) * copyK());   // 가훈 「곡간을 먼저 채워라」
+  openOv(`<h3>세책점 거간</h3>장터 세책점에서 왔다며 사본을 들여다본다.<br><br>${cs.map(c => `${COPY[c].name} — ${fmtM(COPY[c].price * copyK())}`).join('<br>')}<br><br>모두 ${fmtM(sum)}을 쳐 주겠다고 한다.${S.debt ? `<br>그중 ${fmtM(Math.min(S.debt, Math.floor(sum / 2)))}은 외상 갚음으로 뗀다.` : ''}`
+    + '<div style="text-align:center;margin-top:12px"><button class="btn rec" id="bSell" style="color:var(--ink);border-color:#00000066">넘긴다</button></div>' + (typeof bookSaleHtml === 'function' ? bookSaleHtml() : '') + pageSaleHtml());
+  pageSaleBind();
   if (typeof bookSaleBind === 'function') bookSaleBind();
-  document.getElementById('bSell').addEventListener('click', ev => { ev.stopPropagation();
-    const debtPay = Math.min(S.debt || 0, Math.floor(sum / 2)); S.debt = (S.debt || 0) - debtPay;   // 외상(19_rebirth): 갚을 때까지 사본 값의 절반을 뗌
-    S.money = (S.money||0) + sum - debtPay; ledger(`사본 ${cs.length}권을 세책점에 넘김 + ${fmtM(sum - debtPay)}${debtPay ? ` (외상 갚음 ${fmtM(debtPay)} 뗌${S.debt ? `, 남은 외상 ${fmtM(S.debt)}` : ', 외상을 다 갚음'})` : ''}`); S.copies = []; S.dealerAt = 0; S.dealerKnock = false; S.soldN = (S.soldN||0) + cs.length; save();
-    ov.classList.add('hidden'); sCoin();
-    if (typeof tlog === 'function') tlog('사본 팜 ' + fmtM(sum));
-    if (S.steward) return;
-    setTimeout(() => queueOv(`<h3>엽전</h3>${fmtM(sum)}을 받아 궤짝에 넣었다.`), 400); });
+  document.getElementById('bSell').addEventListener('click', ev => { ev.stopPropagation(); ov.classList.add('hidden'); sellAll(); });   // 엽전 소리 + 치부책 한 줄이면 충분(흐름 점검 10/8 — 받은 창은 뺌)
 }
+function sellAll(){
+  const cs = S.copies || [], sum = Math.round(cs.reduce((a, c) => a + COPY[c].price, 0) * copyK());
+  const debtPay = Math.min(S.debt || 0, Math.floor(sum / 2)); S.debt = (S.debt || 0) - debtPay;   // 외상(19_rebirth): 갚을 때까지 사본 값의 절반을 뗌
+  S.money = (S.money||0) + sum - debtPay; ledger(`사본 ${cs.length}권을 세책점에 넘김 + ${fmtM(sum - debtPay)}${debtPay ? ` (외상 갚음 ${fmtM(debtPay)} 뗌${S.debt ? `, 남은 외상 ${fmtM(S.debt)}` : ', 외상을 다 갚음'})` : ''}`); S.copies = []; S.dealerAt = 0; S.dealerKnock = false; S.pageVisit = false; S.pageAt = Date.now(); S.soldN = (S.soldN||0) + cs.length; save();
+  sCoin();
+  if (typeof tlog === 'function') tlog('사본 팜 ' + fmtM(sum));
+}
+// ── 풀어 적은 종이(11/2 선생님 "쌓인 쪽을 돈으로"): 쓸 수 있는 쪽이 쌓이면 거간이 반 시간에 한 번쯤(11/3 ✳ 한 시간 → 반 시간) 와서 절반을 사 감 ──
+const pageSaleN = () => Math.floor((S.pages || 0) / 2 / 100) * 100, pageSalePrice = () => pageSaleN() / 100 * K.pageSellPer;
+const pageSaleHtml = () => (S.pages || 0) < K.pageSellMin ? '' : `<div class="bsec">풀어 적은 종이</div>가주가 풀어 적은 종이 더미를 보더니, 장터에 이런 풀이를 사 보는 이들이 있다며 반을 사 가겠다고 한다. 누가 사 보는지는 말하지 않는다.<br>쓸 수 있는 쪽 ${fmtP(S.pages)} 가운데 ${fmtP(pageSaleN())} — ${fmtM(pageSalePrice())}`
+  + '<div style="text-align:center;margin-top:12px"><button class="btn rec" id="bPageSell" style="color:var(--ink);border-color:#00000066">반을 넘긴다</button></div>';
+function dealerGo(){ if ((S.copies || []).length || S.bookSale) return; S.pageVisit = false; S.dealerAt = 0; S.dealerKnock = false; S.pageAt = Date.now(); save(); }   // 창을 닫으면 돌아감
+function pageSaleBind(){
+  const b = document.getElementById('bPageSell'); if (!b) return;
+  b.addEventListener('click', ev => { ev.stopPropagation(); const n = pageSaleN(), m = pageSalePrice(); S.pages -= n; S.money = (S.money || 0) + m; S.pageSold = (S.pageSold || 0) + n;
+    ledger(`풀어 적은 종이 ${fmtP(n)}을 세책점에 넘김 + ${fmtM(m)}`); sCoin(); S.pageAt = Date.now(); if (!(S.copies || []).length && !S.bookSale){ S.pageVisit = false; S.dealerAt = 0; S.dealerKnock = false; } save(); ov.classList.add('hidden');
+    if (typeof tlog === 'function') tlog('풀이 종이 팜 ' + fmtM(m)); });
+}
+HOOK.tick.push(() => {
+  if (S.stage !== 'room' || S.ended || S.pageVisit || S.dealerAt || !(S.bookSaleDone || S.soldN) || (S.pages || 0) < K.pageSellMin || Date.now() - (S.pageAt || 0) < K.pageVisitGap) return;
+  S.pageVisit = true; S.dealerAt = Date.now(); S.dealerKnock = false; save();
+});
 // 녹봉이 밀려 있으면 궤짝이 은은히 빛남(구석으로 치운 뒤)
 { const ch = OBJ.find(o => o.id === 'chest'), g0 = ch.glow2; ch.glow2 = () => g0() || (!!S.owned.desk && oweTotal() > 0); }

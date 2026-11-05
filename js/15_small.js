@@ -98,7 +98,7 @@ function wipeDust(){ S.dust = 0; save(); noise(0.5, 2400, 0.03);
 const MARGIN = ['네가 읽는 동안 나도 쓴다.', '두려움을 다 마시지 마라.', '끝은 읽는 이가 쓴다.', '바다는 서두르지 않는다.', '빈 칸은 네 것이다.', '마지막 장 앞에서 붓을 놓았다.'];
 const foldEl = document.createElement('div'); foldEl.id = 'foldEar'; book.appendChild(foldEl);
 setInterval(() => {
-  const want = bookOpen && !!S.rArrived && S.foldDay !== dayKey() && (S.margins || []).length < MARGIN.length;
+  const want = bookOpen && !!S.rArrived && dayKey() > dayKeyAt(S.rArrived) && S.foldDay !== dayKey() && (S.margins || []).length < MARGIN.length;
   foldEl.classList.toggle('on', want);
 }, 700);
 foldEl.addEventListener('click', e => {
@@ -114,6 +114,11 @@ LAB_OBJ.push({ id:'ghostCup', get x(){ const d = ghostDesk(); return d ? LAB_DES
   on:()=> ghostDesk(), onOrder:0.02, show:()=> arrived('ojr') && !!ghostDesk(),
   click:()=>openOv('<h3>찻잔</h3>아무도 앉지 않은 책상에 찻잔이 놓여 있다.<br>반쯤 비었다. 아직 따뜻하다.') });
 function ghostDesk(){ return DESK_IDS.find(d => S.owned[d] && !deskOwner(d)) || null; }
+// 밤의 빈 책상 그림자(기획서 14절 숨은 장치): 어떤 밤엔 빈 책상에 아주 희미한 사람 그림자가 앉아 있음 — 누르면 사라지고 기록이 남지 않음
+M.ghostSit = model(6, 5, 12, (x, y, z) => { if (z >= 10) return x >= 2 && x <= 3 && y >= 1 && y <= 3 ? '#14110e' : null; if (z >= 5) return x >= 1 && x <= 4 && y >= 1 && y <= 3 ? '#1a1612' : null; return x >= 1 && x <= 4 && y <= 3 ? '#1a1612' : null; });
+const ghostNight = () => isNight() && !!ghostDesk() && hash(dayKey(), 13) < 0.5 && S.ghostGone !== dayKey();
+LAB_OBJ.push({ id:'ghostSit', get x(){ const d = ghostDesk(); return d ? LAB_DESKS[d][0] : 0; }, get y(){ const d = ghostDesk(); return d ? LAB_DESKS[d][1] - 6 : 0; }, rot:0, m:()=>'ghostSit',
+  show:()=> ghostNight(), alpha:()=> 0.16 + 0.04*Math.sin(performance.now()/900), click:()=>{ S.ghostGone = dayKey(); save(); } });
 STAFF.ojr.diary.push([900, '오늘 찻잔을 거두니 사람 수보다 하나 많았다. 누가 마셨는지 모르겠다. 잔을 하나 더 씻었다.']);
 
 // 덮은 뒤 잔상: 책을 덮으면 마지막에 읽던 줄이 서고 화면에 잠깐 비쳤다 사라짐(나중엔 광기가 오를수록 오래 남음)
@@ -124,3 +129,38 @@ const afterEl = document.createElement('div'); afterEl.id = 'afterimg'; document
     cb0();
     if (t){ afterEl.textContent = t.slice(0, 24); afterEl.classList.remove('go'); void afterEl.offsetWidth; setTimeout(() => afterEl.classList.add('go'), 1150); }
   }; }
+// 종이 더미(10/31 선생님 "숫자가 커지는 걸 눈으로"): 다 넘긴 장을 버리지 못해 궤짝 곁에 쌓아 둠 — 넘긴 총량(S.earned)이 K.pileAt에 닿을 때마다 한 층씩 높아짐
+const pileLv = () => K.pileAt.filter(n => (S.earned || 0) >= n).length;
+for (let lv = 1; lv <= K.pileAt.length; lv++){ const w = 7 + lv * 2, d = 6 + lv, h = 2 + lv;   // 높이보다 옆으로 퍼짐(서안 앞을 가리지 않게)
+  M['pile' + lv] = model(w, d, h, (x, y, z) => {
+    const r = Math.hypot((x - w / 2) / (w / 2), (y - d / 2) / (d / 2)) + (hash(x * 31 + y, z) - 0.5) * 0.25;   // 가운데가 높은 더미, 가장자리는 들쭉날쭉
+    if (r > 1 - z / (h + 1)) return null;
+    if (z === h - 1 || r > 0.98 - (z + 1) / (h + 1)) return (x * 7 + y * 3 + z) % 13 === 0 ? '#2a2018' : (x + y + z) % 4 ? '#cfc2a0' : '#bdb08c';   // 겉 장엔 먹 자국
+    return '#a89a78';
+  }); }
+OBJ.push({ id:'pile', x:-16, y:25, rot:0.15, m:()=>'pile' + pileLv(), show:()=> !!S.owned.desk && pileLv() > 0,
+  click:()=>openOv(`<h3>종이 더미</h3>다 넘긴 장들. 버리지 못하고 궤짝 곁에 쌓아 두었다.<br>어림잡아 ${fmtP(S.earned || 0)}.${pileLv() >= 4 ? '<br>맨 위 장의 먹이 아직 마르지 않았다.' : ''}`) });
+// 처음 펴는 책(PC 두 면): 표지가 왼쪽 면 자리라 오른쪽 빈자리를 눌러도 펴지게(10/31 시험자)
+stage.addEventListener('click', e => { if (!bookOpen && cover.onclick && !cover.contains(e.target)) cover.onclick(e); });
+// 창이 화면보다 길면 아래 흐림+▾(style.css .hanji.more) — 끝까지 내리면 사라짐
+const ovMore = () => ovBody.classList.toggle('more', ovBody.scrollHeight - ovBody.scrollTop - ovBody.clientHeight > 12);
+HOOK.ov.push(() => setTimeout(ovMore, 50)); ovBody.addEventListener('scroll', ovMore);
+// 첫 책(10/31 시험자 "책을 한 번도 안 덮으면 등잔이 끝내 안 생긴다 · 셈만 오르는 5분"):
+// ① 등잔이 나타날 만큼 읽으면 바람도 없이 책이 한 번 저절로 덮임 → 방에 흐린 등잔이 보임(한 대에 한 번)
+// ② 첫 책의 한 줄이 다 풀리는 순간 그 줄이 쪽 위로 또렷하게 떠올랐다 스러짐(폰에서도 읽히게)
+const lineFloat = document.createElement('div');
+lineFloat.style.cssText = 'position:absolute;left:8%;right:8%;top:38%;text-align:center;font-size:21px;line-height:1.6;color:#2a1a0e;text-shadow:0 0 10px #f3e6c4,0 0 18px #f3e6c4;pointer-events:none;z-index:5;opacity:0';
+book.appendChild(lineFloat);
+HOOK.tick.push(() => {
+  if (S.stage !== 'room' || S.ended || !bookOpen) return;
+  const lamp = OBJ.find(o => o.id === 'lamp');
+  if (!S.autoShut && !S.owned.lamp && readTotal() >= lamp.buy.cost){ S.autoShut = true; save();
+    setTimeout(() => { if (!bookOpen) return; noise(0.5, 600, 0.1, 'lowpass'); closeBook(); if (typeof tlog === 'function') tlog('첫 책이 저절로 덮임'); }, 900); }
+  if ((S.curBook || 'first') !== 'first') return;
+  const n = LINES.filter((_, i) => S.D >= lineDone(i)).length;
+  if (S.lineSeen == null || n < S.lineSeen){ S.lineSeen = n; return; }   // 처음 켤 때·새 대는 조용히 맞춤
+  if (n === S.lineSeen) return;
+  S.lineSeen = n; save();
+  lineFloat.textContent = showText(n - 1);
+  lineFloat.animate([{ opacity:0, filter:'blur(3px)' }, { opacity:1, filter:'blur(0)', offset:0.18 }, { opacity:1, offset:0.75 }, { opacity:0, filter:'blur(2px)' }], { duration: 4200, easing:'ease-out' });
+});

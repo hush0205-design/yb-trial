@@ -49,10 +49,10 @@ function showShelf(){
   const W = { shelf:'', desk: S.owned.desk ? '서안 위' : '궤짝 위', rdesk:'연구원 책상 위', hand:'한서진이 들고 있다' };
   const tag = id => id === 'first' ? '' : id === 'dongui' ? (S.sideRead.dongui && S.loc.dongui === 'shelf' ? '다 풀었음' : W[S.loc.dongui] || '') : S.books[id] === 'borrow' ? '빌린 책' : '';
   const top = S.mapFound ? [['지도', 'map']] : [];
-  openOv(`<h3>책장</h3><div style="font-size:13px;opacity:.75;margin-bottom:6px">먼지에 책 자국이 ${KNUM[SHELF_MARKS]} 개 남아 있다.${order.length || S.loc.first === 'shelf' ? '' : ' 책은 없다.'}</div>`
-    + top.map(([n, id]) => `<div class="rec spine" data-k="${id}"><span>${n}</span><span style="opacity:.45;font-size:12px">책장 위</span></div>`).join('')
+  openOv(`<h3>책장</h3><div style="font-size:13px;opacity:.75;margin-bottom:6px">먼지에 책 자국이 ${KCNT(SHELF_MARKS)} 개 남아 있다.${order.length || S.loc.first === 'shelf' ? '' : ' 책은 없다.'}</div>`
+    + top.map(([n, id]) => `<div class="rec spine" data-k="${id}"><span>${n}</span><span style="opacity:.45;font-size:12px">${S.loc.map === 'shelf' ? '책장 위' : W[S.loc.map] || ''}</span></div>`).join('')
     + marks.map(id => id ? `<div class="rec spine" data-k="${id}"><span>${id === 'first' ? '제목 없는 책' : BOOK_NAME[id]}</span><span style="opacity:.45;font-size:12px">${tag(id)}</span></div>`
-                         : '<div class="spine" style="opacity:.35;font-size:13px">— 먼지 위의 책 자국 —</div>').join(''));
+                         : `<div class="spine" style="opacity:.35;font-size:13px">— ${S.trace === 'fire' ? '그을린' : '먼지 위의'} 책 자국 —</div>`).join(''));   // 흔적(불이 번지다): 빈 자국이 그을려 있음
   ovBody.querySelectorAll('.spine[data-k]').forEach(el => el.addEventListener('click', ev => {
     ev.stopPropagation(); const k = el.dataset.k;
     if (PLAIN[k]){ const P = PLAIN[k]; openOv(`<h3>${P[0]}</h3>${P[1]()}<div class="rec" id="bShelfBack" style="margin-top:14px;text-align:center;font-size:13px;opacity:.7">← 책장으로</div>`);
@@ -100,19 +100,21 @@ function sjFetchTick(){
 const BOOK_SALE = [['sohak', 30], ['nong1', 40], ['nong2', 40]];
 function bookSaleTick(){
   if (S.bookSaleDone || S.bookSale || !S.bangAt || Date.now() - S.bangAt < 60000) return;
+  const g = genKeys().map(k => S.st[k].arr).filter(Boolean); if (!g.length || dayKeyAt(Math.min(...g)) >= dayKey()) return;   // 첫 일반 연구원이 자리 잡은 다음 날(흐름 점검 10/8 — 지원자와 겹치지 않게)
   S.bookSale = true; if (!S.dealerAt || S.dealerAt > Date.now() + 1000) S.dealerAt = Date.now(); S.dealerKnock = false; save();
 }
 function bookSaleHtml(){
   const left = BOOK_SALE.filter(([id]) => !hasBook(id)); if (!left.length) return '';
   const btn = (id, l) => `<span class="rec" data-bk="${id}" style="font-size:13px;margin:0 6px;opacity:.85">${l}</span>`;
-  return '<div class="bsec">세책점의 책 — 빌려 가면 사흘 안에 돌려줘야 한다고 한다</div>'
+  return '<div class="bsec">세책점의 책 — 빌려 가면 ' + (borrowDays() === K.borrowDays ? '사흘' : '닷새') + ' 안에 돌려줘야 한다고 한다</div>'
     + left.map(([id, p]) => `<div class="brow" style="cursor:default"><span class="bt">${BOOK_NAME[id]}</span><span class="bn">${btn('b:' + id, '빌린다')}${btn('s:' + id, '산다 ' + fmtM(p))}</span></div>`).join('');
 }
+const borrowDays = () => LINE.feats && LINE.feats.poor ? K.featPoorDays : K.borrowDays;   // 세책 기한(날) — 별호 '사본을 팔지 않은 이'(19_feats)를 얻은 집안엔 거간이 늦게 옴
 function bookSaleBind(){
   ovBody.querySelectorAll('[data-bk]').forEach(el => el.addEventListener('click', ev => { ev.stopPropagation();
     const [how, id] = el.dataset.bk.split(':'), price = (BOOK_SALE.find(b => b[0] === id) || [0, 0])[1];
     if (how === 's'){ if ((S.money || 0) < price){ el.textContent = '엽전이 모자란다'; return; } S.money -= price; ledger(`세책점에서 ${BOOK_NAME[id]}을 삼 − ${fmtM(price)}`); sCoin(); }
-    else { S.borrowDue = S.borrowDue || {}; S.borrowDue[id] = Date.now() + 3 * DAY_MS(); ledger(`세책점에서 ${BOOK_NAME[id]}을 빌림 — 사흘 안에 돌려줌`); }
+    else { S.borrowDue = S.borrowDue || {}; S.borrowDue[id] = Date.now() + borrowDays() * DAY_MS(); ledger(`세책점에서 ${BOOK_NAME[id]}을 빌림 — ${borrowDays() === K.borrowDays ? '사흘' : '닷새'} 안에 돌려줌`); }
     gainBook(id, how === 's' ? 'own' : 'borrow'); if (typeof tlog === 'function') tlog((how === 's' ? '책을 삼: ' : '책을 빌림: ') + BOOK_NAME[id]);
     sellCopies(); }));
 }

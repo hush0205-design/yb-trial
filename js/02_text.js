@@ -28,6 +28,8 @@ function buildLines(){
     { idu:`十九世${n19 ? ' ' + h + n19 : ' 　　'} 門乙 鎖爲遣 不出爲齊`, old:`十九世${n19 ? ' ' + s + n19 : ' 　　'} 門을 ᄌᆞᆷ고고 나디 아니ᄒᆞ다`, mod:`19세.${n19 ? ' ' + s + n19 : ' 　　'} — 문을 잠그고 나오지 않다.` },
     { idu:`二十世${n20 ? ' ' + h + n20 : ''}`, old:`二十世${n20 ? ' ' + s + n20 : ''}`, mod:`20세.${sp(n20 && s + n20)} —` },
   ];
+  LINES_PREV = L.map((l, i) => FIRST_VAR[i] && varOn(i, LINE.gen - 1) ? FIRST_VAR[i].mod : l.mod);   // 앞 대가 읽은 글(곁에 흐린 잔글씨, 04_book)
+  for (const i in FIRST_VAR) if (varOn(+i, LINE.gen)) L[i] = FIRST_VAR[i];
   return L.map((l,i) => {
     const g = glyphs(l.mod, i+7), v = [g];
     if (i === 0) v.push(h + Array.from(g).slice(Array.from(h).length).join(''));   // 처음 풀리는 글자 = 성씨
@@ -35,6 +37,24 @@ function buildLines(){
     return v;
   });
 }
+// 기획서 23절: 대마다 장부·경계 줄 몇이 다른 글로 바뀌어 있음(대 번호로 정해짐) — 앞 대가 읽은 글과 다른 줄은 다 풀어도 곁의 풀이와 맞지 않음
+const FIRST_VAR = {
+  1:  { idu:'小學 二卷 前張是 落去爲齊', old:'쇼ᄒᆞᆨ 두 권. 앏 쟝이 ᄠᅥ러뎌 나감.', mod:'소학 두 권. 앞 장이 떨어져 나감.' },
+  2:  { idu:'農家集成 三卷', old:'농가집셩 세 권.', mod:'농가집성 세 권.' },
+  5:  { idu:'地圖 一張 海邊 皆 空爲齊', old:'디도 ᄒᆞᆫ 쟝. 바ᄅᆞᆯ 녁이 다 뷔여 이숌.', mod:'지도 한 장. 바다 쪽이 다 비어 있음.' },
+  6:  { idu:'無題冊 二卷 櫃中', old:'뎨목 업슨 ᄎᆡᆨ 두 권. 궤ᄶᆞᆨ 안.', mod:'제목 없는 책 두 권. 궤짝 안.' },
+  8:  { idu:'晝良中 此冊乙 越爲在 者隱', old:'나ᄌᆡ 이 ᄎᆡᆨ을 넘기ᄂᆞᆫ 이ᄂᆞᆫ', mod:'낮에 이 책을 넘기는 이는' },
+  10: { idu:'手是 戰慄爲良置 冊乙 覆不冬爲乎事', old:'손이 ᄯᅥᆯ려도 ᄎᆡᆨ을 더프디 말 것.', mod:'손이 떨려도 책을 덮지 말 것.' },
+};
+const varOn = (i, gen) => gen > 17 && hash(gen, i * 7 + 3) < K.carryChg;   // 첫 대(17세)는 늘 원래 글
+let LINES_PREV = [];
+const carriedLine = i => !!S.carryD && lineDone(i) <= S.carryD;                                   // 앞 대가 다 푼 줄
+const lineChanged = i => LINES_PREV[i] != null && LINES[i][LINES[i].length - 1] !== LINES_PREV[i];   // 앞 대가 읽은 글과 다름
+const carryK = () => { const on = LINES.map((_, k) => k).filter(k => lineStart(k) <= S.D && S.D < lineDone(k)); return on.length && on.every(k => carriedLine(k) && !lineChanged(k)) ? K.carryRead : 1; };   // 06 addBook — 지금 풀리는 줄(겹쳐 풀림)이 모두 이어받은 그대로일 때만
+HOOK.tick.push(() => {                                                                             // 이 대가 어디까지 이어받았나(대가 시작될 때 한 번) · 이 집안이 어디까지 풀었나
+  if (S.carryD == null){ S.carryD = LINE.gen > 17 ? LINE.readD || 0 : 0; save(); }
+  const d = Math.min(S.D || 0, T.jEnd); if (d >= (LINE.readD || 0) + PER || (d === T.jEnd && (LINE.readD || 0) < d)){ LINE.readD = d; saveLine(); }
+});
 let LINES = buildLines();
 // 동의보감 三: 한문 줄은 처음부터 보이지만 풀이와 덧쓴 붉은 글씨는 넘기며 풀어야 함
 const DONGUI_SRC = [
@@ -55,20 +75,20 @@ const PER = 60;
 const BF = { id:'first',  L:()=>LINES,  start:i => lineStart(i), per:60, D:()=>S.D };
 const BD = { id:'dongui', L:()=>DLINES, start:i => i*15, per:25, D:()=>S.dD||0 };
 const curB = () => S.curBook === 'dongui' ? BD : (typeof LEAF !== 'undefined' && LEAF[S.curBook]) || BF;   // LEAF = 젖은 장(19_sea)·13세 일지(19_deep)
-const ITEMS = ['first', 'dongui', 'map', 'wet', 'jour'];
-const INAME = { first:'제목 없는 책', dongui:'동의보감 三', map:'지도', wet:'젖은 책 조각', jour:'반쯤 쓴 일지' };
+const ITEMS = ['first', 'dongui', 'map', 'wet', 'jour', 'ask'];
+const INAME = { first:'제목 없는 책', dongui:'동의보감 三', map:'지도', wet:'젖은 책 조각', jour:'반쯤 쓴 일지', ask:'맡은 종이' };
 function ensureLoc(){
   if (S.loc) return;
   S.loc = { first: S.owned.desk ? 'desk' : 'desk', dongui: S.rArrived ? 'shelf' : null, map: S.mapFound ? 'shelf' : null };   // 동의보감 三은 한서진이 들고 옴(10/7)
   if (S.curBook === 'dongui') { S.loc.dongui = 'desk'; S.loc.first = 'shelf'; }
 }
 const itemAt = where => ITEMS.find(k => S.loc && S.loc[k] === where) || null;
-const itemModel = id => id === 'map' ? 'mapFold' : id === 'wet' ? 'wetLeaf' : id === 'jour' ? jourModel() : ((id === 'dongui' || id === 'c_dongui') ? 'bookDongui' : 'bookFirst') + (bookDone(id) ? 'D' : '');   // D = 다 푼 책(제목표 곁 붓 점)
+const itemModel = id => id === 'map' ? 'mapFold' : id === 'wet' ? 'wetLeaf' : id === 'jour' ? jourModel() : id === 'ask' ? askModel() : ((id === 'dongui' || id === 'c_dongui') ? 'bookDongui' : 'bookFirst') + (bookDone(id) ? 'D' : '');   // D = 다 푼 책(제목표 곁 붓 점)
 const dropAt = {};
 function dropZ(where){ const e = (performance.now() - (dropAt[where] || -1e9)) / 420; return e >= 1 ? 0 : Math.pow(1 - e, 2) * 16; }   // 위에서 내려앉는 높이
 function placeItem(id, where){                        // 놓던 자리에 다른 것이 있으면 책장으로 돌려놓음
   if (where === 'desk' || where === 'rdesk'){ dropAt[where] = performance.now(); setTimeout(() => noise(0.18, 150, 0.35, 'lowpass'), 400); }
-  const prev = itemAt(where); if (prev && prev !== id) S.loc[prev] = (prev === 'wet' || prev === 'jour') ? 'box' : 'shelf';   // 젖은 장은 바다 궤로
+  const prev = itemAt(where); if (prev && prev !== id) S.loc[prev] = (prev === 'wet' || prev === 'jour') ? 'box' : prev === 'ask' ? 'side' : 'shelf';   // 젖은 장은 바다 궤로, 의뢰 종이는 서안 곁으로(19_ask)
   S.loc[id] = where; save();
 }
 const bDone = (b, i) => b.start(i) + (b.L()[i].length-1)*b.per;

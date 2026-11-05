@@ -11,12 +11,13 @@ function showEmptyChest(){
 }
 function showEmptyChest0(){ openOv('<h3>궤짝</h3>책을 꺼내고 구석으로 치웠다. 뚜껑을 열어 보면 비어 있다.<br><br>바닥에 무언가를 오래 눌러 둔 자국이 있다. 책보다 조금 크다.'); }
 function showGahun(){ if (!S.owned.lamp || S.lampOut) return openOv('<h3>족자</h3>벽에 족자가 하나 걸려 있다.<br>어두워서 글씨가 보이지 않는다.');   // 10/7 선생님: 불을 밝혀야 읽힘
-  openOv(`<h3>家訓</h3><div style="font-size:20px;letter-spacing:6px;text-align:center;padding:20px 0">${GAHUN[S.gahun].t}</div>${LINE.gen <= 17 ? '<div style="font-size:13px;opacity:.7">앞 대가 걸어 둔 족자. 언제부터 걸려 있었는지 아무도 모른다.</div>' : ''}`); }
+  openOv(`<h3>家訓</h3><div style="font-size:20px;letter-spacing:6px;text-align:center;padding:20px 0">${gahunHtml(S.gahun)}</div>${LINE.gen <= 17 ? '<div style="font-size:13px;opacity:.7">앞 대가 걸어 둔 족자. 언제부터 걸려 있었는지 아무도 모른다.</div>' : ''}`); }
 function recJokbo(){ if (typeof jokboSheetHtml === 'function') return jokboSheetHtml(); if (S.D >= J0){ let h = `<h3>족보 — ${esc((S.bon||'') + ' ' + S.sur)}씨 ${LINE.gen}세손 ${esc(S.sur + S.name)}</h3>`; for (let i=11;i<22;i++) h += alienHtml(showText(i)) + '<br>'; return h; }
   return `<h3>族譜 — 첫 장</h3>一世. <span style="letter-spacing:-2px;opacity:.6">▒▒▒</span> — ${alienHtml(glyphs('이 서고를 세우다',40))}<br>…<br>十三世. ${alienHtml(glyphs('서고 문을 닫고 떠나다', 43))}<br>十四世 ━━━ 十五世 ━━━ 十六世 ━━━<br>十七世. ${esc(S.sur+genName(17))} — 궤짝을 열다.<br>十八世. ${genName(18) ? esc(S.sur+genName(18)) : '　　'} — ${alienHtml(glyphs('물가에서', 41))}<br>十九世. ${genName(19) ? esc(S.sur+genName(19)) : '　　'} — ${alienHtml(glyphs('문을 잠그고 나오지 않다', 42))}`; }
 function recLedger(){ let h = '<h3>서고 장부</h3>'; for (let i=0;i<8;i++) h += alienHtml(showText(i)) + '<br>'; return h; }
-function recNotes(){ const done = []; for (let i=0;i<11;i++) if (S.D >= lineDone(i)) done.push(esc(LINES[i][LINES[i].length-1]));
-  return `<h3>해독 노트</h3><div style="font-style:italic">${done.length ? done.join('<br>') : '아직 받아 적은 줄이 없다.'}</div><div style="margin-top:10px;font-size:12px;opacity:.6">받아 적은 줄 ${done.length} / ${LINES.length}</div>`; }
+const NOTE_N = 11;   // 해독 노트에 받아 적는 줄(첫 책 장부·첫 줄들)
+function recNotes(){ const done = []; for (let i=0;i<NOTE_N;i++) if (S.D >= lineDone(i)) done.push(esc(LINES[i][LINES[i].length-1]));
+  return `<h3>해독 노트</h3><div style="font-style:italic">${done.length ? done.join('<br>') : '아직 받아 적은 줄이 없다.'}</div><div style="margin-top:10px;font-size:12px;opacity:.6">받아 적은 줄 ${done.length} / ${NOTE_N}</div>`; }
 const DONGUI = DONGUI_SRC;   // 읽기용 원문(02_text)과 같은 것을 씀(이중 정의 없앰, 10/6)
 // 책장 (10/7 선생님): 이름 모를 책 다섯은 뺌(신들의 책은 그 신의 차례에 밖에서 옴) → 평범한 책으로 채움.
 // 장부엔 "모두 열세 권"(시조 묶음·천자문·잡서 네 권), 책장엔 잡서가 세 권뿐 — 하나 모자람, 까닭은 안 알려 줌.
@@ -45,12 +46,17 @@ function buildRecs(){
   if (S.rArrived && diaryCount()) recs.push(['한서진의 일지', recDiary]);
   if (S.helpRead) recs.push(['쪽지 — 한서진', () => '<h3>쪽지</h3>가주께. 지도의 그 굴에 가 봐야겠습니다. 다만 혼자서는 바닷가에 못 가겠습니다. 바람 소리만 들어도 발이 떨어지지 않습니다. 사람을 더 구해 주실 수 없겠습니까. — 한서진 올림.']);
   labRecs(recs);
+  if (typeof leftRecs === 'function') leftRecs(recs);   // 떠난 사람(19_empty 되부르기)
+  if (typeof rumorRecs === 'function') rumorRecs(recs);   // 장터 소문(19_bang)
+  if (typeof growRecs === 'function') growRecs(recs);   // 넘김 일지(19_manage)
+  if (typeof boardRecs === 'function') boardRecs(recs);   // 별채 사람들(19_board)
+  if (typeof godsRecs === 'function') godsRecs(recs);   // 이름 넷이 적힌 장(19_gods)
   if (glHas()) recs.push([S.gl.fresh ? `낱말 장부 — 새로 정리된 것 ${S.gl.fresh}` : '낱말 장부', recGloss]);
   if (S.awayLog && S.awayLog.length) recs.push(['안 계신 동안의 쪽지', () => '<h3>안 계신 동안</h3><div style="font-size:12px;opacity:.6;margin-bottom:6px">자리를 비운 사이 서안에 놓여 있던 쪽지들. 새것이 위에.</div>' + S.awayLog.slice().reverse().join('<hr style="border:none;border-top:1px solid #00000022">')]);
   return recs;
 }
 // 문갑: 서랍마다 나눠 둔 기록(도서관 대신, 기획서 14-2)
-const DRAWERS = [['첫째 서랍 — 책에서 받아 적은 것', /장부|족보|노트|동의보감/], ['둘째 서랍 — 편지와 방', /편지|답장|방\(|지원서/], ['셋째 서랍 — 일지', /일지/], ['넷째 서랍 — 쪽지', /쪽지|안 계신/]];
+const DRAWERS = [['첫째 서랍 — 책에서 받아 적은 것', /장부|족보|노트|동의보감/], ['둘째 서랍 — 편지와 방', /편지|답장|방\(|지원서/], ['셋째 서랍 — 일지', /일지/], ['넷째 서랍 — 쪽지', /쪽지|안 계신/], ['다섯째 서랍 — 떠난 사람', /떠난 사람/]];
 function showLibrary(){
   const recs = buildRecs(); S.libSig = libSig(); save();
   const used = new Set(); let h = '<h3>문갑</h3>';

@@ -24,11 +24,12 @@ const packAll = () => Object.keys(PACK).filter(id => S.pack[id]).length;
 const canPack = () => !!S.goRead && !digOn();
 const sjFree = () => !!S.rArrived && !isNight() && !nightVisiting() && Date.now() - S.rArrived > T_PUSH && !S.errs.sj;
 const ojrHere = () => working('ojr') && !!S.potPut;
-{ const dp = OBJ.find(o => o.id === 'digPack'); dp.m = () => { const n = packAll(); return n === 0 ? 'bundleFlat' : n <= 2 ? 'bundle' : 'bundleFull'; }; dp.glow = () => !S.dig.n && !packAll(); }
+{ const dp = OBJ.find(o => o.id === 'digPack'); dp.m = () => { const n = packAll(); return n === 0 ? 'bundleFlat' : n <= 2 ? 'bundle' : 'bundleFull'; }; dp.glow = () => (!S.dig.n && !packAll()) || ((S.wD || 0) >= wetEnd() && !S.dig.went.cave); }   // 젖은 장을 다 읽으면(「다음 물때에 굴까지」) 굴에 가 볼 때까지 다시 빛남 ✳ 11/2
 
 // ── ① 채비 넣기 ──
 function packPut(id){
   if (S.pack[id] || !canPack()) return;
+  if (id === 'map' && typeof destChoose === 'function' && destChoose()) return;   // 지도를 넣을 땐 먼저 어디로 갈지 짚음(19_deep)
   const P = PACK[id], free = id === 'food' && ojrHere(), cost = free ? 0 : P.cost;
   if (cost && (S.money || 0) < cost){ openOv(`<h3>${P.name}</h3>엽전이 모자란다. ${fmtM(cost)}이 든다.`); return; }
   if (cost){ S.money -= cost; ledger(`채비 — ${P.name} −${fmtM(cost)}`); sCoin(); }
@@ -77,20 +78,22 @@ function packBtn(id){
 // ── 보퉁이 창 ──
 function showDigPack(){
   if (S.dig.gather){ openOv('<h3>보퉁이</h3>' + digName(S.dig.gather.lead) + '이 메고 대문 앞에 나가 있다.'); return; }
-  if (digOn()){ openOv('<h3>보퉁이</h3>조사단이 여울에 가 있다. 돌아올 때까지 기다린다.'); return; }
+  if (digOn()){ openOv(`<h3>보퉁이</h3>조사단이 ${digWhere()}에 가 있다. 돌아올 때까지 기다린다.`); return; }
   const n = packCount(), rows = Object.keys(PACK).map(id => { const st = S.pack[id];
-    return `<div class="brow" style="cursor:default"><span class="bt">${PACK[id].name}</span><span class="bn" style="font-size:12px;opacity:.7">${st === 'in' ? '들어 있다' : st === 'carry' ? '한서진이 가져오는 중' : (id === 'food' && !ojrHere() ? '<span class="rec" id="bFoodBuy" style="opacity:.9">장에서 사 온다 — ' + fmtM(PACK.food.cost) + '</span>' : PACK[id].from + '에서 넣는다')}</span></div>`; }).join('');
+    return `<div class="brow" style="cursor:default"><span class="bt">${PACK[id].name}</span><span class="bn" style="font-size:12px;opacity:.7">${st === 'in' ? '들어 있다' : st === 'carry' ? '한서진이 가져오는 중' : (id === 'food' && !ojrHere() ? '<span class="rec" id="bFoodBuy" style="opacity:.9">장터에서 사 온다 — ' + fmtM(PACK.food.cost) + '</span>' : PACK[id].from + '에서 넣는다')}</span></div>`; }).join('');
   const pk = S.dig.pick || {}, lead = pk.lead || digLeadDefault(), hands = (pk.hands || []).filter(k => working(k));
   const who = n || packAll() ? `<div class="bsec">함께 갈 사람</div><div style="font-size:14px">반장: ${lead ? digName(lead) : '자리에 있는 반장이 없다'}${hands.length ? ' · ' + hands.map(digName).join(' · ') : ''}</div>`
-    + (hands.length < 2 ? '<div style="font-size:12px;opacity:.6;margin-top:4px">반장의 쪽지에서 이름을 짚어야 한다.</div>' : '<div style="font-size:12px;opacity:.6;margin-top:4px">둘이 정해졌다. 곧 대문 앞에 모인다.</div>')
+    + (hands.length < handsN() ? '<div style="font-size:12px;opacity:.6;margin-top:4px">반장의 쪽지에서 이름을 짚어야 한다.</div>' : `<div style="font-size:12px;opacity:.6;margin-top:4px">${NUMW[handsN()]}이 정해졌다. 곧 대문 앞에 모인다.</div>`)
     + (lead ? '<div class="rec" id="bTalk" style="text-align:center;font-size:13px;opacity:.75;margin-top:8px">반장의 쪽지를 본다</div>' : '') : '';
-  openOv(`<h3>바닷가에 갈 채비</h3>${n || packAll() ? `보퉁이에 ${KNUM[n] || n} 가지가 들어 있다.` : '빈 보퉁이. 한서진이 무명천을 펴 두었다.<br>넣을 것은 그 물건이 있는 자리에서 넣는다.'}${S.dig.n ? ` 지금까지 ${S.dig.n}번 다녀왔다.` : ''}<div class="bsec">채비</div>${rows}${who}`
+  openOv(`<h3>바닷가에 갈 채비</h3>${n || packAll() ? `보퉁이에 ${KCNT(n)} 가지가 들어 있다.` : '빈 보퉁이. 한서진이 무명천을 펴 두었다.<br>넣을 것은 그 물건이 있는 자리에서 넣는다.'}${S.dig.n ? ` 지금까지 ${S.dig.n}번 다녀왔다.` : ''}<div class="bsec">채비</div>${rows}${who}`
     + '<div style="font-size:12px;opacity:.55;margin-top:10px">마른 찬이 없으면 반나절 만에 돌아온다. 종이와 붓이 없으면 글이 있는 것을 못 가져온다. 지도가 없으면 여울을 못 찾을 수 있다.</div>');
   const fb = document.getElementById('bFoodBuy'); if (fb) fb.addEventListener('click', ev => { ev.stopPropagation(); packPut('food'); });
   const bt = document.getElementById('bTalk'); if (bt) bt.addEventListener('click', ev => { ev.stopPropagation(); openOv(digTalkHtml()); });
 }
 
 // ── ② 반장의 의논 쪽지 ──
+const handsN = () => typeof nextDest === 'function' && nextDest(S.pack) === 'cave' ? K.caveHands : K.digHands;   // 데려갈 일반 연구원 수(굴은 셋 — 발굴 설계 ④)
+const NUMW = ['', '하나', '둘', '셋', '넷'];
 const digLeadDefault = () => (!!S.rArrived && !isNight() && !nightVisiting() && Date.now() - S.rArrived > T_PUSH) ? 'sj' : (working('ojr') ? 'ojr' : null);   // 쪽지를 쓸 반장(심부름 중이어도)
 const gname = k => k === 'sj' ? '서진' : k === 'ojr' ? '정림' : DEF(k).name.slice(1);
 function digClause(k){
@@ -112,10 +115,10 @@ function digTalkHtml(){
   const pk = S.dig.pick || { hands: [] }, lead = pk.lead || digLeadDefault(), H = digHands();
   const cand = H.map(k => { const f = fearOf(k), on = pk.hands.includes(k), no = f >= FEAR_AT[4];
     return `<span class="dpk${no ? ' no' : ''}" data-k="${k}" style="${no ? 'opacity:.6' : 'border-bottom:1px dotted #00000066;cursor:pointer'}">${on ? '●' : ''}${digClause(k)}</span>`; });
-  const rec = H.filter(k => fearOf(k) < FEAR_AT[4]).sort((a, b) => fearOf(a) - fearOf(b)).slice(0, 2), picked = pk.hands.filter(k => H.includes(k)).length;
+  const rec = H.filter(k => fearOf(k) < FEAR_AT[4]).sort((a, b) => fearOf(a) - fearOf(b)).slice(0, handsN()), picked = pk.hands.filter(k => H.includes(k)).length;
   const lines = ['가주께.', '보퉁이를 꾸리시는 걸 보았습니다.', H.length ? '누구를 데려갈까요.' : '별채에 데려갈 사람이 없습니다.', ...cand,
-    rec.length === 2 && picked < 2 ? `제 생각엔 ${gname(rec[0])}${/[가-힣]/.test(gname(rec[0]).slice(-1)) && (gname(rec[0]).charCodeAt(gname(rec[0]).length - 1) - 0xAC00) % 28 ? '과' : '와'} ${gname(rec[1])}입니다.` : '',
-    H.length ? '이름을 짚어 주십시오. 둘이면 됩니다.' : '', picked >= 2 ? '그럼 대문 앞에 모이겠습니다.' : ''].filter(Boolean);
+    rec.length === handsN() && picked < handsN() ? (handsN() === 2 ? `제 생각엔 ${gname(rec[0])}${/[가-힣]/.test(gname(rec[0]).slice(-1)) && (gname(rec[0]).charCodeAt(gname(rec[0]).length - 1) - 0xAC00) % 28 ? '과' : '와'} ${gname(rec[1])}입니다.` : `제 생각엔 ${rec.map(gname).join(', ')}입니다. 굴은 깊어 손이 하나 더 있어야 합니다.`) : '',
+    H.length ? `이름을 짚어 주십시오. ${NUMW[handsN()]}이면 됩니다.` : '', picked >= handsN() ? '그럼 대문 앞에 모이겠습니다.' : ''].filter(Boolean);
   return '<h3>쪽지</h3>' + vlet(lines, (lead === 'ojr' ? '오정림' : '한서진') + ' 올림.', 'min(56vh,400px)');
 }
 ovBody.addEventListener('click', e => {                               // 쪽지 속 이름을 누르면 먹점
@@ -123,8 +126,8 @@ ovBody.addEventListener('click', e => {                               // 쪽지 
   e.stopPropagation(); if (digOn()) return;
   const k = el.dataset.k; S.dig.pick = S.dig.pick || { lead: digLeadDefault(), hands: [] };
   if (S.dig.pick.hands.includes(k)) S.dig.pick.hands = S.dig.pick.hands.filter(x => x !== k);
-  else if (S.dig.pick.hands.length < 2) S.dig.pick.hands.push(k);
-  else S.dig.pick.hands = [S.dig.pick.hands[1], k];
+  else if (S.dig.pick.hands.length < handsN()) S.dig.pick.hands.push(k);
+  else S.dig.pick.hands = [...S.dig.pick.hands.slice(1 - handsN()), k];
   save(); openOv(digTalkHtml()); noise(0.08, 900, 0.04);
 });
 // 다른 반장 자리에서 "네가 가라"
@@ -142,7 +145,7 @@ function leadBtn(k){
 function gatherTick(){
   if (S.dig.gather || digOn() || !S.dig.pick || !packCount() || isNight()) return;
   const pk = S.dig.pick, lead = pk.lead && digLeader().includes(pk.lead) ? pk.lead : null, hands = pk.hands.filter(k => digHands().includes(k));
-  if (!lead || hands.length < 2) return;
+  if (!lead || hands.length < handsN()) return;
   if (!pk.at){ pk.at = Date.now(); save(); return; } if (Date.now() - pk.at < 2500) return;   // 쪽지를 닫고 잠깐 뒤
   startGather(lead, hands);
 }
@@ -168,6 +171,7 @@ function digDepart(){
     const ai = steps.findIndex(st => st.k === 'wait' && st.sc === 'away'); let pre = 0; for (let j = 0; j < ai; j++) pre += stepDur(steps[j]);
     S.errs[k] = { t0: now - pre, dig: true, home: true, lead: k === g.lead, steps, done: ai }; });
   S.dig.cur = { lead: g.lead, hands: g.hands, t0: now, brave, back: [], pack }; S.dig.gather = null; S.dig.talked = false;
+  if (typeof applyDest === 'function') applyDest(nextDest(pack), g.lead, g.hands);   // 지도에서 고른 곳(19_deep) — 11/1 전엔 이 길로 보내면 늘 여울이었음
   S.pack = {}; save();
   sDoor(); ERR_ACT.digLeave(g.lead);
   if (typeof tlog === 'function') tlog('발굴 떠남: ' + team.map(digName).join('·') + ' / 채비 ' + Object.keys(pack).filter(id => pack[id] === 'in').map(id => PACK[id].name).join('·'));
@@ -184,6 +188,7 @@ HOOK.tick.push(() => { if (S.stage !== 'room' || S.ended) return;
   for (const id of Object.keys(PACK)) if (S.pack[id] === 'carry' && !S.errs.sj){ S.pack[id] = 'in'; if (id === 'map') S.loc.map = 'pack'; packFirstNote(); save(); }   // 심부름이 끊겼어도 넣은 것으로
   gatherTick();
   if (S.dig.gather && S.dig.gather.dawn && !isNight() && gameHour() >= 7) digDepart(); });        // 해 뜨면 저절로
+OBJ.find(o => o.id === 'door').glow = () => !!(S.dig && S.dig.gather) && !isNight();   // 대문 앞에 모여 기다리는 동안 서고 문이 빛남(밤엔 해 뜨면 저절로 떠나니 안 빛남) ✳ 11/2
 // 모여 선 사람의 인형 글(19_dig digGateDoll의 글을 모임 때만 바꿈)
 { const dd0 = digGateDoll; digGateDoll = function(k){ const d = dd0(k); if (!d._g){ d._g = true; const c0 = d.click;
     d.click = () => { const er = S.errs[k]; if (er && er.gather) return openOv(`<h3>${digName(k)}</h3>${er.lead ? '보퉁이를 메고 ' : ''}대문 앞에 서 있다. 가주가 문을 열어 주기를 기다린다.${isNight() ? '<br>밤이라 바닷가에는 가지 않는다.' : ''}`); c0(); }; } return d; }; }
@@ -191,7 +196,7 @@ HOOK.tick.push(() => { if (S.stage !== 'room' || S.ended) return;
 // ── 돌아온 뒤: 채비에 따라 결과가 다름 (19_dig digResult를 이것으로) ──
 digResult = function(){
   const cur = S.dig.cur, pack = cur.pack || { lamp:'in', food:'in', paper:'in', map:'in' }, first = !S.dig.n, lead = cur.lead;
-  const lost = pack.map !== 'in' && (cur.lost != null ? cur.lost : (cur.lost = Math.random() < 0.5));
+  const lost = pack.map !== 'in' && (cur.lost != null ? cur.lost : (cur.lost = Math.random() < 0.5 * (typeof lostK === 'function' ? lostK() : 1)));   // 물길 읽기(19_tech)면 덜 헤맴
   if (S.loc && S.loc.map === 'pack') S.loc.map = S.mapWasAt || 'shelf';
   const L = [], late = Object.keys(cur.brave).filter(k => cur.brave[k]).map(digName);
   if (lost){ L.push('여울을 찾지 못했습니다.', '물길이 갈라지는 데서 한나절을 헤맸습니다.', '지도가 있어야겠습니다.'); }

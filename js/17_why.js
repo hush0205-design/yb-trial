@@ -14,7 +14,7 @@ const FEAR_FACN = ['평소대로', '평소대로', '평소의 4분의 3', '평�
 const fearStage = f => { let i = 0; while (i < 6 && (f||0) >= FEAR_AT[i + 1]) i++; return i; };
 const fearFac = f => FEAR_FAC[fearStage(f)];
 const fearState = f => { const i = fearStage(f); return FEAR_NM[i] + (FEAR_DO[i] ? ' — ' + FEAR_DO[i] : ''); };
-const fearSpeedTxt = (f, sundial, perMinFull) => { const i = fearStage(f); return sundial ? `1분에 ${fmtP(Math.round(perMinFull * FEAR_FAC[i]))} — ${FEAR_FACN[i]}` : ['또박또박 넘긴다', '또박또박 넘기다 가끔 멈춘다', '조금 느려졌다', '손이 떨려 느릿느릿 넘긴다', '한참에 한 장씩 넘긴다', '책장을 붙잡고 거의 넘기지 못한다', '넘기지 않는다'][i]; };
+const fearSpeedTxt = (f, sundial, perMinFull) => { const i = fearStage(f); return sundial || (typeof eraOn === 'function' && eraOn('watch')) ? `1분에 ${fmtP(Math.round(perMinFull * FEAR_FAC[i]))} — ${FEAR_FACN[i]}` : ['또박또박 넘긴다', '또박또박 넘기다 가끔 멈춘다', '조금 느려졌다', '손이 떨려 느릿느릿 넘긴다', '한참에 한 장씩 넘긴다', '책장을 붙잡고 거의 넘기지 못한다', '넘기지 않는다'][i]; };
 // 앉아 있을 때의 몸짓: 1~3단계는 가끔 돌아봄, 4단계는 책을 덮었다 폈다, 5단계는 의자를 뒤로 뺌
 const lookBack = (D, t) => { const s = fearStage(D.fear()); return s >= 1 && s <= 3 && ((t + D.id.length*3.7) % 13) < 1.1; };
 const bookShut = (k, f) => fearStage(f) === 4 && ((Date.now()/1000 + k.length*2.3) % 9) < 2.6;
@@ -93,7 +93,8 @@ function nextAt(h){                                     // 다음 날 h시(게�
   for (let t = now + gap; t < now + 48*3600e3; t += step){ const g = gameHour(new Date(t)); if (prev < h && g >= h) return t; prev = g; }
   return now + 24*3600e3;
 }
-const awayMs = k => homeN(k) <= 1 ? HOME_MS : Math.max(HOME_MS, nextAt(nightWorker(k) ? 19 : 7) - Date.now());
+const homeMs = () => HOME_MS * (typeof techOn === 'function' && techOn('hyang') ? K.techHyang : 1);   // 연구 '향 사르는 법'
+const awayMs = k => homeN(k) <= 1 ? homeMs() : Math.max(homeMs(), nextAt(nightWorker(k) ? 19 : 7) - Date.now());
 Object.assign(ERR_ACT, {
   leave(k){
     const n = homeN(k), when = nightWorker(k) ? '내일 저녁에' : '내일 아침에';

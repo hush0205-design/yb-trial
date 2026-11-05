@@ -213,10 +213,11 @@ const OBJ = [
   { id:'cupMe', x:7, y:5, z:8, rot:0, m:()=>'cup', on:()=>'desk', onOrder:0.02, show:()=> !!S.owned.desk && performance.now() < calmUntil, alpha:()=> Math.min(1, (calmUntil - performance.now())/4000), click:()=>openOv('<h3>찻잔</h3>방금 마신 찻잔. 아직 따뜻하다.<br>온기가 남아 있는 동안은 두려움이 더디게 찾아온다.') },
 ];
 let viewA = 0;   // 지금 보는 각도(대문 뒤에서 방이 비치지 않게)
+let zoom = 1, zfx = 0, zfy = 0;   // 두 손가락으로 가까이(20_main): 배율과 방 한가운데의 어긋남(화면 너비·높이에 대한 몫)
 let W=0, H=0, DPR=1, SC=4, ang=-0.35, drag=0, t0=performance.now(), steamUntil=0, glitchUntil=0;
 function resize(){ const r = cv.getBoundingClientRect(); DPR = Math.min(2, window.devicePixelRatio||1);
   W = cv.width = Math.floor(r.width*DPR); H = cv.height = Math.floor(r.height*DPR);
-  SC = Math.max(2, Math.floor(Math.min(W/96, H/78))); }
+  SC = Math.max(2, Math.floor(Math.min(W/96, H/78))) * zoom; }
 window.addEventListener('resize', resize);
 const cupAlpha = until => Math.min(1, (until - Date.now())/4000);
 function drawModel(m, sx, sy, a, alpha, z0=0){
@@ -237,12 +238,12 @@ function frame(now){ try { frameBody(now); } catch (e) { frameErr(e, 'frame'); }
 function frameBody(now){
   const lowQ = typeof down !== 'undefined' && !!down && down.moved && bookView.classList.contains('hidden');
   if (lowQ) beginLow();
-  const t = (now - t0)/1000, a = viewA = ang + Math.sin(t*0.12)*0.1 + drag, c = Math.cos(a), s = Math.sin(a), ox = W/2, oy = H*0.58;
+  const t = (now - t0)/1000, a = viewA = ang + Math.sin(t*0.12)*0.1 + drag, c = Math.cos(a), s = Math.sin(a), ox = W*(0.5 + zfx), oy = H*(0.58 + zfy);
   if (bookView.classList.contains('hidden') && mapView.classList.contains('hidden')){   // 지도·책이 덮고 있으면 방은 그리지 않음
     cx.fillStyle = '#0b0907'; cx.fillRect(0,0,W,H); cx.imageSmoothingEnabled = false;
     const lab = S.scene === 'lab';
-    const gate = S.scene === 'gate';
-    drawModel(lab ? M.labFloor : gate ? M.yard : M.floor, ox, oy, a, 1, -1);
+    const gate = S.scene === 'gate' || S.scene === 'teaf';   // 바깥(대문 앞·차밭): 창빛·등잔 어둠 없음
+    drawModel(lab ? M.labFloor : gate || S.scene === 'kitchen' || S.scene === 'mill' ? M.yard : M.floor, ox, oy, a, 1, -1);
     const list = []; let lampPt = null;
     for (const o of curObjs()){ try {
       const owned = !o.buy || S.owned[o.id];
@@ -271,7 +272,8 @@ function frameBody(now){
         const u = SC*0.85*0.27, dh = img.height*u*breath, dw = img.width*u*f;
         const lift = walking ? Math.abs(Math.sin(e/280*Math.PI))*SC*0.5 : st.pose === 'sit' ? 4*SC*0.85 : 0;   // 걸음의 들썩임 / 의자 높이
         const fr = D.fear(), tr = fr >= 0.45 && !walking ? (Math.random() - 0.5) * SC * 0.7 * fr : 0;   // 겁에 질려 떪
-        if (D.shadow){ cx.fillStyle = 'rgba(0,0,0,0.38)'; cx.beginPath(); cx.ellipse(it.sx + 6*DPR, it.sy + 2*DPR, img.width*u*0.55, img.width*u*0.16, 0, 0, Math.PI*2); cx.fill(); }   // 그림자 하나
+        if (D.shadow){ cx.fillStyle = 'rgba(0,0,0,0.38)'; cx.beginPath(); cx.ellipse(it.sx + 6*DPR, it.sy + 2*DPR, img.width*u*0.55, img.width*u*0.16, 0, 0, Math.PI*2); cx.fill();   // 그림자 하나
+          if (S.deep && S.deep.sun && Math.sin(t * K.sunShadowRate) > 0.3){ cx.fillStyle = 'rgba(0,0,0,0.22)'; cx.beginPath(); cx.ellipse(it.sx - 7*DPR, it.sy + 1*DPR, img.width*u*0.5, img.width*u*0.14, 0, 0, Math.PI*2); cx.fill(); } }   // 따뜻한 돌(19_deep)이 집에 있으면 가끔 그림자가 둘
         const cm = typeof errCarry === 'function' ? errCarry(D) : null;   // 심부름: 손에 든 것(찻주전자·쟁반·책)
         const carry = () => { const sc0 = SC; SC = sc0*0.55;                                       // 사람 손에 맞게 작게, 손 높이에
           drawModel(M[cm], it.sx + (st.f[0]*c - st.f[1]*s)*sc0*1.3, it.sy + (st.f[0]*s + st.f[1]*c)*sc0*0.6*1.3, a, 1, 17 + (walking ? Math.abs(Math.sin(e/280*Math.PI))*0.9 : 0)); SC = sc0; };
@@ -314,7 +316,8 @@ function frameBody(now){
     const lit = lab || gate || (S.owned.lamp && !S.lampOut) ? 1 : 0, out = !lab && !gate && S.owned.lamp && S.lampOut;
     const g = cx.createRadialGradient(ox, oy-20*DPR, Math.min(W,H)*(out ? 0.04 : 0.18+0.12*lit), ox, oy, Math.max(W,H)*(out ? 0.38 : 0.62));
     g.addColorStop(0, out ? 'rgba(8,6,4,0.55)' : 'rgba(8,6,4,0)'); g.addColorStop(1,'rgba(8,6,4,' + (out ? 0.97 : 0.92) + ')'); cx.fillStyle = g; cx.fillRect(0,0,W,H);
-    if (!lab && !gate && !S.owned.lamp){ cx.fillStyle = 'rgba(8,6,4,0.58)'; cx.fillRect(0,0,W,H); }   // 등잔을 들이기 전: 방 전체가 한층 어두움(10/7 선생님, 한 번 더 어둡게)
+    if (!lab && !gate && !S.owned.lamp){ cx.fillStyle = 'rgba(8,6,4,0.58)'; cx.fillRect(0,0,W,H); }
+    if (!gate && dl < 0.34){ cx.fillStyle = `rgba(6,8,16,${0.32*(1 - dl*3)})`; cx.fillRect(0,0,W,H); }   // 밤의 방은 한층 어둡게(기획서 14절 '아직' — 해가 질수록)   // 등잔을 들이기 전: 방 전체가 한층 어두움(10/7 선생님, 한 번 더 어둡게)
     if (out && lampPt){                                                   // 꺼진 심지의 불씨: 캄캄한 방에서 유일하게 밝은 점, 숨 쉬듯 떨림(어둠 위에 그려 가려지지 않게)
       const [lx, ly] = lampPt, em = 0.55 + 0.45*Math.sin(t*2.3) * Math.sin(t*0.7 + 1);
       const eg = cx.createRadialGradient(lx, ly, 0, lx, ly, 26*DPR); eg.addColorStop(0, `rgba(255,120,50,${0.45*em + 0.2})`); eg.addColorStop(0.4, `rgba(255,90,40,${0.18*em})`); eg.addColorStop(1, 'rgba(255,90,40,0)');

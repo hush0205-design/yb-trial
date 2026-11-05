@@ -27,8 +27,8 @@ const RELIC = {
 // ── 끝 표 ──
 const END = {
   nobody: { name:'아무도 오지 않다', kind:'일반',
-    n: () => genKeys().filter(k => S.st[k] && S.st[k].quit).length,            // 내보냄 + 녹봉 떠남 + 겁에 질려 그만둠(10/7 선생님)
-    lim: () => LINE.limits.leave + (hasRelic('ledger') ? 2 : 0) + (GAHUN[S.gahun] && GAHUN[S.gahun].leave || 0),
+    n: () => genKeys().filter(k => S.st[k] && S.st[k].quit && !S.st[k].sosil && !S.st[k].missing).length,   // 소실·실종은 다른 끝 쪽 셈(점검 11/4)            // 내보냄 + 녹봉 떠남 + 겁에 질려 그만둠(10/7 선생님)
+    lim: () => LINE.limits.leave + (hasRelic('ledger') ? 2 : 0) + (hasRelic('roster') ? 1 : 0) + (GAHUN[S.gahun] && GAHUN[S.gahun].leave || 0),
     omen(){ S.lateApp = true;
       pushNote('<h3>쪽지</h3>' + vlet(['가주께.', '장터에 이 댁 이야기가 돈다 합니다.', '들어오는 사람마다 얼마 못 가 나간다고.', '방을 보고도 발길을 돌리는 이가 있답니다.'], '한서진 올림.', 'min(44vh,320px)')); },
     scene: () => ['방(榜)이 비에 젖어 대문에서 떨어졌다. 다시 붙여도 아무도 오지 않았다.',
@@ -96,7 +96,7 @@ HOOK.tick.push(() => { for (const o of SIGN_OBJ) o.hit = null; });   // 그리�
 function omenSign(id){
   if (S.owned.lamp && !S.lampOut) relitAt = performance.now();
   if (id === 'nobody'){ noise(2.2, 160, 0.14, 'lowpass'); setTimeout(() => sChair(0.12), 900); }      // 대문 쪽에서 바람, 빈 의자 삐걱
-  else [0, 420, 900].forEach(t => setTimeout(() => noise(0.22, 1300, 0.05), t));                       // 독 바닥을 긁는 소리
+  else if (id === 'rice') [0, 420, 900].forEach(t => setTimeout(() => noise(0.22, 1300, 0.05), t));   // 독 바닥을 긁는 소리(쌀독 끝만, 점검 11/4)
 }
 
 // ── 새 대의 첫걸음: 유품을 풀고 흔적을 남김(서고에 처음 들어올 때 한 번) ──
@@ -146,6 +146,7 @@ function endGame(id){
   const was = { gen: LINE.gen, sur: S.sur || LINE.sur, bon: S.bon || LINE.bon, name: S.name, gahun: S.gahun };
   const firstCodex = !Object.keys(LINE.codex).length;
   LINE.jokbo.push({ gen: LINE.gen, name: S.name, end: E.name, endId: id, days: Math.max(1, dayKey() - (S.genDay == null ? dayKey() : S.genDay) + 1), gahun: S.gahun, mode: S.mode || 'basic' });
+  { const f = typeof featsAt === 'function' ? featsAt(id) : null; if (f) LINE.jokbo[LINE.jokbo.length - 1].feat = f; }   // 별호(19_feats): 족보 줄 곁에 이어 씀
   const c = LINE.codex[id] || { n:0, first: Date.now() }; c.n++; c.line = E.codex; LINE.codex[id] = c;
   if (S.gahun >= 0) LINE.gahun.used[S.gahun] = (LINE.gahun.used[S.gahun] || 0) + 1;
   const newGahun = E.gahun != null && !gahunOpen().includes(E.gahun) ? E.gahun : null; if (newGahun != null) LINE.gahun.unlocked.push(newGahun);
@@ -154,6 +155,7 @@ function endGame(id){
   if (gotKey) LINE.relics.push('key'); if (relic) LINE.relics.push(relic);
   for (const r of reachedNow()) LINE.reached[r] = (LINE.reached[r] || 0) + 1;
   LINE.books = [...new Set([...(LINE.books || []), ...(S.shelfOrder || []).filter(b => hasBook(b) && !(S.books && S.books[b] === 'borrow'))])];   // 책장은 대를 넘어 남음(빌린 책은 빼고)
+  if (id === 'fire') LINE.books.splice(-2, 2);   // 흔적(불이 번지다, 환생 명세 5절): 책장이 타서 곁책 둘이 줄어 있음
   LINE.trace = { from: id }; LINE.gloss = S.gl; LINE.margins = S.margins || [];
   LINE.gen++; saveLine();
   // 판은 새로 — 낱말 장부·여백 글씨·시험 기록·설정만 들고 감
@@ -186,11 +188,12 @@ function endScene(E, was, got){
       <div class="after">
         <p class="el">${got.firstCodex ? '가환록(家患錄)을 새로 매어 서안 곁 문서함에 둔다. 첫 줄이 적혔다.' : '가환록에 한 줄이 더 적혔다.'}</p>
         ${got.newGahun != null ? `<p class="el">가훈 하나가 풀렸다 — 「${GAHUN[got.newGahun].t}」</p>` : ''}
+        ${typeof featGot !== 'undefined' && featGot.length ? `<p class="el">별호의 몫 — ${featGot.join(' · ')}</p>` : ''}
         <p class="el">다음 대에 남길 것: ${got.relic ? esc(RELIC[got.relic].name) : '없음'}${got.gotKey ? ' · 그리고 대문 열쇠 하나' : ''}</p>
         <div class="el" style="margin-top:14px;font-size:13px"><span style="opacity:.75">족보 여백에 한 줄 —</span> <span style="font-size:11px;opacity:.5">(다음 대가 읽는다. 비워 두어도 된다)</span><br><input id="iLast" maxlength="14" autocomplete="off" placeholder="　" style="font:inherit;font-size:15px;background:transparent;border:none;border-bottom:1px solid #00000055;color:var(--ink);padding:2px 4px;width:15em;outline:none;margin-top:4px"></div>
         <div class="el" style="text-align:center;margin-top:16px"><button class="btn" id="bNextGen" style="color:var(--ink);border-color:#00000066">${genHj(LINE.gen)}世를 적는다</button></div>
       </div></div>`, 99999);
-    const w = el.querySelector('.writing'), txt = Array.from(cur.end); let i = 0;
+    const w = el.querySelector('.writing'), txt = Array.from(cur.end + (cur.feat ? ' · ' + cur.feat : '')); let i = 0;
     const pen = setInterval(() => { if (i >= txt.length){ clearInterval(pen);
         el.querySelectorAll('.after .el').forEach((p, k) => setTimeout(() => p.classList.add('on'), 700 + k * 1100)); return; }
       w.textContent += txt[i++]; noise(0.12, 900, 0.05, 'bandpass'); }, 380);
@@ -226,6 +229,62 @@ function endPic(cvs, id){
       g.fillStyle = 'rgba(240,225,190,0.07)'; g.beginPath(); g.moveTo(38, 0); g.lineTo(70, 0); g.lineTo(122, 80); g.lineTo(66, 80); g.fill();   // 창으로 드는 빛줄기
       for (const [x, y0, v] of motes){ const y = (y0 + t * v) % 80, inBeam = x > 38 + y * 0.35 && x < 70 + y * 0.65;
         g.fillStyle = `rgba(207,198,174,${inBeam ? 0.7 : 0.18})`; g.fillRect(Math.floor(x + Math.sin(t + y0) * 2), Math.floor(y), 1, 1); }
+    } else if (id === 'shut'){                                                                       // 문을 잠그고 나오지 않다(19_mad): 안에서 잠긴 서고 문, 문틈 불빛이 꺼져 감
+      g.fillStyle = '#2a1c12'; g.fillRect(52, 6, 56, 70); g.fillStyle = '#3e2a1c'; g.fillRect(56, 10, 22, 62); g.fillRect(82, 10, 22, 62);
+      g.fillStyle = '#6a4a30'; g.fillRect(50, 40, 60, 4);                                                // 빗장
+      const lit = Math.max(0, 1 - t / 8); g.fillStyle = `rgba(232,176,74,${0.55 * lit + 0.05 * Math.sin(t * 6)})`; g.fillRect(56, 74, 48, 2);   // 문틈 불빛
+      for (let k = 0; k < 4; k++){ g.fillStyle = '#8a7a5c'; g.fillRect(60 + k * 3, 46 + k, 1, 6); }        // 안쪽 손톱자국
+    } else if (id === 'forget'){                                                                     // 잊기(19_forget): 대문 고리에 채운 자물쇠, 길은 산 쪽으로
+      g.fillStyle = '#2a1c12'; g.fillRect(40, 10, 80, 64); g.fillStyle = '#3e2a1c'; g.fillRect(44, 14, 34, 60); g.fillRect(82, 14, 34, 60);
+      g.fillStyle = '#8a7448'; g.fillRect(74, 40, 12, 10); g.strokeStyle = '#8a7448'; g.lineWidth = 2; g.beginPath(); g.arc(80, 40, 4, Math.PI, 0); g.stroke();
+      g.fillStyle = `rgba(240,225,190,${0.05 + 0.04 * Math.sin(t)})`; g.fillRect(0, 0, 160, 80);
+    } else if (id === 'teaCut'){                                                                     // 차를 끊다(19_ends): 식은 찻주전자, 김이 오르지 않음
+      g.fillStyle = '#3a3a30'; g.beginPath(); g.ellipse(80, 48, 22, 16, 0, 0, Math.PI * 2); g.fill(); g.fillRect(100, 40, 16, 4); g.fillRect(72, 28, 16, 6);
+      g.strokeStyle = '#4a4a3e'; g.lineWidth = 3; g.beginPath(); g.arc(60, 46, 8, Math.PI * 0.5, Math.PI * 1.5); g.stroke();
+      g.fillStyle = '#c9c0ab'; [[40, 64], [120, 64]].forEach(([x, y]) => { g.fillRect(x - 6, y, 12, 6); });   // 엎어 둔 찻잔
+    } else if (id === 'borrow'){                                                                     // 빌린 책을 안 돌려주다(19_ends): 거간의 장부, 마지막 줄이 낯선 글자로 번져 감
+      g.fillStyle = '#d9cdab'; g.fillRect(44, 12, 72, 58); g.fillStyle = '#b8ab88'; g.fillRect(79, 12, 2, 58);
+      g.fillStyle = '#3a2a20'; for (let k = 0; k < 6; k++){ g.fillRect(50, 18 + k * 8, 24, 1); g.fillRect(86, 18 + k * 8, k === 5 ? 24 * Math.min(1, t / 4) : 24, k === 5 ? 2 : 1); }
+    } else if (id === 'liver'){                                                                      // 간을 두고 오다(19_ends): 물가에 가지런한 짚신, 물결이 들고 남
+      const w = 46 + Math.sin(t * 1.2) * 4; g.fillStyle = '#1e2a30'; g.fillRect(0, w, 160, 80 - w); g.fillStyle = 'rgba(200,210,215,0.25)'; for (let k = 0; k < 6; k++) g.fillRect(10 + k * 26, w + 3 + (k % 2) * 4, 14, 1);
+      g.fillStyle = '#b8a070'; g.fillRect(70, 34, 7, 12); g.fillRect(81, 35, 7, 12);
+    } else if (id === 'night'){                                                                      // 밤에 일 시키다(19_ends): 캄캄한 별채, 등잔 없는 책상 위로 글자가 하나씩 떠오름
+      g.fillStyle = '#14100c'; for (let k = 0; k < 3; k++) g.fillRect(34 + k * 34, 48, 26, 10);
+      for (let k = 0; k < Math.min(9, Math.floor(t * 1.5)); k++){ g.fillStyle = `rgba(200,210,190,${0.25 + 0.2 * Math.sin(t * 2 + k)})`; g.fillRect(40 + (k % 3) * 34 + hash(k, 4) * 10, 40 - Math.floor(k / 3) * 7, 3, 3); }
+    } else if (id === 'away'){                                                                       // 집을 비우다: 서안 위 쪽지 더미
+      for (let k = 0; k < 9; k++){ g.fillStyle = k % 2 ? '#d9cdab' : '#cfc2a0'; g.save(); g.translate(80, 58 - k * 4); g.rotate((hash(k, 7) - 0.5) * 0.5); g.fillRect(-18, -6, 36, 12); g.restore(); }
+    } else if (id === 'sea'){                                                                        // 물가에서(19_ends): 굴 입구로 이어지는 발자국, 물이 들어옴
+      g.fillStyle = '#1a140f'; g.beginPath(); g.arc(118, 46, 18, Math.PI, 0); g.fill(); g.fillStyle = '#2a2a24'; g.fillRect(0, 46, 160, 34);
+      g.fillStyle = '#8a8070'; for (let k = 0; k < 7; k++) g.fillRect(20 + k * 13, 60 - k * 2 + (k % 2) * 3, 4, 2);   // 발자국
+      g.fillStyle = `rgba(40,60,70,${0.4 + 0.3 * Math.min(1, t / 5)})`; g.fillRect(0, 66 - Math.min(14, t * 2), 160, 20);
+    } else if (id === 'flee'){                                                                       // 도주(19_ends): 부적을 붙인 궤짝, 먼지가 내려앉음
+      g.fillStyle = '#3e2a1c'; g.fillRect(48, 34, 64, 34); g.fillStyle = '#5a3e28'; g.fillRect(46, 28, 68, 8);
+      g.fillStyle = '#d9cdab'; g.fillRect(72, 26, 16, 26); g.fillStyle = '#9a3a26'; for (let k = 0; k < 5; k++) g.fillRect(76 + (k % 2) * 4, 30 + k * 4, 5, 1);
+      for (const [x, y0, v] of motes){ const y = (y0 + t * v * 0.6) % 80; g.fillStyle = 'rgba(207,198,174,0.35)'; g.fillRect(Math.floor(x), Math.floor(y), 1, 1); }
+    } else if (id === 'fire'){                                                                       // 불이 번지다: 그을린 책장, 아래에서 일렁이는 불빛
+      for (let k = 0; k < 9; k++){ g.fillStyle = k === 4 ? '#8a6a34' : '#1e1510'; g.fillRect(36 + k * 10, 14, 8, 44); }
+      const f = 0.5 + 0.5 * Math.sin(t * 7) * Math.sin(t * 3.1); const fg = g.createLinearGradient(0, 80, 0, 40); fg.addColorStop(0, `rgba(255,120,40,${0.55 + 0.25 * f})`); fg.addColorStop(1, 'rgba(255,90,30,0)'); g.fillStyle = fg; g.fillRect(20, 40, 120, 40);
+    } else if (id === 'swallow'){                                                                    // 모두 물가로 가다: 대문 앞 모래, 바다 쪽으로만 난 발자국
+      g.fillStyle = '#3a3226'; g.fillRect(0, 0, 160, 80); g.fillStyle = '#1c2a30'; g.fillRect(0, 0, 160, 12);
+      g.fillStyle = '#1a140e'; for (let k = 0; k < 15; k++){ const on = Math.min(1, Math.max(0, t - 0.8 - k * 0.3)); if (!on) continue;
+        g.globalAlpha = on * 0.85; g.fillRect(52 + (k % 4) * 16 + (k % 2) * 3, 74 - k * 4.2, 3, 2); }
+      g.globalAlpha = 1;
+    } else if (id === 'hasty'){                                                                      // 서둘러 깨우다: 펼친 책, 아래에서 차오르는 검은 물
+      g.fillStyle = '#d8d0b8'; g.fillRect(34, 18, 44, 50); g.fillRect(82, 18, 44, 50); g.fillStyle = '#4a4030'; g.fillRect(79, 16, 2, 54);
+      g.fillStyle = '#6a6050'; for (let y = 24; y < 62; y += 6) g.fillRect(38, y, 36, 1);
+      const w = Math.min(1, t / 6), lv = 80 - w * 46; g.fillStyle = 'rgba(16,34,40,0.85)';
+      g.beginPath(); g.moveTo(0, 80); for (let x = 0; x <= 160; x += 8) g.lineTo(x, lv + Math.sin(x / 13 + t * 1.6) * 2); g.lineTo(160, 80); g.fill();
+    } else if (id === 'sea'){                                                                        // 물가에서: 밤바다, 멀어지는 등롱 하나
+      g.fillStyle = '#0c1418'; g.fillRect(0, 0, 160, 80); g.fillStyle = '#16262c'; for (let y = 44; y < 80; y += 5) g.fillRect(0, y + Math.sin(t * 1.3 + y) * 1.5, 160, 2);
+      const lx = 80 + Math.min(40, t * 4), ly = 40 - Math.min(10, t); g.fillStyle = `rgba(232,176,74,${Math.max(0.15, 0.9 - t / 14)})`; g.fillRect(lx, ly + Math.sin(t * 2) * 1, 3, 3);
+    } else if (id === 'away'){                                                                       // 집을 비우다: 빈 서안 위 종이 한 장, 서툰 한 줄
+      g.fillStyle = '#1a120b'; for (let y = 0; y < 80; y += 6) g.fillRect(0, y, 160, 1);
+      g.fillStyle = '#3e2a1c'; g.fillRect(40, 34, 80, 26); g.fillStyle = '#d8d0b8'; g.fillRect(62, 38, 36, 16);
+      g.fillStyle = '#3a3026'; const w = Math.min(26, t * 4); g.fillRect(67, 45, w, 1); g.fillRect(67 + w * 0.3, 46, w * 0.4, 1);
+    } else if (id === 'eyes'){                                                                       // 눈이 다하다: 흰 천을 감은 얼굴
+      g.fillStyle = '#d9c8a8'; g.beginPath(); g.ellipse(80, 42, 20, 26, 0, 0, Math.PI * 2); g.fill();
+      g.fillStyle = '#f2ecd8'; g.fillRect(58, 34, 44, 9); g.fillStyle = '#c9c0ab'; g.fillRect(58, 42, 44, 1);
+      g.fillStyle = '#5a3a2a'; g.fillRect(74, 54, 12, 1);
     } else {
       g.fillStyle = '#1a120b'; for (let y = 0; y < 80; y += 6) g.fillRect(0, y, 160, 1);    // 마루 널
       const e = (rx, ry, col, dy = 0) => { g.fillStyle = col; g.beginPath(); g.ellipse(80, 40 + dy, rx, ry, 0, 0, Math.PI * 2); g.fill(); };
@@ -244,7 +303,7 @@ function endPic(cvs, id){
 
 // 가훈 족자(둘째 대부터): 물려받은 것 + 끝으로 풀린 것. 살아 본 가훈에만 족보 말투의 설명이 곁에 붙음
 document.getElementById('gahunWrap').innerHTML = gahunOpen().map(i => { const g = GAHUN[i], u = LINE.gahun.used[i] || 0;
-  return `<div class="scroll" data-g="${i}">${esc(g.t)}${u ? `<span class="gnote">${esc(g.note[Math.min(1, u - 1)])}</span>` : ''}</div>`; }).join('');
+  return `<div class="scroll" data-g="${i}">${gahunHtml(i)}${u ? `<span class="gnote">${esc(g.note[Math.min(1, u - 1)])}</span>` : ''}</div>`; }).join('');
 
 // ── 대문의 빗장 = 기본/하드 모드 (환생 명세 10-12): 1대엔 녹슬어 안 움직임, 첫 강제 환생 뒤 새 대 시작 때 대문 앞에서 처음 고름(한 대에 한 번) ──
 // 지금은 물건과 고르기만 — 하드의 보상(가환록 두 번째 장·칭호·'집을 비우다')은 뒤 묶음.

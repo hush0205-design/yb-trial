@@ -9,7 +9,7 @@ function uprightDigits(root){
   while (w.nextNode()) if (/\d/.test(w.currentNode.nodeValue)) nodes.push(w.currentNode);
   for (const n of nodes){ const s = document.createElement('span'); s.innerHTML = esc(n.nodeValue).replace(/\d+/g, '<span class="tcy">$&</span>'); n.replaceWith(...s.childNodes); }
 }
-function openOv(html, onClose){ ovBody.innerHTML = html + '<div class="close">닫기</div>'; ov.classList.remove('hidden'); ovBody.querySelectorAll('.vletter').forEach(uprightDigits); if (typeof glossify === 'function') glossify(ovBody); if (typeof tlogOv === 'function') tlogOv(html); ov._onClose = onClose; ov._t = performance.now(); }
+function openOv(html, onClose){ ovBody.innerHTML = html + '<div class="close">닫기</div>'; ov.classList.remove('hidden'); ovBody.querySelectorAll('.vletter').forEach(uprightDigits); if (typeof glossify === 'function') glossify(ovBody); for (const f of HOOK.ov) f(); if (typeof tlogOv === 'function') tlogOv(html); ov._onClose = onClose; ov._t = performance.now(); }
 // 터치 직후 따라오는 클릭이 방금 연 창(과 그 안의 항목)을 누르지 않게: 잡기 단계에서 먼저 막음
 ov.addEventListener('click', e => { if (performance.now() - (ov._t||0) < 450) { e.stopPropagation(); e.preventDefault(); } }, true);
 function closeOv(){                                       // 창 닫기(Esc·바깥 누르기 공용 — 450ms 차단을 타지 않음)
@@ -68,7 +68,8 @@ function linesHtml(from, to, Dv, mark, b = curB()){
       }
       out += (mark && old[k] !== ch && ch.trim()) ? `<span class="nw">${esc(ch)}</span>` : esc(ch);
     }
-    h += `<div class="ln${b === BD && i >= 8 ? ' red' : ''}">` + out + '</div>';
+    const pv = b === BF && carriedLine(i) && ((Dv === undefined ? b.D() : Dv) < bDone(b, i) || lineChanged(i));   // 앞 대 가주의 풀이(기획서 23절)
+    h += `<div class="ln${b === BD && i >= 8 ? ' red' : ''}${pv ? ' cv' : ''}">` + out + (pv ? `<span class="pv">${esc(LINES_PREV[i])}</span>` : '') + '</div>';
   }
   return h;
 }

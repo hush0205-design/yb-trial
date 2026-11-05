@@ -5,12 +5,12 @@ const INNER_BG = 'linear-gradient(#e6dcc4, #e6dcc4)';              // 표지 안
 function coverSpot(){ return { offsetLeft: 0, offsetWidth: FW, offsetHeight: FH }; }
 let coverBusy = false;
 function openBook(){
-  const di = itemAt('desk'); if (di === 'first' || di === 'dongui' || di === 'wet' || di === 'jour') S.curBook = di;
+  const di = itemAt('desk'); if (di === 'first' || di === 'dongui' || di === 'wet' || di === 'jour' || di === 'ask') S.curBook = di;
   book.classList.toggle('wetb', S.curBook === 'wet');
   cover.querySelector('.slip').classList.toggle('done', bookDone(S.curBook || 'first'));
-  cover.querySelector('.slip').textContent = S.curBook === 'dongui' ? '東醫寶鑑' : (S.curBook === 'wet' || S.curBook === 'jour') ? '' : (typeof titleSlip === 'function' ? titleSlip() : '□□');
+  cover.querySelector('.slip').textContent = S.curBook === 'dongui' ? '東醫寶鑑' : (S.curBook === 'wet' || S.curBook === 'jour' || S.curBook === 'ask') ? '' : (typeof titleSlip === 'function' ? titleSlip() : '□□');
   stage.style.setProperty('--cc', (BOOKCOL[S.curBook] || BOOKCOL.first)[0]);
-  S.ack = roomNews(); S.blown = (S.blown || []).concat(S.ack);   // 책을 펴기 전에 서고에서 본 것은 '본 것'
+  S.ack = roomNews(); S.blown = [...new Set((S.blown || []).concat(S.ack))];   // 책을 펴기 전에 서고에서 본 것은 '본 것'
   bookView.classList.remove('hidden'); layoutBook(); book.style.visibility = 'visible'; cover.style.visibility = 'visible';
   facesEl.style.visibility = 'hidden';                      // 덮여 있을 땐 표지만
   const go = () => {
@@ -74,14 +74,15 @@ book.addEventListener('pointermove', moveLoupe); book.addEventListener('pointerd
 // ───────── 넘기기 ─────────
 const CD = 1200;     // 손으로 넘기는 간격(읽는 시간)
 let lastFlip = -1e9;
-function perClick(){ return 1 + (S.owned.lamp?1:0) + (S.owned.desk?1:0); }
-function mult(){ return (1 + (S.owned.brush?0.5:0) + (S.owned.glass?1:0)) * (S.fear > 0.45 ? 0.6 : 1) * gahunK('read'); }   // 가훈이 해독 빠르기를 조금 바꿈
+function perClick(){ return (1 + (S.owned.lamp?1:0) + (S.owned.desk?1:0)) * gahunK('hand'); }   // 가훈 '남의 눈을 빌리지 마라': 손 넘김 곱절
+function mult(){ return (1 + (S.owned.brush?0.5:0) + (S.owned.glass?1:0)) * (S.fear > 0.45 ? 0.6 : 1) * gahunK('read') * (typeof techMult === 'function' ? techMult() : 1); }   // 가훈이 해독 빠르기를 조금 바꿈
 function addBook(id, v){
   if (id === 'map'){ S.mapStudy = (S.mapStudy||0) + v; return; }
   if (id === 'dongui' && !S.sideRead.dongui){ S.dD = (S.dD||0) + v; checkDongui(); }
   else if (id === 'wet'){ if (typeof wetRead === 'function') wetRead(v); }
   else if (id === 'jour'){ if (typeof jourRead === 'function') jourRead(v); }   // 젖은 장(19_sea) — 다 풀면 더 넘겨도 아무것도 안 늘어남
-  else if (S.D < T.jEnd) S.D += v;                                   // 첫 책도 다 풀면 더 안 늘어남
+  else if (id === 'ask'){ if (typeof askRead === 'function') askRead(v); }     // 해독 의뢰 종이(19_ask)
+  else if (S.D < T.jEnd) S.D += v * carryK();                        // 첫 책도 다 풀면 더 안 늘어남 · 앞 대가 푼 줄은 빨리(02_text, 기획서 23절)
 }
 function checkDongui(){
   if (S.sideRead.dongui || (S.dD||0) < bDone(BD, DLINES.length-1)) return;
@@ -93,7 +94,7 @@ function checkDongui(){
 function flip(auto, fast){
   const now = performance.now();
   if (!auto && !fast){ if (now - lastFlip < CD) return; lastFlip = now; setTimeout(() => { const e = document.getElementById('ear'); if (e) e.classList.add('ready'); }, CD); }
-  const p = auto ? 1 : perClick(); S.pages += p; S.earned += p;
+  const p = auto ? 1 : perClick(); S.pages += p; S.earned += p; if (!auto) S.handN = (S.handN || 0) + p;   // 손으로 넘긴 장(19_feats 별호)
   if (S.owned.lamp && S.lampOut){ if (!auto) S.fear = Math.min(0.8, S.fear + 0.02); }   // 어둠 속: 넘어가긴 하지만 글자가 풀리지 않고(해독 0), 한 장마다 겁이 조금(10/7 선생님)
   else addBook(S.curBook || 'first', p*mult());
   if (bookOpen) { if (auto) rustle(0.9, 0.09); else sFlip(); }

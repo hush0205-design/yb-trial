@@ -3,7 +3,7 @@
 // ① 오정림의 차는 3단계(간을 졸임)까지만 달램 — 4단계부터는 가주가 직접(차를 내주거나 쉬라고 일러 보냄)
 // ② 가주의 하루 순회: 하루 첫 별채 걸음에 모두 겁이 한 단계 내려가고, 그날은 손이 조금 빠름
 // ④ 한서진의 아침 보고: 새 날 첫 쪽지 — 어제 넘긴 양·집에 간 사람·오늘 맡길 만한 것. 가주가 직접 맡긴 사람은 그날 손이 빠름
-const OJR_MAX = FEAR_AT[4];                            // 이보다 겁이 크면 오정림의 차로는 안 됨(4단계)
+const ojrMax = () => FEAR_AT[techOn('tea') ? 5 : 4];   // 이보다 겁이 크면 오정림의 차로는 안 됨(4단계 — 연구 '다경'(19_tech)이면 5단계)
 const visitBoost = () => S.visitDay === dayKey() ? 1.1 : 1;
 const manBoost = s => s && s.manDay === dayKey() ? 1.1 : 1;
 
@@ -16,14 +16,14 @@ function sendRest(k){
   const lab = k !== 'sj', sc = lab ? 'lab' : 'seogo', door = lab ? LAB_DOOR : DOOR_POS, side = homeSide(k);
   const out = lab ? [side, [side[0], LC], [door[0], LC], door] : [side, [side[0], SGC], [door[0], SGC], door];
   S.errs[k] = { t0: Date.now(), home: true, rest: true, steps: [{ k:'up', sc }, ...walkPts(sc, out), waitAt(sc, door, [0, -1], 300, 'restLeave', k),
-    waitAt('away', door, [0, 1], HOME_MS), ...walkPts(sc, out.slice().reverse()), waitAt(sc, side, [-1, 0], 10, 'restBack', k), { k:'down', sc }] };
+    waitAt('away', door, [0, 1], homeMs()), ...walkPts(sc, out.slice().reverse()), waitAt(sc, side, [-1, 0], 10, 'restBack', k), { k:'down', sc }] };
   save(); if (S.scene === sc) sChair(0.1);
   if (typeof tlog === 'function') tlog('쉬라고 보냄: ' + (k === 'sj' ? '한서진' : DEF(k).name));
 }
 const restBox = (k, f) => {
   const st = fearStage(f); if (st < 2) return '';
   return (st >= 4 ? '<div style="font-size:12px;opacity:.75;margin-top:8px">간이 너무 오그라들어 오정림의 차로는 달래지지 않는다. 가주가 직접 살펴야 한다.</div>' : '')
-    + `<div style="text-align:center;margin-top:8px"><button class="btn rec" id="bRest" style="color:var(--ink);border-color:#00000066">오늘은 들어가 쉬라고 한다</button></div><div style="font-size:11px;opacity:.55;text-align:center">30분쯤 쉬고 겁을 털고 돌아온다.</div>`;
+    + `<div style="text-align:center;margin-top:8px"><button class="btn rec" id="bRest" style="color:var(--ink);border-color:#00000066">오늘은 들어가 쉬라고 한다</button></div><div style="font-size:11px;opacity:.55;text-align:center">${Math.round(homeMs() / 60e3)}분쯤 쉬고 겁을 털고 돌아온다.</div>`;
 };
 function addRest(k, f){
   const h = restBox(k, f); if (!h) return;
@@ -62,7 +62,9 @@ function morningTick(){
   const scared = ks.filter(k => isGen(k)).sort((a, b) => (S.st[b].fear||0) - (S.st[a].fear||0))[0];
   const fast = ks.filter(k => isGen(k)).sort((a, b) => DEF(a).sec - DEF(b).sec)[0];
   const L = ['가주께. 아침 보고 올립니다.'];
-  if (S.awayNoted !== dayKey()) L.push(`어제 서고와 별채에서 넘긴 것이 ${fmtP(pages)}입니다.`);   // 오늘 아침 '안 계신 동안' 쪽지가 이미 숫자를 말했으면 되풀이하지 않음(10/6 선생님)
+  const prev = (S.dayPages || []).slice(-1)[0];
+  S.dayPages = (S.dayPages || []).concat([pages]).slice(-K.growDays);   // 넘김 일지(문갑 셋째 서랍)
+  if (S.awayNoted !== dayKey()) L.push(`어제 서고와 별채에서 넘긴 것이 ${fmtP(pages)}입니다.` + (prev && pages > prev ? ` 그제보다 ${fmtP(pages - prev)} 많습니다.` : ''));   // 오늘 아침 '안 계신 동안' 쪽지가 이미 숫자를 말했으면 되풀이하지 않음(10/6 선생님)
   if (d.home.length) L.push(`${josa([...new Set(d.home)].join('·'), '이', '가')} 겁에 질려 집에 다녀왔습니다.`);
   if (d.quit.length) L.push(`${josa([...new Set(d.quit)].join('·'), '은', '는')} 그만두고 떠났습니다.`);
   if (scared && fearStage(S.st[scared].fear) >= 2) L.push(`${josa(DEF(scared).name, '이', '가')} 아직 떨고 있습니다. 쉬게 하시거나 덜 무서운 것을 맡기심이 어떨지요.`);
@@ -72,4 +74,11 @@ function morningTick(){
   pushNote('<h3>쪽지</h3>' + vlet(L, '한서진 올림.', 'min(56vh,420px)'));
   S.dayStat = { day: dayKey(), earned0: S.earned || 0, home: [], quit: [] }; save();
   if (typeof tlog === 'function') tlog('아침 보고');
+}
+// 넘김 일지: 아침 보고의 숫자를 한서진이 날마다 한 줄씩 적어 둔 것 — 먹줄 길이로 늘어나는 게 보임(문갑 셋째 서랍)
+function growRecs(recs){
+  const d = S.dayPages || []; if (d.length < 2) return;
+  const mx = Math.max(...d, 1);
+  recs.push(['넘김 일지', () => '<h3>넘김 일지</h3><div style="font-size:12px;opacity:.6;margin-bottom:8px">한서진이 아침 보고 때마다 적은 것.</div>'
+    + d.map((n, i) => `<div style="display:flex;align-items:center;gap:8px;margin:5px 0;font-size:13px"><span style="width:3.5em;opacity:.6">${d.length - i === 1 ? '어제' : (d.length - i) + '일 전'}</span><span style="flex:0 0 ${Math.max(2, Math.round(55 * n / mx))}%;height:3px;background:var(--ink)"></span><span style="white-space:nowrap">${fmtP(n)}</span></div>`).join('')]);
 }

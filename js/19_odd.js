@@ -17,6 +17,14 @@ const ODD = [   // [id, 기이록 한 줄(가주의 글씨), 어려움]
   ['rabbit', '지도 바다 끝, 문진으로만 보이는 두 글자 — 토끼.', '어려움'],
   ['roster13', '명부에 한 사람이 더 있다. 읽을 수 없는 이름.', '어려움'],
   ['named',  '내 이름을 내가 짓지 않았다. 족보에 먼저 적혀 있던 이름을 그대로 두었다.', '보통'],   // 둘째 대부터, 흐린 이름을 그대로 적으면(20_main)
+  ['wetcoin', '박물관 상 위에 엽전 대신 젖은 조개껍데기. 받지 않았는데 두고 갔다.', '보통'],   // 11/3 19_museum
+  ['prints',  '담 안쪽에 젖은 발자국. 발가락 사이가 넓었다.', '보통'],                         // 11/3 19_museum 빗장
+  ['cupfull', '지원자에게 낸 차가 그대로 차 있었다. 식지도 않았다.', '어려움'],                 // 11/3 19_screen 살펴보기
+  ['mapback', '지도를 접으면 겉면에 넉 자. 펴지 마라.', '어려움'],                             // 11/3 05_map
+  ['warmstone', '바다에서 건져 온 돌이 며칠째 식지 않는다. 손바닥에 올리면 그림자가 하나 더 진다.', '보통'],   // 11/4 19_deep 바다 궤
+  ['crawl',  '오래 비운 사이 서고 바닥에 무언가 기어간 자국. 나간 자국은 없었다.', '보통'],         // 11/4 19_imugi
+  ['shed',   '구석의 허물. 당겨도 끝이 책장 밑에서 나오지 않는다.', '어려움'],                    // 11/4 19_imugi
+  ['scale',  '바다 궤 바닥에 비늘 하나. 아궁이 재가 묻어 있었다.', '어려움'],                   // 11/4 흔적 조합(19_deep)
 ];
 const ODD_N = ODD.length;
 const oddCount = () => Object.keys(LINE.odd || {}).filter(id => ODD.some(o => o[0] === id)).length;
@@ -25,13 +33,11 @@ function notice(id){
   LINE.odd[id] = Date.now(); saveLine();
   const n = oddCount();
   if (typeof tlog === 'function') tlog('알아챔: ' + id);
-  if (n === 1) setTimeout(() => queueOv('<h3>서안 곁</h3>못 보던 얇은 책이 하나 놓여 있다.<br>첫 장에 방금 본 것이 적혀 있다. 내 글씨다.<br><br><span style="font-size:13px;opacity:.7">문서함에 넣어 두었다.</span>'), 600);
   if (n % 5 === 0 && typeof MARGIN !== 'undefined' && (S.margins || []).length < MARGIN.length){   // 다섯 줄마다: 여백 글씨 한 줄
-    S.margins = (S.margins || []).concat([MARGIN[(S.margins || []).length]]); save();
-    setTimeout(() => queueOv(`<h3>기이록</h3>${n}째 줄을 적고 나니, 책장 사이에 접힌 종잇조각이 끼어 있다.<br><br><span style="color:#6a2a16;font-style:italic">${S.margins[S.margins.length - 1]}</span>`), 900);
+    S.oddSlip = MARGIN[(S.margins || []).length]; save();                               // 창 대신: 다음에 책을 펴면 종잇조각이 끼어 있음(흐름 점검 10/8)
   }
 }
-const oddHtml = () => `<h3>기이록(奇異錄)</h3><div style="font-size:12px;opacity:.6;margin-bottom:8px">서고에서 본 이상한 것을 적어 두는 얇은 책. ${KNUM[ODD_N] || ODD_N} 줄 가운데 ${KNUM[oddCount()] || oddCount()} 줄이 적혀 있다.</div>`
+const oddHtml = () => `<h3>기이록(奇異錄)</h3><div style="font-size:12px;opacity:.6;margin-bottom:8px">서고에서 본 이상한 것을 적어 두는 얇은 책. ${KCNT(ODD_N)} 줄 가운데 ${KCNT(oddCount())} 줄이 적혀 있다.</div>`
   + ODD.map(([id, line]) => LINE.odd && LINE.odd[id] ? `<div class="oddL">${line}</div>` : '<div class="oddL empty">　</div>').join('');
 
 // ── 숨은 것들에 '알아챔'을 붙임 ──
@@ -65,10 +71,10 @@ const recKinds = () => [...new Set(buildRecs().map(r => r[0].split(' — ')[0].r
                             : '<h3>문갑</h3>맨 아래 서랍이 빠져나와 있다.<br>비어 있다. 아무것도 넣은 적이 없는 서랍이다.<div class="rec" id="bLibGo" style="margin-top:12px;text-align:center;font-size:13px;opacity:.75">문갑을 살펴본다</div>');
     document.getElementById('bLibGo').addEventListener('click', ev => { ev.stopPropagation(); sl0(); });
   }; }
-HOOK.tick.push(() => {                                        // 섬뜩한 서랍: 한 대에 두 번까지, 밤에
+HOOK.tick.push((dt) => {                                      // 섬뜩한 서랍: 한 대에 두 번까지, 밤에
   if (S.stage !== 'room' || S.libGhost || (S.libGhostN || 0) >= 2 || !S.rArrived || !isNight() || S.D < T.door) return;
   if (S.libGhostDay === dayKey()) return;
-  if (Math.random() < 1 / 2400){ S.libGhost = true; S.libGhostDay = dayKey(); save(); }    // 한밤에 몇 분에 한 번 꼴로 기회
+  if (Math.random() < dt / K.libGhostSec){ S.libGhost = true; S.libGhostDay = dayKey(); save(); }    // 한밤에 몇 분에 한 번 꼴로 기회
 });
 
 // ── 명부의 한 명: 하루 한 단계씩 진해짐, 여섯 단계면 이름이 풀림 ──
@@ -88,3 +94,10 @@ function rosterGhostHtml(n){
       if (S.rosterDay !== dayKey() && (LINE.rosterGhost || 0) < ROSTER_MAX){ S.rosterDay = dayKey(); LINE.rosterGhost = (LINE.rosterGhost || 0) + 1; saveLine(); save(); }
       notice('roster13'); showRoster(); });
   }; }
+
+// ── 다섯 줄 보상: 다음에 책을 펴면 장 사이에 종잇조각이 끼어 있음(눌러 읽음 → 여백에서 찾은 글씨) ──
+const slipEl = document.createElement('div'); slipEl.id = 'oddSlip'; book.appendChild(slipEl);
+setInterval(() => slipEl.classList.toggle('on', bookOpen && !!S.oddSlip), 700);
+slipEl.addEventListener('click', e => { e.stopPropagation(); if (!S.oddSlip) return;
+  const line = S.oddSlip; S.margins = (S.margins || []).concat([line]); S.oddSlip = null; save(); slipEl.classList.remove('on'); sFlip();
+  openOv(`<h3>종잇조각</h3>장 사이에 접힌 종잇조각이 끼어 있었다.<br><br><span style="color:#6a2a16;font-style:italic">${line}</span>`); });

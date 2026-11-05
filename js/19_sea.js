@@ -11,7 +11,7 @@ const SEA_PRICE = { kelp:50, shell:10 };                           // 해초 책
 const SEA_STAY = 30*60e3;                                          // 물가의 사람들이 대문 앞에 머무는 시간
 const BOX_AWAY_MS = 40e3;                                          // 한서진이 궤를 가지러 나가 있는 시간
 const BOX_POS = () => S.owned.desk ? [-18, 22] : [8, 10], BOX_STAND = [-18, 14];
-const dayKeyAt = t => S.opt.gameTime ? Math.floor(t/1000/300/24) : Math.floor((t + 9*3600e3) / 86400e3);
+const dayKeyAt = t => (S.opt.gameTime ? Math.floor(t/1000/300/24) : Math.floor((t + 9*3600e3) / 86400e3)) + (S.opt.dayOff || 0);
 
 // ── 젖은 장의 글: 13세의 반쯤 쓴 일지 첫 장 (낯선 글자 → 국한문 → 지금 말). 끝 줄은 물에 번져 끝내 안 읽힘 ──
 const WET_SRC = [
@@ -48,13 +48,14 @@ function seaGot(finds){
 if (S.dig && S.dig.found && !S.sea) seaGot(S.dig.found);           // 예전 판(이 묶음 전에 돌아온 판)
 const wetAt = () => S.dig.wetAt || S.dig.foundAt || 0;
 const wetDry = () => Date.now() - wetAt() >= WET_DRY();
-const seaCount = () => (S.sea ? (S.sea.kelp||0) + (S.sea.shell||0) : 0) + (S.loc && S.loc.wet === 'box' ? 1 : 0);
-const seaSellable = () => S.sea ? (S.sea.kelp||0) + (S.sea.shell||0) : 0;
+const seaCount = () => (S.sea ? (S.sea.kelp||0) + (S.sea.shell||0) + (S.sea.rub||0) : 0) + (S.loc && S.loc.wet === 'box' ? 1 : 0);
+const seaSellable = () => S.sea ? (S.sea.kelp||0) + (S.sea.shell||0) + (S.sea.rub||0) : 0;
 // 궤에 든 것이 많을수록 밤에 낱파도가 커짐(15_small이 부름)
 const seaBoxK = () => S.relicBox && isNight() ? 1 + 0.12 * Math.min(6, seaCount()) : 1;
 
 // ── 바다 궤를 들여옴: 다음 날, 한서진이 뒷문으로 나가 들고 들어와 놓음 ──
-OBJ.push({ id:'seaBox', get x(){ return BOX_POS()[0]; }, get y(){ return BOX_POS()[1]; }, rot:-0.3, m:()=>'seaBox', show:()=> !!S.relicBox && reveal('seaBox', true), click:()=>showRelics(), glow:()=> !S.relicBox.seen });
+OBJ.push({ id:'seaBox', get x(){ return BOX_POS()[0]; }, get y(){ return BOX_POS()[1]; }, rot:-0.3, m:()=>'seaBox', show:()=> !!S.relicBox && reveal('seaBox', true), click:()=>showRelics(), glow:()=> !S.relicBox.seen || wetReady() });
+const wetReady = () => wetDry() && S.loc && S.loc.wet === 'box' && !S.wetUp && !(S.sideRead && S.sideRead.wet);   // 다 마른 뒤 한 번도 안 펴 봤으면 보퉁이·궤가 다시 빛남 ✳ 11/3
 { const sp = OBJ.find(o => o.id === 'seaPack'); const s0 = sp.show; sp.show = () => !S.relicBox && s0(); sp.click = () => showRelics(); }
 function boxTick(){
   if (S.relicBox || !S.dig.found || !S.owned.desk) return;
@@ -94,7 +95,9 @@ function relicRows(sell){
     if (S.sideRead && S.sideRead.wet) tail = '<br><span style="font-size:12px;opacity:.6">다 풀었다. 끝 줄은 물에 번져 읽을 수 없다.</span>';
     if (w === 'desk') tail += '<br><span style="font-size:12px;opacity:.6">지금 서안 위에 있다.</span><br>' + rbtn('wetBack', '궤에 도로 넣는다');
     else if (sell) tail += '<br>' + rbtn('sell:wet', '판다');
-    else if (!wetDry()) tail += '<br><span style="font-size:12px;opacity:.6">아직 마르지 않았다. 펴면 찢어질 것 같다.</span>';
+    else if (!wetDry()){ const f = (Date.now() - wetAt()) / WET_DRY();   // 마르는 동안 세 번 달라 보임 ✳ 11/3
+      tail += '<br><span style="font-size:12px;opacity:.6">' + (f < 1/3 ? '물이 아직 뚝뚝 떨어진다. 펴면 찢어질 것 같다.' : f < 2/3 ? '가장자리부터 마르고 있다. 종이 뒤로 먹 자국이 비친다.'
+        : '거의 말랐다. 첫 줄이 거꾸로 비쳐 보인다.</span><br><span style="font-size:15px;opacity:.45;display:inline-block;transform:scaleX(-1)">' + WLINES[0][0]) + '</span>'; }
     else tail += '<br>' + rbtn('wetUp', '서안에 올린다');
     R.push(`<div style="margin:10px 0" data-row="wet"><b>${nm}</b><br><span style="font-size:13px">${ds}</span>${tail}</div>`);
   }
@@ -116,7 +119,7 @@ function showRelics(){
 function relicBind(again){
   ovBody.querySelectorAll('[data-rl]').forEach(el => el.addEventListener('click', ev => { ev.stopPropagation();
     const k = el.dataset.rl;
-    if (k === 'wetUp'){ sPlace(); placeItem('wet', 'desk'); ov.classList.add('hidden'); if (typeof tlog === 'function') tlog('젖은 장을 서안에 올림'); return; }
+    if (k === 'wetUp'){ sPlace(); S.wetUp = true; placeItem('wet', 'desk'); ov.classList.add('hidden'); if (typeof tlog === 'function') tlog('젖은 장을 서안에 올림'); return; }
     if (k === 'wetBack'){ sPlace(); S.loc.wet = 'box'; save(); again(); return; }
     if (k === 'sell:wet'){ el.outerHTML = '<div style="font-size:13px;margin-top:4px">젖은 장을 들여다보더니 손을 거둔다. 그건 그 댁 것입니다, 하고 물러선다.</div>'; return; }
     if (k.startsWith('sell:')) seaSell(k.slice(5), again);
@@ -151,7 +154,7 @@ function showSeaFolk(){
 function seaSell(id, again){
   if (!S.sea || !S.sea[id]) return;
   const n = id === 'shell' ? S.sea.shell : 1, sum = SEA_PRICE[id] * n, nm = id === 'kelp' ? '해초 책갈피' : id === 'rub' ? '비석 탁본' : `조개껍질 ${n}개`;
-  S.sea[id] = 0; S.money = (S.money || 0) + sum; ledger(`물가의 사람들에게 ${josa(nm, '을', '를')} 넘김 + ${fmtM(sum)}`); sCoin(); save();
+  S.sea[id] = 0; S.money = (S.money || 0) + sum; S.seaSoldN = seaSoldN() + 1; ledger(`물가의 사람들에게 ${josa(nm, '을', '를')} 넘김 + ${fmtM(sum)}`); sCoin(); save();
   if (typeof tlog === 'function') tlog('유물 팜: ' + nm + ' ' + fmtM(sum));
   again();
 }

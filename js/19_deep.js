@@ -10,21 +10,49 @@
 const DEST = { yeoul:{ n:'여울', k:1, miss:0 }, rock:{ n:'바위', k:2, miss:0.15 }, cave:{ n:'굴', k:4, miss:0.30 } };
 S.dig.went = S.dig.went || {};
 if (S.dig.n && !Object.keys(S.dig.went).length) S.dig.went.yeoul = S.dig.n;   // 예전 판: 여울은 다녀온 것으로
-const nextDest = pack => !S.dig.went.yeoul ? 'yeoul' : !S.dig.went.rock ? 'rock' : (pack && pack.lamp === 'in') ? 'cave' : 'rock';
+const nextDest = pack => { const d = S.dig.dest; if (d === 'yeoul' || (d === 'rock' && S.dig.went.yeoul)) return d; if (d === 'cave' && S.dig.went.rock) return pack && pack.lamp === 'in' ? 'cave' : 'rock';   // 지도에서 짚은 곳(아래 destChoose) — 굴은 등롱이 없으면 바위까지
+  return !S.dig.went.yeoul ? 'yeoul' : !S.dig.went.rock ? 'rock' : (pack && pack.lamp === 'in') ? 'cave' : 'rock'; };
+// ── 목적지 고르기(인수인계 9절 ② 원안): 지도를 보퉁이에 넣을 때 지도가 펼쳐지고, 바다의 표시를 짚으면 그곳이 목적지(붉은 점) ──
+const DEST_PT = { yeoul:[835, 500, 60], rock:[958, 548, 52], cave:[965, 585, 28] };   // 지도 원본 좌표·짚는 반경(05_map 그림과 같은 자리)
+const destOpts = () => ['yeoul', ...(S.dig.went.yeoul && mapMarks() >= 2 ? ['rock'] : []), ...(S.dig.went.rock && mapMarks() >= 3 ? ['cave'] : [])];
+let destPick = false;
+function destChoose(){                                                                 // 19_gather packPut('map')가 먼저 물음 — true면 지도를 펼치고 기다림
+  if (destPick || S.dig.destAt === S.dig.n || destOpts().length < 2) return false;
+  openMap(); destPick = true; mapView.classList.add('choose');
+  const b = document.createElement('div'); b.id = 'destHint'; b.textContent = '어디로 보낼지 짚는다'; mapView.appendChild(b);
+  return true;
+}
+let destTimer = 0;
+mapStage.addEventListener('pointerdown', e => {                                        // 가장 가까운 표시를 고름(폰에선 바위·굴이 가까움) — 1.6초 안에 다시 짚으면 바꿈
+  if (!destPick || mapLoupeOn) return;
+  const r = mapStage.getBoundingClientRect(), x = (e.clientX - r.left) * MAPW / mapW, y = (e.clientY - r.top) * MAPH / mapH;
+  const dist = d => { const [px, py] = DEST_PT[d]; return d === 'yeoul' ? Math.abs(x - px) : Math.hypot(x - px, y - py); };
+  const hit = destOpts().sort((a, b) => dist(a) - dist(b))[0]; if (!hit || dist(hit) > 220) return;
+  e.stopPropagation(); S.dig.dest = hit; S.dig.destAt = S.dig.n; save();
+  mapStage.querySelectorAll('.destDot').forEach(d => d.remove());
+  const dot = document.createElement('div'); dot.className = 'destDot'; dot.style.left = (e.clientX - r.left) + 'px'; dot.style.top = (e.clientY - r.top) + 'px'; mapStage.appendChild(dot);
+  const h = document.getElementById('destHint'); if (h) h.textContent = DEST[hit].n + '로';
+  noise(0.1, 900, 0.05); if (typeof tlog === 'function') tlog('목적지: ' + hit);
+  clearTimeout(destTimer);
+  destTimer = setTimeout(() => { destPick = false; mapView.classList.remove('choose'); const h2 = document.getElementById('destHint'); if (h2) h2.remove(); dot.remove(); mapView.classList.add('hidden'); packPut('map'); }, 1600);
+});
+document.getElementById('bMapClose').addEventListener('click', () => { destPick = false; mapView.classList.remove('choose'); const h = document.getElementById('destHint'); if (h) h.remove(); });   // 짚지 않고 닫으면 지도는 그대로
 Object.assign(SEA_PRICE, { rub:200 });
 
 // ── 떠날 때: 목적지·시간·실종을 정함 ──
-{ const sd0 = startDig; startDig = function(lead, hands){
-    const dest = nextDest(S.pack); sd0(lead, hands);
-    const cur = S.dig.cur, D = DEST[dest]; cur.dest = dest; cur.missing = [];
-    for (const k of [lead, ...hands]){ const er = S.errs[k]; if (!er) continue;
-      const i = er.steps.findIndex(st => st.k === 'wait' && st.sc === 'away'); if (i < 0) continue;
-      er.steps[i].ms *= D.k;
-      if (k !== lead && k !== 'sj' && cur.brave[k] && Math.random() < D.miss){ cur.missing.push(k); er.steps = er.steps.slice(0, i + 1).concat([waitAt('away', DOOR_POS, [0, 1], 1, 'digMiss', k)]); } }
-    save(); }; }
+function applyDest(dest, lead, hands){                                                            // 떠난 직후: 목적지에 따라 머무는 시간·실종 — startDig(바로 보냄)와 19_gather digDepart(대문 앞에 모였다가) 둘 다
+  const cur = S.dig.cur, D = DEST[dest]; cur.dest = dest; cur.missing = []; S.dig.dest = null;
+  cur.tideW = dest === 'cave' ? (S.trace === 'hasty' ? K.hastyTideW : (K.tideLow - gameHour() % 12 + 12) % 12) : 0;                         // 물때(기획서 추천 5, ✳ 11/3 · 서둘러 깨우다 다음 대는 물이 빠지지 않아 늘 11): 굴은 물이 빠질 때(하루 두 번)까지 기다렸다 들어감
+  for (const k of [lead, ...hands]){ const er = S.errs[k]; if (!er) continue;
+    const i = er.steps.findIndex(st => st.k === 'wait' && st.sc === 'away'); if (i < 0) continue;
+    er.steps[i].ms *= D.k * (1 + cur.tideW / 12 * K.tideWait) * (techOn('tide') ? K.techTideTime : 1);                                  // 연구 '물길 읽기': 물때를 알아 덜 머묾
+    if (k !== lead && k !== 'sj' && cur.brave[k] && Math.random() < D.miss){ cur.missing.push(k); er.steps = er.steps.slice(0, i + 1).concat([waitAt('away', DOOR_POS, [0, 1], 1, 'digMiss', k)]); } }
+  save();
+}
+{ const sd0 = startDig; startDig = function(lead, hands){ const dest = nextDest(S.pack); sd0(lead, hands); applyDest(dest, lead, hands); }; }
 ERR_ACT.digLeave = k => { if (S.errs[k] && S.errs[k].lead){ const d = DEST[(S.dig.cur && S.dig.cur.dest) || 'yeoul'];
-  digNote([`${d.n === '굴' ? '굴로' : josa(d.n, '으로', '로')} 갑니다.`, '물이 빠지는 때를 보고 들어가', '해 지기 전에 돌아오겠습니다.', `${josa(S.dig.cur.hands.map(digName).join('·'), '이', '가')} 함께 갑니다.`], k === 'sj' ? '한서진 올림.' : '오정림 올림.'); } };
-ERR_ACT.digMiss = k => { const s = S.st[k]; if (!s) return; s.gone = true; s.quit = Date.now(); s.missing = true;
+  digNote([`${(d.n.charCodeAt(d.n.length - 1) - 0xAC00) % 28 === 8 ? d.n + '로' : josa(d.n, '으로', '로')} 갑니다.`, (S.dig.cur.tideW || 0) > 3 ? '물이 아직 차 있어 빠지기를 기다려 들어가' : '물이 빠지는 때를 보고 들어가', (S.dig.cur.tideW || 0) > 3 ? '늦게 돌아오겠습니다.' : '해 지기 전에 돌아오겠습니다.', `${josa(S.dig.cur.hands.map(digName).join('·'), '이', '가')} 함께 갑니다.`], k === 'sj' ? '한서진 올림.' : '오정림 올림.'); } };
+ERR_ACT.digMiss = k => { const s = S.st[k]; if (!s) return; s.gone = true; s.quit = Date.now(); s.missing = true; S.caveLostN = (S.caveLostN || 0) + 1;
   S.lost = (S.lost || []).concat([{ k, at: Date.now(), fate: Math.random() < 2/3 ? 'back' : 'gone' }]); save(); };
 
 // ── 돌아온 뒤: 바위·굴은 여기서, 여울은 19_gather 그대로 ──
@@ -32,6 +60,7 @@ const DEEP_FINDS = {
   seal13: ['도장 하나', '돌 도장. 바위 틈에 끼어 있었다. 인면에 두 글자 — 守津.'],
   rub:    ['비석 탁본', '바위 위 비석의 글을 종이에 떠 온 것. 글자는 첫 책의 낯선 글자와 같다. 한 줄만 읽힌다 — 「읽는 이는 읽힌다」.'],
   jour:   ['반쯤 쓴 일지', '굴 안 마른 자리에 기름종이로 싸여 있었다. 우리 책과 같은 종이. 젖은 장과 같은 손이다.'],
+  sun:    ['아직 따뜻한 돌', '바위 밑 웅덩이에 잠겨 있었다. 물은 찬데 이것만 따뜻하다. 건져 온 지 여러 날이 지나도 식지 않는다. 손바닥에 올리면 빛이 비치는 쪽과 반대로 그림자가 하나 더 진다.'],   // 둘째 해의 흔적(기획서 11-2, ✳ 11/4) — 이름은 아직 모름
   gwito:  ['귀토지설(龜兎之說) 다른 판', '토끼와 자라 이야기. 우리가 아는 것과 끝이 다르다고 한다. 물에 불어 지금은 펼 수 없다.'],
 };
 { const dr0 = digResult; digResult = function(){
@@ -39,7 +68,7 @@ const DEEP_FINDS = {
     S.dig.went[dest] = (S.dig.went[dest] || 0) + 1;
     if (dest === 'yeoul') return dr0();
     const pack = cur.pack || {}, lead = cur.lead, D = DEST[dest], first = S.dig.went[dest] === 1;
-    const lost = pack.map !== 'in' && Math.random() < (dest === 'cave' ? 0.7 : 0.5);
+    const lost = pack.map !== 'in' && Math.random() < (dest === 'cave' ? 0.7 : 0.5) * (typeof lostK === 'function' ? lostK() : 1);
     const L = [], late = Object.keys(cur.brave).filter(k => cur.brave[k] && !cur.missing.includes(k)).map(digName);
     S.sea = S.sea || { kelp:0, shell:0 };
     if (lost) L.push(`${josa(D.n, '을', '를')} 찾지 못했습니다.`, '물길이 갈라지는 데서 한나절을 헤맸습니다.', '지도가 있어야겠습니다.');
@@ -50,7 +79,8 @@ const DEEP_FINDS = {
       if (got.includes('jour')){ ensureLoc(); S.loc.jour = 'box'; }
       if (got.length) L.push(...got.map(id => josa(DEEP_FINDS[id][0].replace(/\(.*\)/, ''), '을', '를') + ' 가져왔습니다.').slice(0, 2), S.relicBox ? '바다 궤에 넣어 두었습니다.' : '궤짝 곁에 두었습니다.');
       if (first && pack.paper !== 'in') L.push('글이 적힌 것이 있었으나', '종이가 없어 그대로 두고 왔습니다.');
-      if (!got.length && !(first && pack.paper !== 'in')){ S.sea.shell = (S.sea.shell || 0) + 2 + Math.floor(Math.random() * 3); L.push('이번엔 조개껍질뿐이었습니다.'); }
+      if (!got.length && dest === 'rock' && !first && !S.deep.sun){ S.deep.sun = 1; L.push('바위 밑 웅덩이에서 돌 하나를 건졌습니다.', '물이 찬데 그것만 따뜻했습니다.', S.relicBox ? '바다 궤에 넣어 두었습니다.' : '궤짝 곁에 두었습니다.'); }   // 둘째 해의 흔적(✳ 11/4)
+      else if (!got.length && !(first && pack.paper !== 'in')){ S.sea.shell = (S.sea.shell || 0) + 2 + Math.floor(Math.random() * 3); L.push('이번엔 조개껍질뿐이었습니다.'); }
       if (dest === 'cave' && !first && pack.paper === 'in' && !S.deep.jour){ S.deep.jour = 1; ensureLoc(); S.loc.jour = 'box'; L.push('지난번 두고 온 일지를 싸 왔습니다.'); }
     }
     if (pack.food !== 'in') L.push('찬이 없어 일찍 돌아왔습니다.');
@@ -91,6 +121,8 @@ M.jourBookD = model(7, 9, 2, (x, y, z) => z === 1 ? inkDot(x, y, (x === 0 || x =
       t += w === 'desk' ? sp + '지금 서안 위에 있다.</span><br>' + `<button class="btn rec" data-rd="jourBack" style="color:var(--ink);border-color:#00000066;margin:4px 0 0;font-size:13px;padding:4px 10px">궤에 도로 넣는다</button>`
         : sell ? sp + '물가의 사람들이 일지 쪽은 보지도 않는다.</span>' : `<br><button class="btn rec" data-rd="jourUp" style="color:var(--ink);border-color:#00000066;margin:4px 0 0;font-size:13px;padding:4px 10px">서안에 올린다</button>`;
       R.push(`<div style="margin:10px 0"><b>${DEEP_FINDS.jour[0]}</b><br><span style="font-size:13px">${DEEP_FINDS.jour[1]}</span>${t}</div>`); }
+    if (d.sun){ notice('warmstone'); if ((S.crawlN || 0) >= K.shedAfter && typeof kitchenDays === 'function' && kitchenDays() >= K.traceDays) notice('scale'); }   // 기이록(19_odd)
+    if (d.sun) R.push(`<div style="margin:10px 0"><b>${DEEP_FINDS.sun[0]}</b><br><span style="font-size:13px">${DEEP_FINDS.sun[1]}${(S.crawlN || 0) >= K.shedAfter && typeof kitchenDays === 'function' && kitchenDays() >= K.traceDays ? '<br>돌 밑, 궤 바닥에 손톱만 한 비늘 하나가 떨어져 있다. 재가 묻어 있다.' : ''}</span>${sell ? sp + '물가의 사람들이 그것을 보자 손으로 눈을 가린다. 값은 부르지 않는다.</span>' : ''}</div>`);
     if (d.gwito) R.push(`<div style="margin:10px 0"><b>${DEEP_FINDS.gwito[0]}</b><br><span style="font-size:13px">${DEEP_FINDS.gwito[1]}</span>${sell ? sp + '물가의 사람들이 이것만은 오래 들여다본다. 값은 부르지 않는다.</span>' : ''}</div>`);
     return R; }; }
 { const rb = relicBind; relicBind = function(again){ rb(again);
@@ -171,8 +203,23 @@ function jourModel(){ const n = nearStage(); return n === 4 ? 'jourOpenL' : n ==
 HOOK.tick.push(() => { if (S.stage !== 'room' || S.ended || bookOpen || !endReady() || !S.owned.desk || itemAt('desk') === 'jour') return;   // 책이 부름: 궤에 넣어 두어도 서안 위에 펼쳐져 있음
   ensureLoc(); placeItem('jour', 'desk'); if (typeof tlog === 'function') tlog('일지가 서안 위에 펼쳐져 있음'); });
 M.inkDrop = model(3, 3, 1, (x, y) => (x === 1 || y === 1) && hash(x, y + 3) < 0.9 ? '#120d09' : null);
-OBJ.push({ id:'inkDrop', x:2.5, y:-17, rot:0, m:() => 'inkDrop', show:() => !!S.owned.brush && nearStage() === 4, alpha:() => 0.85,
-  click:() => openOv('<h3>먹</h3>붓걸이 밑 바닥에 먹이 떨어져 있다.<br>쓴 적 없는 붓 끝에 먹이 맺혀 있다. 아무도 먹을 갈지 않았다.') });
+OBJ.push({ id:'inkDrop', x:2.5, y:-17, rot:0, m:() => 'inkDrop', show:() => !!S.owned.brush && nearStage() >= 3, alpha:() => 0.85,
+  click:() => { if (nearStage() === 4) return openOv('<h3>먹</h3>붓걸이 밑 바닥에 먹이 떨어져 있다.<br>쓴 적 없는 붓 끝에 먹이 맺혀 있다. 아무도 먹을 갈지 않았다.');
+    openOv('<h3>먹</h3>붓걸이 밑 바닥에 먹이 떨어져 있다. 붓 끝이 젖어 있다.<br>일지는 아직 다 풀지 못했다. 그래도 마지막 장은 비어 있다.'   // 성급한 각성(✳ 11/4): 다 풀기 전에 마지막 장을 씀
+      + '<div style="text-align:center;margin-top:14px"><button class="btn rec" id="bHasty" style="color:var(--ink);border-color:#00000066">붓을 든다</button></div>');
+    document.getElementById('bHasty').addEventListener('click', ev => { ev.stopPropagation(); closeOv(); endGame('hasty'); }); } });
+END.hasty = { name:'서둘러 깨우다', kind:'이야기', n: () => 0, lim: () => 1, omen(){},
+  scene: () => ['다 풀지 못한 일지의 마지막 장에 붓을 댔다.',
+    '쓰는 글자마다 앞 장의 풀지 못한 글자가 번져 들어왔다.',
+    '집 밑으로 무엇이 지나갔다. 이번에는 돌아오지 않고 그 자리에 멈추었다.',
+    '그날부터 밤에도 물이 빠지지 않았다.',
+    '끝은 읽는 이가 쓴다. 다 읽지 않은 이가 쓴 끝은, 바다가 마저 썼다.'],
+  codex: '다 읽기 전에 마지막 장을 썼다.',
+  only: () => '<b>번진 장</b> — 마른 뒤에도 만지면 손끝이 젖는다.',
+  relics: [], gahun: null };
+// 흔적(서둘러 깨우다): 깨어 있는 바다 — 가주의 겁이 더 빨리 참(01_state gahunK) · 아침마다 대문 앞에 조개가 밀려와 있음(물가의 사람들에게 넘길 것)
+HOOK.tick.push(() => { if (S.trace !== 'hasty' || S.stage !== 'room' || S.ended || gameHour() < K.hastyShoreHour || S.shoreDay === dayKey()) return;
+  S.shoreDay = dayKey(); S.sea = S.sea || { kelp:0, shell:0 }; S.sea.shell += K.hastyShell; ledger(`아침에 보니 대문 앞 모래까지 물이 들어와 있음. 문턱에 조개 ${K.hastyShell}`); save(); });
 HOOK.desk.push(() => { if (!endReady() || itemAt('desk') !== 'jour') return false;   // 서안의 일지: 읽는 대신 빈 마지막 장
   openOv('<h3>반쯤 쓴 일지</h3>펼쳐져 있다. 덮어 둔 적이 없는데.<br>장마다 젖어 있는데 마지막 장만 말라 있다. 비어 있다.'
     + '<div style="text-align:center;margin-top:14px"><button class="btn rec" id="bLastPg" style="color:var(--ink);border-color:#00000066">붓을 든다</button></div>');

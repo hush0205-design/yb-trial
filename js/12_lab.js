@@ -13,6 +13,7 @@ const DESK_COST = { ld1:100, ld2:150, ld3:250, ld4:400, ld5:600 };
 const TEA_T = [32, -20];   // 별채 다탁 자리
 const GEN_MAX = 3;   // 체험판에서 받는 일반 연구원 수(남은 두 자리는 메인 몫)
 const KNUM = ['', '하나', '둘', '셋', '넷', '다섯', '여섯', '일곱', '여덟'];
+const KCNT = n => ['', '한', '두', '세', '네', '다섯', '여섯', '일곱', '여덟', '아홉', '열', '열한', '열두', '열세', '열네', '열다섯', '열여섯', '열일곱', '열여덟', '열아홉', '스무'][n] || n;   // 세는 말 앞(한 줄·세 가지)
 
 // 마루: 길게 깐 널, 서고 바닥보다 밝음
 M.labFloor = model(76,54,1,(x,y)=> (y%5===0 || (x + Math.floor(y/5)*23)%31===0) ? '#2e2015' : ((Math.floor(y/5))%2 ? '#4a3421' : '#45301f'));
@@ -37,14 +38,14 @@ const STAFF = {
     note:'밤에만 일한다. 해가 높으면 눈을 감고 쉰다.',
     letter:['저는 하늘을 보는 일을 해 온 사람입니다.', '별의 자리를 적고, 달라진 것이 있으면 아룁니다.', '대문에 붙은 방을 보았습니다.', '다만 지금은 별을 볼 때가 아닙니다.', '하늘이 달라지면 찾아뵙겠습니다.'],
     later:true,   // 1대엔 편지만 — 관측 단계에 옴(기획서 14절, 10/4)
-    reply:['오시오.', '별채에 자리를 마련해 두었소.', '밤에만 일해도 좋소.'],
+    reply:['오시오.', '별채에 자리를 마련해 두었소.', '밤에만 일해도 좋소.'], replyB:'서두르지 마시오. 별은 기다려 주오.',
     diary:[[60, '이경(밤 열 시쯤). 동쪽 하늘 맑음. 늘 보던 별들. 이상 없음. ✶'],
            [240, '오시(한낮). 해를 오래 보지 말라고 배웠다. 눈이 시려 감았다. 감으니 편하다. ✶'],
            [600, '삼경. 지도에 없는 자리가 하나 비어 있는 것 같다. 기분 탓이다. ✶']] },
   ojr: { name:'오정림', hj:'吳貞林', job:'다원지기', sec:8, fearK:0.5,
     note:'차를 끓여 사람들을 챙긴다. 글은 천천히 읽는다. 밤에는 집에 간다.',
     letter:['방을 보고 왔습니다.', '글은 더디게 읽지만 차는 잘 끓입니다.', '서고에 계신 분들이 잠을 못 이룬다는 말을 들었습니다.', '우리 집은 불씨를 꺼뜨린 적이 없습니다.'],
-    reply:['오시오.', '별채에 자리를 마련해 두었소.', '차를 부탁하오.'],
+    reply:['오시오.', '별채에 자리를 마련해 두었소.', '차를 부탁하오.'], replyB:'차보다 그대 몸을 먼저 살피시오.',
     diary:[[60, '찻잎이 연하게 올라왔다. 우리 서고 사람들 요즘 잠을 못 잔다. 오늘은 넉넉히 끓였다.'],
            [240, '서진 씨가 두 잔 마셨다. 손이 떨려서 잔을 잡아 주었다. 별채 사람들 몫으로 한 주전자를 더 끓였다.'],
            [600, '아궁이 불이 좋다. 불씨는 내가 지킨다. 우리 집은 불씨를 꺼뜨린 적이 없다.']] },
@@ -72,10 +73,9 @@ const G_TRAIT = [
   { w:1, lines:['손이 빠르다는 말은 들었습니다. 입도 빠르다는 말을 더 듣습니다.', '옆 사람이 떨고 있으면 말을 걸어 주는 편입니다. 시끄럽다 하시면 줄이겠습니다.'], sec:3.8, fearK:1.2, note:'말이 많다. 옆 사람이 덜 떤다.' },
   { w:1, lines:['갈두포 쪽에서 자랐습니다. 어릴 때부터 물에 들어 숨을 오래 참습니다.', '글은 보통입니다. 바닷가 심부름이 있으면 그것도 하겠습니다.'], sec:5, fearK:0.4, note:'물가 사람. 숨을 오래 참는다.' },
   { w:3, lines:['글자 하나 틀린 것을 못 넘기는 성미라, 한 장을 두 번씩 읽습니다. 그래서 느립니다.', '대신 베낀 책과 원본이 다른 데가 있으면 반드시 찾아냅니다.'], sec:6.5, fearK:1, note:'꼼꼼하다. 느리다. 어긋난 글자를 찾는다.' },
-  { w:0.5, lines:['저희 할아버지가 이 댁 서고에서 글을 베끼셨다 합니다. 밤에 쓰셨다 들었습니다.', '서고 문이 닫힌 뒤로 집안이 조용했는데, 다시 열렸다니 가 보라 하셔서 왔습니다.'], sec:4, fearK:0.9, night:true, note:'집안이 이 서고와 인연이 있다 한다. 밤에 쓴다.' },
-  { w:0.5, lines:['방을 보았는지는 잘 모르겟습니다. 그런데 이 집까지 오는 길을 알고 있었습니다.', '무서운 것은 없습니다. 아무것도 무섭지 않습니다. 글을 읽게 해 주십시오.'], sec:4, fearK:0.3, note:'겁이 없다. 길을 알고 있었다 한다.' },
+  { w:0.5, lines:['저희 할아버지가 이 댁 서고에서 글을 베끼셨다 합니다. 밤에 쓰셨다 들었습니다.', '서고 문이 닫힌 뒤로 집안이 조용했는데, 다시 열렸다니 가 보라 하셔서 왔습니다.'], sec:4, fearK:0.9, night:true, stay:true, note:'집안이 이 서고와 인연이 있다 한다. 밤에 쓴다.' },
+  { w:0.5, lines:['방을 보았는지는 잘 모르겟습니다. 그런데 이 집까지 오는 길을 알고 있었습니다.', '무서운 것은 없습니다. 아무것도 무섭지 않습니다. 글을 읽게 해 주십시오.'], sec:4, fearK:0.3, stay:true, note:'겁이 없다. 길을 알고 있었다 한다.' },
 ];
-const G_W = G_TRAIT.reduce((a, t) => a + t.w, 0);
 const G_ROBE = [['#ece6d6','#ddd5c0','#bfb59e'], ['#e0dccf','#cfc9b8','#aea896'], ['#d8dccd','#c7ccbb','#a6ab99'], ['#e6dccb','#d6c9b2','#b5a68c'], ['#d6dde2','#c4ccd2','#a3adb5']];
 const G_BELT = [['#5a5a5a','#3a3a3a'], ['#7a5a3a','#5a3e24'], ['#3e5a52','#2a403a'], ['#6a4a5a','#4a3040'], ['#4a4a6a','#30304a']];
 const G_SKIRT = [['#7a5a4a','#6a4a3c','#523a2e'], ['#6a7a5a','#5a6a4c','#46543a'], ['#6d5f7d','#5c4f6b','#463c54']];
@@ -84,11 +84,12 @@ function mulberry(a){ let t = a >>> 0; return () => { t = (t + 0x6D2B79F5) >>> 0
 function genDef(k){
   if (GDEF[k]) return GDEF[k];
   const n = +k.slice(1), r = mulberry(n*2654435761 + 977), f = r() < 0.3;   // 고르게 섞이는 난수(전의 rng는 일곱 사람마다 같은 무늬가 돌았음)
-  const su = G_SUR[(n*7 + Math.floor(r()*G_SUR.length)) % G_SUR.length], NM = f ? G_NAME_F : G_NAME_M, nm = NM[(n*3 + Math.floor(r()*NM.length)) % NM.length];
-  let x = r()*G_W, tr = G_TRAIT[0]; for (const t of G_TRAIT){ if ((x -= t.w) < 0){ tr = t; break; } }
+  const su = (S.st[k] && S.st[k].kin && G_SUR.find(x => x[0] === DEF(S.st[k].kin).name[0])) || G_SUR[(n*7 + Math.floor(r()*G_SUR.length)) % G_SUR.length], NM = f ? G_NAME_F : G_NAME_M, nm = NM[(n*3 + Math.floor(r()*NM.length)) % NM.length];
+  const pool = typeof bangPool === 'function' ? bangPool(k) : G_TRAIT;   // 방의 종류(19_bang): 그 방을 보고 온 사람만
+  let x = r()*pool.reduce((a, t) => a + t.w, 0), tr = pool[0]; for (const t of pool){ if ((x -= t.w) < 0){ tr = t; break; } }
   const look = f ? { skirt: G_SKIRT[Math.floor(r()*3)], jeo: ['#e6d7b4','#e8e0cc','#dcd6c0'][Math.floor(r()*3)] }
                  : { robe: G_ROBE[Math.floor(r()*5)], belt: G_BELT[n%5][0], belt2: G_BELT[n%5][1], hat: ['gat','tang','sangtu'][Math.floor(r()*3)] };
-  return (GDEF[k] = { gen:true, f, name: su[0] + nm[0], hj: su[1] + nm[1], job:'해독가', sec: tr.sec, fearK: tr.fearK, night: !!tr.night, early: !!tr.early, tea: tr.tea !== false, note: tr.note, lines: tr.lines, look });
+  return (GDEF[k] = { gen:true, f, name: su[0] + nm[0], hj: su[1] + nm[1], job:'해독가', sec: tr.sec, fearK: tr.fearK * (S.st[k] && S.st[k].back ? K.backFear : 1) * (typeof bangLiver === 'function' && bangLiver(k) ? 0 : 1), night: !!tr.night, early: !!tr.early, tea: tr.tea !== false, stay: !!tr.stay, note: tr.note, lines: tr.lines, look });   // stay: 녹봉이 밀려도 안 떠남(기획서 15절 '일반 연구원 중 예외 하나', ✳ 11/4 — 19_money)
 }
 const DEF = k => STAFF[k] || genDef(k);
 const isGen = k => k[0] === 'g';
@@ -97,10 +98,11 @@ const genKeys = () => Object.keys(S.st).filter(isGen);
 const stOf = k => (S.st[k] = S.st[k] || {});
 const arrived = k => !!(S.st[k] && S.st[k].arr);
 const dusk = () => { const h = gameHour(); return h >= 18 && h < 22; };
-const present = k => arrived(k) && !S.st[k].gone && !S.st[k].stand && (k === 'smw' || DEF(k).night || (!isNight() && !(DEF(k).early && dusk())));   // 해 지기 전에 가는 사람은 노을이 들면 먼저 감    // 서명우는 늘 있음(낮엔 눈을 감고 쉼), 밤일 하는 이도 늘 있음
+const present = k => arrived(k) && !S.st[k].gone && !S.st[k].stand && (k === 'smw' || DEF(k).night || S.st[k].nightKeep || (!isNight() && !(DEF(k).early && dusk())));   // 해 지기 전에 가는 사람은 노을이 들면 먼저 감    // 서명우는 늘 있음(낮엔 눈을 감고 쉼), 밤일 하는 이도 늘 있음
 const working = k => arrived(k) && Date.now() - S.st[k].arr > T_PUSH && (k === 'smw' ? isNight() : present(k));
 const deskOwner = d => allKeys().find(k => S.st[k] && S.st[k].desk === d && !S.st[k].gone) || null;
 const freeDesk = () => Object.keys(LAB_DESKS).find(d => S.owned[d] && !deskOwner(d)) || null;
+const aletterShow = () => { const k = curApplicant(); return !!k && reveal('al_' + k, true); };   // 사랑채가 열리면 사랑채 서안 위(19_sarang)
 const curApplicant = () => allKeys().filter(k => S.st[k] && S.st[k].at && !S.st[k].replied && !S.st[k].gone && !(STAFF[k] && STAFF[k].later && S.st[k].read)).sort((a, b) => S.st[a].at - S.st[b].at)[0] || null;
 
 // 별채의 길: 문 → 책상 옆 → 의자를 빼고 앉음 (한서진과 같은 몸짓, 책상 자리만 다름)
@@ -223,7 +225,7 @@ for (const [d, [dx, dy]] of Object.entries(LAB_DESKS)){
   LAB_OBJ.push({ id:'i_' + d, x:dx - 2, y:dy, z:11, rot:0, on:()=>d, m:()=> itemModel(S.st[who()].item), show:()=>{ const k = who(); return !!k && !!S.st[k].item; }, click:()=>showStaff(who()) });
   LAB_OBJ.push({ id:'t_' + d, x:dx + 3.5, y:dy + 1.5, z:11, rot:0, on:()=>d, onOrder:0.02, m:()=>'cup', show:()=>{ const k = who(); return !!k && present(k) && Date.now() < (S.st[k].calm||0); }, alpha:()=> cupAlpha(S.st[who()].calm), click:()=>showStaff(who()) });
 }
-const curObjs = () => S.scene === 'lab' ? LAB_OBJ : S.scene === 'gate' ? GATE_OBJ : OBJ;
+const curObjs = () => S.scene === 'lab' ? LAB_OBJ : S.scene === 'sarang' ? SARANG_OBJ : S.scene === 'yeon' ? YEON_OBJ : S.scene === 'kitchen' ? KITCHEN_OBJ : S.scene === 'haeng' ? HAENG_OBJ : S.scene === 'teaf' ? TEAF_OBJ : S.scene === 'mill' ? MILL_OBJ : S.scene === 'museum' ? MUSEUM_OBJ : S.scene === 'gate' ? GATE_OBJ : OBJ;
 const DESK_TXT = { ld1:'의자 다리 하나가 조금 짧다.', ld2:'들인 지 하루도 안 됐는데 먹 자국이 있다.', ld3:'책상 밑에 붓 한 자루가 떨어져 있다. 우리 서고의 붓이 아니다.', ld4:'앉으면 창이 정면으로 보인다. 밤에는 창에 비친 얼굴이 하나 더 있다.', ld5:'아무도 앉지 않았는데 의자가 조금 빠져 있다.' };
 for (const d of DESK_IDS) ITEM[d] = ['별채 책상', '별채에 들인 책상과 의자. 연구원 한 사람이 앉을 자리다.<br>서고의 책을 베껴 둔 사본을 놓고 읽는다.<br><br>' + DESK_TXT[d]];
 
@@ -231,21 +233,21 @@ for (const d of DESK_IDS) ITEM[d] = ['별채 책상', '별채에 들인 책상�
 OBJ.push(
   { id:'bang', x:21, y:-18, m:()=>'bangRoll', show:()=> !!S.helpRead && !S.bangAt, click:()=>showBang(), glow:()=>true },
   { id:'labDoor', x:-37.5, y:2, rot:Math.PI/2, m:()=>'door', show:()=>reveal('labDoor', !!S.bangAt), click:()=>goScene('lab'), glow:()=>!S.labSeen },
-  { id:'aletter', x:24, y:-11, m:()=>'letter', show:()=>{ const k = curApplicant(); return !!k && reveal('al_' + k, true); }, click:()=>readApplicant(curApplicant()), glow:()=>{ const k = curApplicant(); return !!k && !S.st[k].read; } },
+  { id:'aletter', x:24, y:-11, m:()=>'letter', show:()=> aletterShow() && !(typeof sarangOn === 'function' && sarangOn()), click:()=>readApplicant(curApplicant()), glow:()=>{ const k = curApplicant(); return !!k && !S.st[k].read; } },
 );
 function goScene(sc){
   if (sc === 'lab') S.labSeen = true;
   S.scene = sc; save(); sceneAt = performance.now();
   sDoor();   // 문 여닫는 소리
-  if (typeof tlog === 'function') tlog(sc === 'lab' ? '별채로 감' : sc === 'gate' ? '대문으로 나감' : '서고로 돌아옴');
-  if (sc === 'seogo' && S.bangAt && !S.labDoorNoted && !S.labSeen){ S.labDoorNoted = true; save();
-    setTimeout(() => queueOv('<h3>서고</h3>방을 붙이고 돌아오니, 서고 왼쪽 벽에 문이 하나 있다.<br>별채로 이어지는 문이다.<br><br>전에도 있었던 것 같다.'), 900); }
+  if (typeof tlog === 'function') tlog(sc === 'lab' ? '별채로 감' : sc === 'gate' ? '대문으로 나감' : sc === 'sarang' ? '사랑채로 감' : sc === 'yeon' ? '연구소로 감' : sc === 'kitchen' ? '부엌으로 감' : sc === 'haeng' ? '행랑채로 감' : sc === 'teaf' ? '차밭으로 감' : sc === 'mill' ? '제다소로 감' : sc === 'museum' ? '박물관으로 감' : '서고로 돌아옴');
+  if (sc === 'seogo' && S.bangAt && !S.labDoorNoted && !S.labSeen){ S.labDoorNoted = true; save();   // 창 대신 문이 그냥 생기고(빛남) 쪽지 한 줄(흐름 점검 10/8)
+    if (S.rArrived) pushNote('<h3>쪽지</h3>' + vlet(['가주께.', '별채로 드는 문을 열어 두었습니다.'], '한서진 올림.', 'min(30vh,200px)')); }
 }
 const knock = (v = 1) => { noise(0.12, 110, 0.4*v, 'lowpass'); setTimeout(() => noise(0.12, 110, 0.35*v, 'lowpass'), 260); };
 
 // 기록들
 const vlet = (lines, sign, h = 'min(52vh,380px)') => `<div class="vletter rec" style="height:${h}">${lines.join('<br>')}<div class="sign">${sign}</div></div>`;
-const bangHtml = () => `<h3>방(榜)</h3>` + vlet(['서고에서 글 읽을 사람을 구함.', '밤낮을 가리지 않음.', '자리와 끼니를 내어 줌.'], `${esc(S.sur)}씨 서고`, 'min(40vh,280px)');
+const bangHtml = () => `<h3>방(榜)</h3>` + vlet([typeof bangRot === 'function' && bangRot() ? '서고에서 글 읽을 것을 구함.' : '서고에서 글 읽을 사람을 구함.', typeof bangLine === 'function' ? bangLine() : '밤낮을 가리지 않음.', '자리와 끼니를 내어 줌.'], `${esc(S.sur)}씨 서고`, 'min(40vh,280px)');
 function showBang(){
   openOv('<h3>방 종이</h3>방(榜)을 써 붙일 종이와 붓. 한서진이 문 곁에 두고 간 것이다.<br>한 장에는 벌써 글이 적혀 있다. 한서진의 글씨다.' + bangHtml().replace('<h3>방(榜)</h3>', '')
     + '<div style="text-align:center;margin-top:14px"><button class="btn rec" id="bBang" style="color:var(--ink);border-color:#00000066">대문에 붙인다</button></div>');
@@ -258,11 +260,14 @@ function showBang(){
   });
 }
 const letterOf = k => `<h3>편지 — ${STAFF[k].name}</h3>` + vlet([`${esc(S.sur)}씨 가문 서고에 올립니다.`, '', ...STAFF[k].letter], `${STAFF[k].name}(${STAFF[k].hj}) 올림.`);
-const replyOf = k => `<h3>답장</h3>` + vlet([`${STAFF[k].name} 님께.`, '', ...STAFF[k].reply], `${esc(S.sur + S.name)}`, 'min(40vh,280px)');
-const genLetter = k => { const P = DEF(k); return `<h3>지원서 — ${P.name}</h3>` + vlet([`${esc(S.sur)}씨 가문 서고에 올립니다.`, ...P.lines], `${P.name}(${P.hj}) 올림.`, 'min(50vh,370px)'); };
+const replyLines = (k, pick) => [...STAFF[k].reply.slice(0, -1), pick === 'b' ? STAFF[k].replyB : STAFF[k].reply.slice(-1)[0]];
+const replyOf = (k, pick) => `<h3>답장</h3>` + vlet([`${STAFF[k].name} 님께.`, '', ...replyLines(k, pick || (S.replyPick || {})[k])], `${esc(S.sur + S.name)}`, 'min(40vh,280px)');
+const replySoft = k => { if ((S.replyPick || {})[k] === 'b'){ STAFF[k].fearK *= K.replySoftFear; STAFF[k].sec *= K.replySoftSec; } };   // 답장 마지막 줄(기획서 19절 추천 2번, ✳ 11/3): 사람을 아끼는 줄을 고르면 덜 겁먹고 조금 느림
+for (const k of Object.keys(S.replyPick || {})) replySoft(k);
+const genLetter = k => { const P = DEF(k); return `<h3>지원서 — ${P.name}</h3>` + vlet([`${esc(S.sur)}씨 가문 서고에 올립니다.`, ...(typeof eraWords === 'function' ? eraWords : x => x)(stOf(k).back ? ['밀린 것은 잘 받았습니다.', '이 서고 일을 아는 손이 필요하시다면', '다시 오겠습니다.'] : P.lines)], `${P.name}(${P.hj}) 올림.`, 'min(50vh,370px)'); };
 function hire(k){
   const s = stOf(k); s.replied = true; s.desk = freeDesk(); s.item = 'first'; s.due = Date.now() + (isGen(k) ? 5000 : 6000);
-  if (isGen(k)) S.genNext = Date.now() + 210000;
+  if (isGen(k)) S.genNext = Date.now() + 210000 * (typeof bangWait === 'function' ? bangWait() : 1);   // 조건 붙은 방은 더디 옴(19_bang)
   save(); ov.classList.add('hidden'); sPlace();
   if (typeof tlog === 'function') tlog('받아들임: ' + DEF(k).name);
 }
@@ -274,14 +279,17 @@ function readApplicant(k){
   if (isGen(k)){
     openOv(genLetter(k) + '<div style="text-align:center;margin-top:12px">' + (fd ? btn('bHire', '받아들인다') : '') + btn('bSendAway', '돌려보낸다') + '</div>' + (fd ? '' : full));
     const h = document.getElementById('bHire'); if (h) h.addEventListener('click', ev => { ev.stopPropagation(); hire(k); });
-    document.getElementById('bSendAway').addEventListener('click', ev => { ev.stopPropagation(); stOf(k).gone = true; S.genNext = Date.now() + 210000; save(); ov.classList.add('hidden'); });
+    document.getElementById('bSendAway').addEventListener('click', ev => { ev.stopPropagation(); stOf(k).gone = true; S.genNext = Date.now() + 210000 * (typeof bangWait === 'function' ? bangWait() : 1); save(); ov.classList.add('hidden'); });
     return;
   }
   if (STAFF[k].later){ openOv(letterOf(k)); return; }                                     // 지금은 오지 않는 사람: 편지만
   openOv(letterOf(k) + (fd ? '<div style="text-align:center;margin-top:14px">' + btn('bReplyA', '답장을 쓴다') + '</div>' : full));
   const b = document.getElementById('bReplyA'); if (b) b.addEventListener('click', ev => { ev.stopPropagation();
-    openOv(replyOf(k) + '<div style="text-align:center;margin-top:14px">' + btn('bSendA', '보낸다') + '</div>');
-    document.getElementById('bSendA').addEventListener('click', e2 => { e2.stopPropagation(); hire(k); });
+    const send = pick => { S.replyPick = Object.assign(S.replyPick || {}, { [k]: pick }); replySoft(k); hire(k); };
+    openOv('<h3>답장</h3>' + vlet([`${STAFF[k].name} 님께.`, '', ...STAFF[k].reply.slice(0, -1)], `${esc(S.sur + S.name)}`, 'min(40vh,280px)')
+      + '<div style="font-size:12px;opacity:.6;text-align:center;margin-top:10px">마지막 줄을</div><div style="text-align:center">' + btn('bSendA', STAFF[k].reply.slice(-1)[0]) + btn('bSendB', STAFF[k].replyB) + '</div>');
+    document.getElementById('bSendA').addEventListener('click', e2 => { e2.stopPropagation(); send('a'); });
+    document.getElementById('bSendB').addEventListener('click', e2 => { e2.stopPropagation(); send('b'); });
   });
 }
 function showRoster(){
@@ -300,7 +308,7 @@ function showStaff(k){
   if (!arrived(k)){ openOv(`<h3>별채 책상</h3>${P.name}의 자리를 마련해 두었다. 아직 오지 않았다.`); return; }
   if (!present(k)){ openOv(`<h3>${P.name}의 자리</h3>밤이다. ${josa(P.name, '은', '는')} 집에 갔다.<br>해가 뜨면 온다.`); return; }
   const rf = s.fear || 0;
-  const speed = !working(k) ? (k === 'smw' ? '눈을 감고 쉬고 있다 — 해가 높다' : '쉬고 있다') : fearSpeedTxt(rf, S.owned.sundial, 60 / P.sec);
+  const speed = !working(k) ? (k === 'smw' ? '눈을 감고 쉬고 있다 — 해가 높다' : '쉬고 있다') : handTxt(fearSpeedTxt(rf, S.owned.sundial, 60 * speedK(s.pages||0) / P.sec), s.pages||0);
   const st = fearState(rf);
   const o = (id, label) => `<span data-cp="${id}" class="${s.item === id ? 'on' : ''}">${label}</span>`;
   const dl = staffDiary(k), tea = Date.now() < (s.calm||0) ? '<div style="font-size:12px;opacity:.6">책상에 찻잔이 놓여 있다. 아직 따뜻하다.</div>' : '';
@@ -310,12 +318,14 @@ function showStaff(k){
     + bookRows('cp', s.item, [['first', '제목 없는 책', fearWord('first')], ...(hasBook('dongui') ? [['dongui', '동의보감 三', fearWord('dongui')]] : []), ...(S.mapFound ? [['map', '지도', fearWord('map')]] : [])])
     + `<div class="bsec">베껴 팔 것 — 맡기면 쓸 수 있는 쪽 ${fmtP(COPY_PAGES)}을 쓰고, 베끼는 동안은 쪽이 늘지 않는다</div>`
     + (() => { const cl = [...(hasBook('sohak') ? ['c_sohak'] : []), ...(hasBook('nong1') || hasBook('nong2') ? ['c_nong'] : []), ...(S.sideRead.dongui ? ['c_dongui'] : [])];   // 책장에 있는 책만 베낄 수 있음
-        return cl.length ? bookRows('cp', s.item, cl.map(id => [id, COPY[id].name.split('(')[0], '팔면 ' + fmtM(COPY[id].price * gahunK('copy'))])) : '<div style="font-size:13px;opacity:.6;padding:6px 4px">베낄 책이 책장에 없다.</div>'; })()
-    + (isCopy(s.item) ? `<div style="font-size:12px;opacity:.6;margin-top:4px">${COPY[s.item].name.split('(')[0]}을 베끼는 중 — ${Math.floor(100 * (s.copyAcc||0) / COPY_SEC)}%</div>` : '')
+        return cl.length ? bookRows('cp', s.item, cl.map(id => [id, COPY[id].name.split('(')[0], '팔면 ' + fmtM(COPY[id].price * copyK())])) : '<div style="font-size:13px;opacity:.6;padding:6px 4px">베낄 책이 책장에 없다.</div>'; })()
+    + (isCopy(s.item) ? `<div style="font-size:12px;opacity:.6;margin-top:4px">${COPY[s.item].name.split('(')[0]}을 베끼는 중 — ${Math.floor(100 * (s.copyAcc||0) / copySec())}%</div>` : '')
     + (s.auto && !s.manual ? '<div style="font-size:12px;opacity:.6;margin-top:4px">지금 것은 한서진이 나누어 준 것이다.</div>' : '')
+    + (isGen(k) && !P.night && !s.changed ? `<div class="opt rec" style="margin-top:8px"><span>해가 지면</span><span class="ch"><span data-nk="0" class="${s.nightKeep ? '' : 'on'}">집에 보낸다</span><span data-nk="1" class="${s.nightKeep ? 'on' : ''}">남게 한다</span></span></div>` : '')   // 밤에 일 시키다(19_ends)
     + (isGen(k) ? '' : `<br><b>일지</b>` + (dl.length ? dl.map((d, i) => `<div class="rec dlist" data-d="${i}"><span>일지 ${i+1} — ${esc(d.split('.')[0])}</span><span style="opacity:.45;font-size:12px">읽기</span></div>`).join('') : '<br>아직 쓴 것이 없다.')));
   const bt = document.getElementById('bSTea'); if (bt) bt.addEventListener('click', ev => { ev.stopPropagation(); ov.classList.add('hidden'); s.steam = Date.now() + 3000; s.calm = Date.now() + 243000; save(); sBoil(); });
   ovBody.querySelectorAll('[data-cp]').forEach(el => el.addEventListener('click', ev => { ev.stopPropagation(); if (!setStaffItem(k, el.dataset.cp)) return; s.manual = true; s.auto = false; s.manDay = dayKey(); save(); sPlace(); showStaff(k); }));
+  ovBody.querySelectorAll('[data-nk]').forEach(el => el.addEventListener('click', ev => { ev.stopPropagation(); s.nightKeep = el.dataset.nk === '1'; save(); sPlace(); showStaff(k); }));
   ovBody.querySelectorAll('.dlist').forEach(el => el.addEventListener('click', ev => { ev.stopPropagation(); const i = +el.dataset.d;
     openOv(`<h3>${P.name}의 일지 ${i+1}</h3>${staffDiary(k)[i]}<div class="rec" id="bBackS" style="margin-top:14px;text-align:center">← 목록으로</div>`);
     document.getElementById('bBackS').addEventListener('click', e2 => { e2.stopPropagation(); showStaff(k); }); }));
@@ -367,7 +377,7 @@ function labTick(dt){
     const gPages = gArr.reduce((a, k) => a + (S.st[k].pages||0), 0);
     if (!smw.at && gArr.length >= 2 && gPages >= 200){ smw.at = now; save(); knock(); }                                   // 별채가 함께 2권을 넘긴 뒤
     else if (!ojr.at && smw.read && now >= smw.at + 60000 && ((S.sweatSec||0) >= 600 || now >= smw.at + 1800000)){ ojr.at = now; save(); knock(); }   // 땀 흘린 시간이 모두 합쳐 10분을 넘으면(아니면 30분 뒤)
-    else if (gHired < GEN_MAX && !S.bangOff && now >= (S.genNext || S.bangAt + 120000)){ S.genN = (S.genN || 0) + 1; stOf('g' + S.genN).at = now; save(); knock(0.7); }
+    else if (gHired < GEN_MAX && !S.bangOff && now >= (S.genNext || S.bangAt + 120000)){ S.genN = (S.genN || 0) + 1; const g = stOf('g' + S.genN); g.at = now; if (S.bangKind && S.bangKind !== 'plain') g.kind = S.bangKind; save(); knock(0.7); }
   }
   for (const k of allKeys()){
     const s = S.st[k];
@@ -386,11 +396,11 @@ function labTick(dt){
     if (now < (s.steam||0)) s.fear = Math.max(0, (s.fear||0) - dt*0.25);
     else s.fear = Math.min(1, (s.fear||0) + dt*readFear(s.item || 'first')*DEF(k).fearK*(now < (s.calm||0) ? 0.3 : 1)*owePenalty(k));   // 녹봉이 밀리면 더 빨리
     if (s.fear >= 0.3) S.sweatSec = (S.sweatSec||0) + dt;                                   // 별채에서 누군가 땀 흘린 시간(오정림이 듣게 되는 소문)
-    const fac = fearFac(s.fear) * visitBoost() * manBoost(s);   // 가주 순회·가주가 직접 맡김
+    const fac = fearFac(s.fear) * visitBoost() * manBoost(s) * (typeof madBoost === 'function' ? madBoost(k) : 1) * (typeof techBusy === 'function' && techBusy(k) ? 0 : 1);   // 연구를 쓰는 동안은 읽지 않음(19_tech)   // 가주 순회·가주가 직접 맡김
     s.work = (s.work||0) + dt;
     if (isCopy(s.item)){ copyWork(k, s, dt*fac); continue; }   // 필사 중: 쪽 대신 사본
     s.acc = (s.acc||0) + dt*fac;
-    while (s.acc >= DEF(k).sec){ s.acc -= DEF(k).sec; S.pages += 1; S.earned += 1; addBook(s.item || 'first', mult()); s.pages = (s.pages||0) + 1; }
+    while (s.acc >= DEF(k).sec / speedK(s.pages||0)){ s.acc -= DEF(k).sec / speedK(s.pages||0); S.pages += 1; S.earned += 1; addBook(s.item || 'first', mult()); s.pages = (s.pages||0) + 1; }
   }
   // 다원지기: 자리를 잡으면 서고의 찻주전자를 가지러 가고, 그 뒤로는 1분 30초마다 떨고 있는 사람·빈 가주 서안에 차를 날라 줌(16_errand)
   if (working('ojr') && !S.errs.ojr){
@@ -412,9 +422,10 @@ function labOffline(){
   let gen = 0;
   for (const k of allKeys()){
     const s = S.st[k]; if (!s || !s.arr || s.gone) continue;
-    const sec = k === 'smw' ? nightSec : DEF(k).night ? daySec + nightSec : daySec; if (sec <= 0) continue;
-    const n = Math.floor(sec / DEF(k).sec * OFF_RATE); if (!n) continue;   // 비운 동안은 10%(08의 OFF_RATE). 필사(아래)는 시간 일이라 30% 그대로
-    const rested = k === 'smw' ? daySec > 0 : (!DEF(k).night && nightSec > 0);
+    const sec = k === 'smw' ? nightSec : DEF(k).night || s.nightKeep ? daySec + nightSec : daySec; if (sec <= 0) continue;
+    if (s.nightKeep && !s.changed) s.nightWork = (s.nightWork || 0) + nightSec;   // 밤에 남겨 둔 시간(19_ends 밤에 일 시키다)
+    const n = Math.floor(sec / DEF(k).sec * speedK(s.pages||0) * OFF_RATE); if (!n) continue;   // 비운 동안은 10%(08의 OFF_RATE). 필사(아래)는 시간 일이라 30% 그대로
+    const rested = k === 'smw' ? daySec > 0 : (!DEF(k).night && !s.nightKeep && nightSec > 0);
     s.work = (s.work||0) + sec; s.fear = Math.max((s.fear||0) * (rested ? 0.5 : 1), Math.min(FEAR_AT[2], FEAR_AT[2] * sec / 1800)); if (isCopy(s.item)){ copyWork(k, s, sec*0.3); continue; }   // 자리 비운 동안의 필사(겁은 비운 시간만큼, 30분이면 2단계)
     S.pages += n; S.earned += n; addBook(s.item || 'first', n*mult()); s.pages = (s.pages||0) + n;
     if (isGen(k)) { gen += n; continue; }
@@ -429,7 +440,7 @@ function labOffline(){
 // ───────── 반장이 맡는 일 (기획서 14-3) ─────────
 // 오정림이 오면 찻주전자는 별채로 옮겨지고(서고엔 물 자국만), 낮마다 서안에 가주 몫 한 잔.
 // 한서진이 자리를 잡으면 별채 사람들이 읽을 사본을 나눠 둠(가주가 직접 고른 사람은 그대로).
-const dayKey = () => S.opt.gameTime ? Math.floor(Date.now()/1000/300/24) : Math.floor((Date.now() + 9*3600e3) / 86400e3);
+const dayKey = () => (S.opt.gameTime ? Math.floor(Date.now()/1000/300/24) : Math.floor((Date.now() + 9*3600e3) / 86400e3)) + (S.opt.dayOff || 0);   // dayOff: 밤낮을 바꿀 때 날 수가 튀지 않게(20_main 설정, 11/2)
 M.teaRing = model(7,6,1,(x,y)=>{ const r = Math.hypot(x-3, y-2.5); return r <= 2.9 && r >= 1.9 ? '#2a1c12' : null; });   // 찻주전자가 있던 둥근 물 자국
 // 서고의 찻주전자는 소반 위에 — 오정림이 들고 가면 소반엔 물 자국만
 M.soban = model(8,7,5,(x,y,z)=>{ if (z === 4) return (x === 0 || x === 7 || y === 0 || y === 6) ? '#4a2e18' : '#6a4628'; if (z === 3) return (x >= 1 && x <= 6 && y >= 1 && y <= 5) ? '#3c2414' : null; return ((x === 1 || x === 6) && (y === 1 || y === 5)) ? '#3c2414' : null; });
@@ -450,7 +461,7 @@ LAB_OBJ.push(
   { id:'dtak', x:TEA_T[0], y:TEA_T[1], m:()=>'dtak', click:()=> S.potPut ? showTea() : openOv('<h3>다탁</h3>찻그릇을 올려 두는 낮은 상. 비어 있다.') },
   { id:'labTeapot', x:TEA_T[0] + 1, y:TEA_T[1], z:7, m:()=>'teapot', on:()=>'dtak', show:()=> !!S.potPut, click:()=>showTea() });
 let lastAssign = 0;
-const techOn = id => !!(S.tech && S.tech[id]);                 // 연구로 열린 것(테크트리 묶음 전엔 비어 있음)
+const techOn = id => !!(S.tech && S.tech[id]) || !!(LINE.tech && LINE.tech[id]);   // 앞 대가 적은 연구도(LINE.tech — 연구로 쓴 것은 대를 넘어 남음, 19_tech)                 // 연구로 열린 것(테크트리 묶음 전엔 비어 있음)
 function autoAssign(){
   if (!techOn('assign')) return;                               // 10/8 선생님: 한서진이 읽을 것을 나눠 주는 일은 연구 '일 나누는 법'으로 열림 — 그 전엔 가주가 책상마다 직접 고름
   if (!S.rArrived || diaryCount() < 1) return;                 // 한서진이 자리를 잡은 뒤부터
