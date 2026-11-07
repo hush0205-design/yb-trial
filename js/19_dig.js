@@ -18,7 +18,8 @@ const fearOf = k => k === 'sj' ? (S.rFear||0) : ((S.st[k] && S.st[k].fear)||0);
 
 // 서고 문 곁의 보퉁이(채비) · 궤짝 곁의 젖은 보퉁이(바다에서 온 것들)
 OBJ.push(
-  { id:'digPack', x:32, y:23, rot:0.2, m:()=>'bundle', show:()=> !!S.goRead && (S.packOld || !!S.doneSeen) && !digOn() && reveal('digPack', true), click:()=>showDigPack(), glow:()=> !S.dig.n },
+  // 보퉁이는 바닷가 쪽지를 읽으면 보임(11/7 시험자 제보 — 새로 시작한 판에서 '첫 책 다 읽은 장면'(doneSeen) 없이 쪽지를 받으면 보퉁이가 끝내 안 보였음. 짐은 싸지던 어긋남)
+  { id:'digPack', x:32, y:23, rot:0.2, m:()=>'bundle', show:()=> !!S.goRead && (reveal('digPack', true) || !!(S.dig && S.dig.n) || Object.values(S.pack || {}).some(Boolean)), click:()=>showDigPack(), glow:()=> !S.dig.n },
   { id:'seaPack', get x(){ return S.owned.desk ? -18 : 8; }, get y(){ return S.owned.desk ? 22 : 10; }, rot:-0.3, m:()=>'seaBundle', show:()=> !!S.dig.found && reveal('seaPack', true), click:()=>showSeaPack(), glow:()=> !S.dig.seen || (typeof wetReady === 'function' && wetReady()) },
 );
 

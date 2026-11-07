@@ -25,7 +25,7 @@ const pickWaiting = () => !!S.dig.talked && !S.dig.gather && !digOn() && packCou
 const canPack = () => !!S.goRead && !digOn();
 const sjFree = () => !!S.rArrived && !isNight() && !nightVisiting() && Date.now() - S.rArrived > T_PUSH && !S.errs.sj;
 const ojrHere = () => working('ojr') && !!S.potPut;
-{ const dp = OBJ.find(o => o.id === 'digPack'); dp.m = () => { const n = packAll(); return n === 0 ? 'bundleFlat' : n <= 2 ? 'bundle' : 'bundleFull'; }; dp.glow = () => (!S.dig.n && !packAll()) || pickWaiting() || ((S.wD || 0) >= wetEnd() && !S.dig.went.cave); }   // pickWaiting: 쪽지를 닫아도 이름을 다 짚기 전엔 빛남(11/7 시험자 제보)   // 젖은 장을 다 읽으면(「다음 물때에 굴까지」) 굴에 가 볼 때까지 다시 빛남 ✳ 11/2
+{ const dp = OBJ.find(o => o.id === 'digPack'); dp.m = () => { const n = packAll(); return n === 0 || digOn() || S.dig.gather ? 'bundleFlat' : n <= 2 ? 'bundle' : 'bundleFull'; };   /* 조사단이 메고 나가면 펴 둔 빈 천만 남음(11/7 — 보퉁이가 사라진 줄 알던 것) */ dp.glow = () => (!S.dig.n && !packAll()) || pickWaiting() || ((S.wD || 0) >= wetEnd() && !S.dig.went.cave); }   // pickWaiting: 쪽지를 닫아도 이름을 다 짚기 전엔 빛남(11/7 시험자 제보)   // 젖은 장을 다 읽으면(「다음 물때에 굴까지」) 굴에 가 볼 때까지 다시 빛남 ✳ 11/2
 
 // ── ① 채비 넣기 ──
 function packPut(id){
@@ -79,7 +79,7 @@ function packBtn(id){
 // ── 보퉁이 창 ──
 function showDigPack(force){
   if (!force && pickWaiting() && digLeadDefault()){ openOv(digTalkHtml() + '<div class="rec" id="bPackList" style="text-align:center;font-size:13px;opacity:.75;margin-top:8px">채비를 본다</div>'); document.getElementById('bPackList').addEventListener('click', ev => { ev.stopPropagation(); showDigPack(true); }); return; }   // 이름을 짚기 전이면 쪽지부터(11/7)
-  if (S.dig.gather){ openOv('<h3>보퉁이</h3>' + digName(S.dig.gather.lead) + '이 메고 대문 앞에 나가 있다.'); return; }
+  if (S.dig.gather){ openOv('<h3>보퉁이</h3>펴 두었던 무명천만 남았다. 보퉁이는 ' + josa(digName(S.dig.gather.lead), '이', '가') + ' 메고 대문 앞에 나가 있다.<br>' + (isNight() ? '해 뜨면 대문을 열어 주기로 했다.' : '대문을 열어 주어야 떠난다.')); return; }
   if (digOn()){ openOv(`<h3>보퉁이</h3>조사단이 ${digWhere()}에 가 있다. 돌아올 때까지 기다린다.`); return; }
   const n = packCount(), rows = Object.keys(PACK).map(id => { const st = S.pack[id];
     return `<div class="brow" style="cursor:default"><span class="bt">${PACK[id].name}</span><span class="bn" style="font-size:12px;opacity:.7">${st === 'in' ? '들어 있다' : st === 'carry' ? '한서진이 가져오는 중' : (id === 'food' && !ojrHere() ? '<span class="rec" id="bFoodBuy" style="opacity:.9">장터에서 사 온다 — ' + fmtM(PACK.food.cost) + '</span>' : PACK[id].from + '에서 넣는다')}</span></div>`; }).join('');
