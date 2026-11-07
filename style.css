@@ -115,12 +115,12 @@
     background-color:#3a2414;
     background-image:repeating-linear-gradient(0deg, #00000000 0 41px, #0000001a 41px 43px, #00000000 43px 97px, #ffffff08 97px 98px),
       repeating-linear-gradient(0deg, #4a2e1a 0, #3d2615 7px, #46301c 15px, #3a2414 23px); }
-  #mapStage { position:relative; perspective:1800px; }
+  #mapStage { position:relative; perspective:1800px; filter:drop-shadow(0 10px 14px #000a); }   /* 11/7: 그림자는 해진 지도 모양을 따라 */
   .mtile { position:absolute; background-repeat:no-repeat; backface-visibility:hidden; -webkit-backface-visibility:hidden; transition:transform .42s cubic-bezier(.4,.1,.3,1);
     box-shadow:inset 0 0 0 0.6px #5a3a1a40; }
 
   .mtile.mcol { transform-origin:left center; }
-  .mtile.valley { box-shadow:inset 6px 0 10px -8px #3a2a1a55, 0 8px 16px #0007; } .mtile:not(.valley) { box-shadow:inset -6px 0 10px -8px #3a2a1a40, 0 8px 16px #0007; }   /* 산접기·골접기 그늘 */
+  .mtile.valley { box-shadow:inset 6px 0 10px -8px #3a2a1a55; } .mtile:not(.valley) { box-shadow:inset -6px 0 10px -8px #3a2a1a40; }   /* 산접기·골접기 그늘 */
   #mapLoupe { position:absolute; left:0; top:0; will-change:transform; width:150px; height:150px; border-radius:50%; display:none; pointer-events:none; z-index:5; background-repeat:no-repeat;
     border:5px solid #a8873e; outline:1px solid #6a5224; box-shadow:0 10px 24px #000a; }
   #mapStage.loupe { cursor:none; touch-action:none; }
@@ -284,13 +284,13 @@
 .smear { filter:blur(1.4px); animation:smearIn 3s ease-out both; }
 @keyframes smearIn { 0% { filter:blur(0); } 30% { filter:blur(2px); } 100% { filter:blur(1.1px); } }
 /* 집 지도(19_house): 한지에 먹선 배치도 */
-.hmap { position:relative; display:grid; grid-template-columns:repeat(3, 1fr); grid-template-rows:repeat(3, 72px); grid-auto-rows:72px; gap:8px; padding:18px; background:#e9dfc4; border:1px solid #3a2a1c55; }
-.hmap.night { background:#b9b09a; }
-.hmCell { border:1.5px solid #2a1e14; display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:13px; text-align:center; cursor:pointer; position:relative; }
+.hmap { position:relative; display:grid; grid-template-columns:repeat(3, 1fr); grid-template-rows:repeat(3, 72px); grid-auto-rows:72px; gap:10px; padding:64px 26px 34px; background:#e9dfc4; background-size:100% 100%; -webkit-mask-size:100% 100%; mask-size:100% 100%; font-family:'Nanum Myeongjo', serif; }   /* 11/7: 옛 한지(19_house hmPaper) — 해진 가장자리로 가림 */
+.hmap.night { filter:brightness(.72) sepia(.25); }
+.hmCell { border:none; background-size:100% 100%; background-repeat:no-repeat; display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:13px; text-align:center; cursor:pointer; position:relative; }
 .hmCell span { font-size:11px; opacity:.65; }
-.hmCell.empty { border-style:dashed; border-color:#2a1e1488; color:#2a1e14aa; }
-.hmCell.own { border-style:dashed; }
-.hmCell.work { border-style:dotted; background:repeating-linear-gradient(90deg, #0000 0 10px, #5a3a2033 10px 12px); }
+.hmCell.empty { color:#2a1e14aa; }
+.hmCell.own { }
+.hmCell.work { }
 .hmCell.lit { box-shadow:inset 0 0 14px #e8b04a99; }
 .hmCell.smoke::after { content:''; position:absolute; right:8px; top:-10px; width:8px; height:14px; border-radius:50%; background:#7a706088; animation:hmSmoke 3s ease-in infinite; }
 @keyframes hmSmoke { from { transform:translateY(0); opacity:.7; } to { transform:translateY(-12px) scale(1.6); opacity:0; } }
@@ -303,8 +303,20 @@
 #oddSlip.on { display:block; }
 #counter.madblur { filter:blur(1.2px); opacity:.75; }   /* 광기 4단계(19_mad): 숫자가 흐려짐 */
 .ln.madHand { color:#6a2a16; opacity:.8; font-style:italic; }   /* 광기 10단계(19_mad): 가주의 손이 저절로 씀 */
-.hmCell.ghostRoom { border-width:2.5px; border-color:#1a120b; background:#2a1e1411; }   /* 광기 9(19_house): 지은 적 없는 방 */
+.hmCell.ghostRoom { border:2.5px solid #1a120b; background:#2a1e1411 !important; }   /* 광기 9(19_house): 지은 적 없는 방 */
 .hmCell.ghostRoom.door::after { content:''; position:absolute; left:calc(50% - 7px); bottom:0; width:14px; height:22px; border:1.5px solid #1a120b; border-bottom:none; background:#1a120bcc; }
 /* 목적지 고르기(19_deep): 지도 위에 붉은 점, 위에 한 줄 */
 #destHint { position:absolute; left:50%; top:64px; transform:translateX(-50%); color:#e8dcc0; font-size:15px; letter-spacing:3px; z-index:6; pointer-events:none; }
 .destDot { position:absolute; width:16px; height:16px; margin:-8px 0 0 -8px; border-radius:50%; background:#9a2a1a; box-shadow:0 0 6px #9a2a1a; z-index:5; pointer-events:none; }
+
+/* 11/7 가옥도 그림(19_house hmDraw): 격자 대신 그림 위 누르는 자리 */
+.hmap.hmPic { display:block; width:100%; max-width:calc((84vh - 190px) * 640 / 540); margin:0 auto; aspect-ratio:640/540; padding:0; gap:0; background-size:100% 100%; background-color:transparent; -webkit-mask-image:none; mask-image:none; }
+.hmap.hmPic.night { filter:none; }
+.hmCell.hmSpot { position:absolute; width:19%; transform:translateX(-50%); border:none !important; background:none !important; box-shadow:none !important; justify-content:flex-end; gap:0; padding:0; line-height:1.15; }
+.hmCell.hmSpot b { font-size:12px; font-weight:700; color:#1e140c; text-shadow:0 0 3px #efe5cc, 0 0 6px #efe5cc; }
+.hmCell.hmSpot span { font-size:10px; color:#2a1e14; opacity:.85; text-shadow:0 0 3px #efe5cc; }
+.hmap.hmPic.night .hmCell.hmSpot b, .hmap.hmPic.night .hmCell.hmSpot span { color:#f2ead6; text-shadow:0 0 3px #10141f, 0 0 6px #10141f; }
+.hmCell.hmSpot:hover b { text-decoration:underline dotted; }
+.hmCell.hmSpot.smoke::after { display:none; }
+.hmCell.hmSpot.ghostRoom.door::after { display:none; }
+#overlay .hanji:has(.hmPic) { width:min(96vw, 860px); }   /* 가옥도는 넓게 */

@@ -18,7 +18,7 @@ const fearOf = k => k === 'sj' ? (S.rFear||0) : ((S.st[k] && S.st[k].fear)||0);
 
 // 서고 문 곁의 보퉁이(채비) · 궤짝 곁의 젖은 보퉁이(바다에서 온 것들)
 OBJ.push(
-  { id:'digPack', x:34, y:-14, rot:0.2, m:()=>'bundle', show:()=> !!S.goRead && (S.packOld || !!S.doneSeen) && !digOn() && reveal('digPack', true), click:()=>showDigPack(), glow:()=> !S.dig.n },
+  { id:'digPack', x:32, y:23, rot:0.2, m:()=>'bundle', show:()=> !!S.goRead && (S.packOld || !!S.doneSeen) && !digOn() && reveal('digPack', true), click:()=>showDigPack(), glow:()=> !S.dig.n },
   { id:'seaPack', get x(){ return S.owned.desk ? -18 : 8; }, get y(){ return S.owned.desk ? 22 : 10; }, rot:-0.3, m:()=>'seaBundle', show:()=> !!S.dig.found && reveal('seaPack', true), click:()=>showSeaPack(), glow:()=> !S.dig.seen || (typeof wetReady === 'function' && wetReady()) },
 );
 

@@ -13,7 +13,7 @@ const PACK = {
   paper: { name:'종이와 붓', cost:20, from:'붓걸이', model:'paperRoll' },
   map:   { name:'지도',      cost:0,  from:'책장', model:'mapFold' },
 };
-const PACK_STAND = [30, -9];                                        // 서고 뒷문 곁 보퉁이 앞에 서는 자리
+const PACK_STAND = [33, 18];   // 11/7: 보퉁이를 서고 문 곁(한서진 갓에 가려짐)에서 오른쪽 앞 구석으로                                        // 서고 뒷문 곁 보퉁이 앞에 서는 자리
 M.lantern  = model(5,5,8,(x,y,z)=> z === 0 || z === 7 ? '#4a3020' : (x === 2 && y === 2) ? '#e8a040' : ((x === 0 || x === 4 || y === 0 || y === 4) && (x + y) % 2 ? '#e8dcc0' : null));
 M.foodWrap = model(6,5,3,(x,y,z)=> z === 2 ? ((x === 2 || x === 3) && y === 2 ? '#8a7a5a' : null) : ((x + y + z) % 3 ? '#bfb08c' : '#cfc2a3'));
 M.paperRoll = model(7,3,3,(x,y,z)=> (x === 0 || x === 6) ? '#cfc2a3' : (z === 1 && y === 1) ? null : '#e2d6b8');
@@ -21,10 +21,11 @@ M.bundleFlat = model(8,8,1,(x,y)=> Math.hypot(x-3.5, y-3.5) <= 3.8 ? ((x + y) % 
 M.bundleFull = model(9,9,7,(x,y,z)=>{ const r = Math.hypot(x-4, y-4); if (z === 6) return r <= 1.3 ? '#8a7a5a' : null; if (z === 5) return r <= 2.6 ? '#d8cdb0' : null; return r <= 4.3 - z*0.35 ? ((x + y + z) % 3 ? '#cfc2a3' : '#bfb08c') : null; });
 const packCount = () => Object.keys(PACK).filter(id => S.pack[id] === 'in').length;
 const packAll = () => Object.keys(PACK).filter(id => S.pack[id]).length;
+const pickWaiting = () => !!S.dig.talked && !S.dig.gather && !digOn() && packCount() > 0 && (((S.dig.pick && S.dig.pick.hands) || []).filter(k => digHands().includes(k)).length < handsN() || !(S.dig.pick && S.dig.pick.ok));   // 반장 쪽지에서 이름을 다 짚기 전
 const canPack = () => !!S.goRead && !digOn();
 const sjFree = () => !!S.rArrived && !isNight() && !nightVisiting() && Date.now() - S.rArrived > T_PUSH && !S.errs.sj;
 const ojrHere = () => working('ojr') && !!S.potPut;
-{ const dp = OBJ.find(o => o.id === 'digPack'); dp.m = () => { const n = packAll(); return n === 0 ? 'bundleFlat' : n <= 2 ? 'bundle' : 'bundleFull'; }; dp.glow = () => (!S.dig.n && !packAll()) || ((S.wD || 0) >= wetEnd() && !S.dig.went.cave); }   // 젖은 장을 다 읽으면(「다음 물때에 굴까지」) 굴에 가 볼 때까지 다시 빛남 ✳ 11/2
+{ const dp = OBJ.find(o => o.id === 'digPack'); dp.m = () => { const n = packAll(); return n === 0 ? 'bundleFlat' : n <= 2 ? 'bundle' : 'bundleFull'; }; dp.glow = () => (!S.dig.n && !packAll()) || pickWaiting() || ((S.wD || 0) >= wetEnd() && !S.dig.went.cave); }   // pickWaiting: 쪽지를 닫아도 이름을 다 짚기 전엔 빛남(11/7 시험자 제보)   // 젖은 장을 다 읽으면(「다음 물때에 굴까지」) 굴에 가 볼 때까지 다시 빛남 ✳ 11/2
 
 // ── ① 채비 넣기 ──
 function packPut(id){
@@ -76,7 +77,8 @@ function packBtn(id){
 { const tp = LAB_OBJ.find(o => o.id === 'labTeapot'), c0 = tp.click; tp.click = () => { c0(); if (ojrHere()) packBtn('food'); }; }
 
 // ── 보퉁이 창 ──
-function showDigPack(){
+function showDigPack(force){
+  if (!force && pickWaiting() && digLeadDefault()){ openOv(digTalkHtml() + '<div class="rec" id="bPackList" style="text-align:center;font-size:13px;opacity:.75;margin-top:8px">채비를 본다</div>'); document.getElementById('bPackList').addEventListener('click', ev => { ev.stopPropagation(); showDigPack(true); }); return; }   // 이름을 짚기 전이면 쪽지부터(11/7)
   if (S.dig.gather){ openOv('<h3>보퉁이</h3>' + digName(S.dig.gather.lead) + '이 메고 대문 앞에 나가 있다.'); return; }
   if (digOn()){ openOv(`<h3>보퉁이</h3>조사단이 ${digWhere()}에 가 있다. 돌아올 때까지 기다린다.`); return; }
   const n = packCount(), rows = Object.keys(PACK).map(id => { const st = S.pack[id];
@@ -118,13 +120,19 @@ function digTalkHtml(){
   const rec = H.filter(k => fearOf(k) < FEAR_AT[4]).sort((a, b) => fearOf(a) - fearOf(b)).slice(0, handsN()), picked = pk.hands.filter(k => H.includes(k)).length;
   const lines = ['가주께.', '보퉁이를 꾸리시는 걸 보았습니다.', H.length ? '누구를 데려갈까요.' : '별채에 데려갈 사람이 없습니다.', ...cand,
     rec.length === handsN() && picked < handsN() ? (handsN() === 2 ? `제 생각엔 ${gname(rec[0])}${/[가-힣]/.test(gname(rec[0]).slice(-1)) && (gname(rec[0]).charCodeAt(gname(rec[0]).length - 1) - 0xAC00) % 28 ? '과' : '와'} ${gname(rec[1])}입니다.` : `제 생각엔 ${rec.map(gname).join(', ')}입니다. 굴은 깊어 손이 하나 더 있어야 합니다.`) : '',
-    H.length ? `이름을 짚어 주십시오. ${NUMW[handsN()]}이면 됩니다.` : '', picked >= handsN() ? '그럼 대문 앞에 모이겠습니다.' : ''].filter(Boolean);
-  return '<h3>쪽지</h3>' + vlet(lines, (lead === 'ojr' ? '오정림' : '한서진') + ' 올림.', 'min(56vh,400px)');
+    H.length ? `이름을 짚어 주십시오. ${NUMW[handsN()]}이면 됩니다.` : '', picked >= handsN() ? (pk.ok ? '그럼 대문 앞에 모이겠습니다.' : '이대로면 짚은 대로 꾸리겠습니다.') : ''].filter(Boolean);
+  return '<h3>쪽지</h3>' + vlet(lines, (lead === 'ojr' ? '오정림' : '한서진') + ' 올림.', 'min(56vh,400px)')
+    + (picked >= handsN() && !pk.ok ? '<div style="text-align:center;margin-top:12px"><button class="btn rec" id="bPickOk" style="color:var(--ink);border-color:#00000066">그렇게 하라</button></div>' : '');   // 폰에서 읽다가 잘못 짚어 저절로 떠나던 것(11/7 시험자 제보) — 누르기 전엔 모이지 않음
 }
+ovBody.addEventListener('click', e => {                               // '그렇게 하라'
+  if (!e.target.closest('#bPickOk')) return; e.stopPropagation(); if (!S.dig.pick) return;
+  S.dig.pick.ok = true; save(); openOv(digTalkHtml()); noise(0.08, 900, 0.04);
+});
 ovBody.addEventListener('click', e => {                               // 쪽지 속 이름을 누르면 먹점
   const el = e.target.closest('.dpk'); if (!el || el.classList.contains('no')) return;
   e.stopPropagation(); if (digOn()) return;
   const k = el.dataset.k; S.dig.pick = S.dig.pick || { lead: digLeadDefault(), hands: [] };
+  S.dig.pick.ok = false;
   if (S.dig.pick.hands.includes(k)) S.dig.pick.hands = S.dig.pick.hands.filter(x => x !== k);
   else if (S.dig.pick.hands.length < handsN()) S.dig.pick.hands.push(k);
   else S.dig.pick.hands = [...S.dig.pick.hands.slice(1 - handsN()), k];
@@ -145,7 +153,7 @@ function leadBtn(k){
 function gatherTick(){
   if (S.dig.gather || digOn() || !S.dig.pick || !packCount() || isNight()) return;
   const pk = S.dig.pick, lead = pk.lead && digLeader().includes(pk.lead) ? pk.lead : null, hands = pk.hands.filter(k => digHands().includes(k));
-  if (!lead || hands.length < handsN()) return;
+  if (!lead || hands.length < handsN() || !pk.ok) return;
   if (!pk.at){ pk.at = Date.now(); save(); return; } if (Date.now() - pk.at < 2500) return;   // 쪽지를 닫고 잠깐 뒤
   startGather(lead, hands);
 }
@@ -160,6 +168,7 @@ function startGather(lead, hands){
     S.errs[k] = { t0: now, dig: true, gather: true, home: true, lead: k === lead, steps };
   });
   S.dig.gather = { lead, hands, t0: now }; S.dig.pick = null; save();
+  pushNote('<h3>쪽지</h3>' + vlet(['가주께.', `${team.map(gname).join('·')}, 보퉁이를 메고`, '대문 앞에 모였습니다.', isNight() ? '해 뜨면 열어 주십시오.' : '대문을 열어 주시면 떠나겠습니다.'], (lead === 'ojr' ? '오정림' : '한서진') + ' 올림.', 'min(40vh,280px)'));   // 보퉁이가 대문 앞으로 간 것을 알림(11/7 시험자 제보 '보퉁이가 없어')
   if (typeof tlog === 'function') tlog('대문 앞에 모임: ' + team.map(digName).join('·'));
 }
 function digDepart(){
@@ -184,7 +193,13 @@ function digDepart(){
     document.getElementById('bOpenGate').addEventListener('click', ev => { ev.stopPropagation(); ov.classList.add('hidden');
       if (!night) digDepart(); else if (!g.dawn){ g.dawn = true; save(); } });
   }; }
+function digStaleFix(){   // 남은 조사 심부름 치우기(11/7 시험자 제보 — 보퉁이가 사라져 다음 조사를 못 꾸림): 모임이 없는데 모임 심부름 · 떠난 사람 · 하루 넘은 조사 심부름
+  for (const k of Object.keys(S.errs)){ const er = S.errs[k]; if (!er || !er.dig) continue;
+    const s = k === 'sj' ? null : S.st[k], miss = er.steps.some(st => st.act === 'digMiss');
+    if ((er.gather && !S.dig.gather) || (s && s.gone && !miss) || (!er.gather && Date.now() - er.t0 > 24 * 3600e3)){ delete S.errs[k]; save(); if (typeof tlog === 'function') tlog('남은 조사 심부름 치움: ' + k); } }
+}
 HOOK.tick.push(() => { if (S.stage !== 'room' || S.ended) return;
+  digStaleFix();
   for (const id of Object.keys(PACK)) if (S.pack[id] === 'carry' && !S.errs.sj){ S.pack[id] = 'in'; if (id === 'map') S.loc.map = 'pack'; packFirstNote(); save(); }   // 심부름이 끊겼어도 넣은 것으로
   gatherTick();
   if (S.dig.gather && S.dig.gather.dawn && !isNight() && gameHour() >= 7) digDepart(); });        // 해 뜨면 저절로
