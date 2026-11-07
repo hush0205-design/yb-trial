@@ -7,7 +7,7 @@ const SARANG_OBJ = [
   { id:'sBack', x:27, y:-25.5, m:()=>'door', click:()=>goScene('seogo') },
   { id:'sWin', x:7, y:-26, z:8, rot:0, m:()=>'__win', click:()=>openOv(`<h3>창</h3>${daylight() >= 0.8 ? '창호지가 환하다. 낮이다.' : '창밖이 어둡다.'}<br>사랑채 창은 마당 쪽으로 나 있다.`) },
   { id:'sMungap', x:16, y:-22, rot:0, m:()=> libNew() ? 'mungapOpen' : 'mungap', click:()=>showLibrary() },
-  { id:'sMap', x:-22, y:-20, rot:0.2, m:()=>'houseScroll', glow:()=> !S.houseSeen, click:()=>showHouse() },
+  { id:'sMap', x:-22, y:-20, rot:0.2, m:()=>'houseScroll', glow:()=> !S.houseSeen || (typeof guidePlot === 'function' && !!guidePlot()), click:()=>showHouse() },
   { id:'sDesk', x:0, y:3, m:()=>'seoan', click:()=>openOv('<h3>사랑채 서안</h3>손님을 맞고 편지를 쓰던 자리.<br>한서진이 서고에서 옮겨 온 연구 공책이 놓여 있다.') },
   { id:'sNote', x:-6, y:8, z:8, rot:-0.2, on:()=>'sDesk', onOrder:0.02, m:()=>'notebook', show:()=> !!S.owned.brush && !yeonOn(), glow:()=> TECH.some(t => techState(t[0]) === 'asked' && !S.techSeen), click:()=>showTech() },
   { id:'sDoc', x:-12, y:14, rot:0.15, m:()=>'docbox', show:()=> docboxShow(), click:()=>showDocbox() },

@@ -53,7 +53,7 @@ M.matTea = model(16, 10, 1, (x, y) => x >= 2 && x <= 13 && y >= 2 && y <= 7 && (
 M.teaJar = model(5, 5, 7, (x, y, z) => { const r = Math.hypot(x - 2, y - 2); return r <= (z === 6 ? 1.2 : z >= 5 ? 1.8 : 2.4) ? (z === 6 ? '#1e140c' : '#3a2a1a') : null; });
 const teaN = () => Math.floor(S.tea || 0);
 const teafDays = () => daysSince(builtAt('teaf')), millDays = () => daysSince(builtAt('mill'));
-const bushClick = () => openOv('<h3>차나무</h3>뒷산 비탈에 줄지어 심은 차나무. ' + (S.worker ? '일꾼이 돌본다.' : '돌볼 손이 없어 잎이 거칠다.')
+const bushClick = () => openOv('<h3>차나무</h3>뒷산 비탈에 줄지어 심은 차나무. ' + (S.worker ? '일꾼이 돌본다.' : '돌볼 손이 없어 잎이 거칠다.<br>행랑채를 지어 일꾼을 들이면 돌볼 사람이 생긴다.')
   + (teafDays() >= K.traceDays ? '<br><br>새순 하나의 잎맥이 첫 책의 낯선 글자처럼 갈라져 있다. 따 내도 이튿날 같은 가지에 같은 잎이 난다.' : ''));
 const TEAF_OBJ = [
   { id:'tGate', x:0, y:-22, rot:0, m:()=>'sarip', click:()=>goScene('seogo') },

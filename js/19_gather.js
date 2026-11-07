@@ -21,7 +21,7 @@ M.bundleFlat = model(8,8,1,(x,y)=> Math.hypot(x-3.5, y-3.5) <= 3.8 ? ((x + y) % 
 M.bundleFull = model(9,9,7,(x,y,z)=>{ const r = Math.hypot(x-4, y-4); if (z === 6) return r <= 1.3 ? '#8a7a5a' : null; if (z === 5) return r <= 2.6 ? '#d8cdb0' : null; return r <= 4.3 - z*0.35 ? ((x + y + z) % 3 ? '#cfc2a3' : '#bfb08c') : null; });
 const packCount = () => Object.keys(PACK).filter(id => S.pack[id] === 'in').length;
 const packAll = () => Object.keys(PACK).filter(id => S.pack[id]).length;
-const pickWaiting = () => !!S.dig.talked && !S.dig.gather && !digOn() && packCount() > 0 && (((S.dig.pick && S.dig.pick.hands) || []).filter(k => digHands().includes(k)).length < handsN() || !(S.dig.pick && S.dig.pick.ok));   // 반장 쪽지에서 이름을 다 짚기 전
+const pickWaiting = () => !!S.dig.talked && !S.dig.gather && !digOn() && packCount() > 0 && ((!(S.dig.pick && S.dig.pick.workers) && ((S.dig.pick && S.dig.pick.hands) || []).filter(k => digHands().includes(k)).length < handsN()) || !(S.dig.pick && S.dig.pick.ok));   // 반장 쪽지에서 이름을 다 짚기 전
 const canPack = () => !!S.goRead && !digOn();
 const sjFree = () => !!S.rArrived && !isNight() && !nightVisiting() && Date.now() - S.rArrived > T_PUSH && !S.errs.sj;
 const ojrHere = () => working('ojr') && !!S.potPut;
@@ -84,8 +84,8 @@ function showDigPack(force){
   const n = packCount(), rows = Object.keys(PACK).map(id => { const st = S.pack[id];
     return `<div class="brow" style="cursor:default"><span class="bt">${PACK[id].name}</span><span class="bn" style="font-size:12px;opacity:.7">${st === 'in' ? '들어 있다' : st === 'carry' ? '한서진이 가져오는 중' : (id === 'food' && !ojrHere() ? '<span class="rec" id="bFoodBuy" style="opacity:.9">장터에서 사 온다 — ' + fmtM(PACK.food.cost) + '</span>' : PACK[id].from + '에서 넣는다')}</span></div>`; }).join('');
   const pk = S.dig.pick || {}, lead = pk.lead || digLeadDefault(), hands = (pk.hands || []).filter(k => working(k));
-  const who = n || packAll() ? `<div class="bsec">함께 갈 사람</div><div style="font-size:14px">반장: ${lead ? digName(lead) : '자리에 있는 반장이 없다'}${hands.length ? ' · ' + hands.map(digName).join(' · ') : ''}</div>`
-    + (hands.length < handsN() ? '<div style="font-size:12px;opacity:.6;margin-top:4px">반장의 쪽지에서 이름을 짚어야 한다.</div>' : `<div style="font-size:12px;opacity:.6;margin-top:4px">${NUMW[handsN()]}이 정해졌다. 곧 대문 앞에 모인다.</div>`)
+  const who = n || packAll() ? `<div class="bsec">함께 갈 사람</div><div style="font-size:14px">반장: ${lead ? digName(lead) : '자리에 있는 반장이 없다'}${pk.workers ? ` · 행랑채 일꾼 ${NUMW[handsN()]}` : hands.length ? ' · ' + hands.map(digName).join(' · ') : ''}</div>`
+    + (!pk.workers && hands.length < handsN() ? '<div style="font-size:12px;opacity:.6;margin-top:4px">반장의 쪽지에서 이름을 짚어야 한다.</div>' : `<div style="font-size:12px;opacity:.6;margin-top:4px">${NUMW[handsN()]}이 정해졌다. 곧 대문 앞에 모인다.</div>`)
     + (lead ? '<div class="rec" id="bTalk" style="text-align:center;font-size:13px;opacity:.75;margin-top:8px">반장의 쪽지를 본다</div>' : '') : '';
   openOv(`<h3>바닷가에 갈 채비</h3>${n || packAll() ? `보퉁이에 ${KCNT(n)} 가지가 들어 있다.` : '빈 보퉁이. 한서진이 무명천을 펴 두었다.<br>넣을 것은 그 물건이 있는 자리에서 넣는다.'}${S.dig.n ? ` 지금까지 ${S.dig.n}번 다녀왔다.` : ''}<div class="bsec">채비</div>${rows}${who}`
     + '<div style="font-size:12px;opacity:.55;margin-top:10px">마른 찬이 없으면 반나절 만에 돌아온다. 종이와 붓이 없으면 글이 있는 것을 못 가져온다. 지도가 없으면 여울을 못 찾을 수 있다.</div>');
@@ -117,9 +117,10 @@ function digTalkHtml(){
   const pk = S.dig.pick || { hands: [] }, lead = pk.lead || digLeadDefault(), H = digHands();
   const cand = H.map(k => { const f = fearOf(k), on = pk.hands.includes(k), no = f >= FEAR_AT[4];
     return `<span class="dpk${no ? ' no' : ''}" data-k="${k}" style="${no ? 'opacity:.6' : 'border-bottom:1px dotted #00000066;cursor:pointer'}">${on ? '●' : ''}${digClause(k)}</span>`; });
-  const rec = H.filter(k => fearOf(k) < FEAR_AT[4]).sort((a, b) => fearOf(a) - fearOf(b)).slice(0, handsN()), picked = pk.hands.filter(k => H.includes(k)).length;
+  const rec = H.filter(k => fearOf(k) < FEAR_AT[4]).sort((a, b) => fearOf(a) - fearOf(b)).slice(0, handsN()), picked = pk.workers ? handsN() : pk.hands.filter(k => H.includes(k)).length;
+  if (workersOk()) cand.push(`<span class="dpk" data-k="__w" style="border-bottom:1px dotted #00000066;cursor:pointer">${pk.workers ? '●' : ''}아니면 행랑채 일꾼 ${NUMW[handsN()]}을 데려가겠습니다. 별채 사람들은 읽던 것을 그대로 읽고요. 다만 일꾼은 글을 모릅니다.</span>`);   // 11/7 선생님: 연구원 대신 일꾼을 보냄
   const lines = ['가주께.', '보퉁이를 꾸리시는 걸 보았습니다.', H.length ? '누구를 데려갈까요.' : '별채에 데려갈 사람이 없습니다.', ...cand,
-    rec.length === handsN() && picked < handsN() ? (handsN() === 2 ? `제 생각엔 ${gname(rec[0])}${/[가-힣]/.test(gname(rec[0]).slice(-1)) && (gname(rec[0]).charCodeAt(gname(rec[0]).length - 1) - 0xAC00) % 28 ? '과' : '와'} ${gname(rec[1])}입니다.` : `제 생각엔 ${rec.map(gname).join(', ')}입니다. 굴은 깊어 손이 하나 더 있어야 합니다.`) : '',
+    !pk.workers && rec.length === handsN() && picked < handsN() ? (handsN() === 2 ? `제 생각엔 ${gname(rec[0])}${/[가-힣]/.test(gname(rec[0]).slice(-1)) && (gname(rec[0]).charCodeAt(gname(rec[0]).length - 1) - 0xAC00) % 28 ? '과' : '와'} ${gname(rec[1])}입니다.` : `제 생각엔 ${rec.map(gname).join(', ')}입니다. 굴은 깊어 손이 하나 더 있어야 합니다.`) : '',
     H.length ? `이름을 짚어 주십시오. ${NUMW[handsN()]}이면 됩니다.` : '', picked >= handsN() ? (pk.ok ? '그럼 대문 앞에 모이겠습니다.' : '이대로면 짚은 대로 꾸리겠습니다.') : ''].filter(Boolean);
   return '<h3>쪽지</h3>' + vlet(lines, (lead === 'ojr' ? '오정림' : '한서진') + ' 올림.', 'min(56vh,400px)')
     + (picked >= handsN() && !pk.ok ? '<div style="text-align:center;margin-top:12px"><button class="btn rec" id="bPickOk" style="color:var(--ink);border-color:#00000066">그렇게 하라</button></div>' : '');   // 폰에서 읽다가 잘못 짚어 저절로 떠나던 것(11/7 시험자 제보) — 누르기 전엔 모이지 않음
@@ -133,6 +134,8 @@ ovBody.addEventListener('click', e => {                               // 쪽지 
   e.stopPropagation(); if (digOn()) return;
   const k = el.dataset.k; S.dig.pick = S.dig.pick || { lead: digLeadDefault(), hands: [] };
   S.dig.pick.ok = false;
+  if (k === '__w'){ S.dig.pick.workers = !S.dig.pick.workers; S.dig.pick.hands = []; save(); openOv(digTalkHtml()); noise(0.08, 900, 0.04); return; }
+  S.dig.pick.workers = false;
   if (S.dig.pick.hands.includes(k)) S.dig.pick.hands = S.dig.pick.hands.filter(x => x !== k);
   else if (S.dig.pick.hands.length < handsN()) S.dig.pick.hands.push(k);
   else S.dig.pick.hands = [...S.dig.pick.hands.slice(1 - handsN()), k];
@@ -152,12 +155,13 @@ function leadBtn(k){
 // ── ④ 대문 앞에 모임 → 가주가 열어 줌 ──
 function gatherTick(){
   if (S.dig.gather || digOn() || !S.dig.pick || !packCount() || isNight()) return;
-  const pk = S.dig.pick, lead = pk.lead && digLeader().includes(pk.lead) ? pk.lead : null, hands = pk.hands.filter(k => digHands().includes(k));
-  if (!lead || hands.length < handsN() || !pk.ok) return;
+  const pk = S.dig.pick, lead = pk.lead && digLeader().includes(pk.lead) ? pk.lead : null, hands = pk.workers ? [] : pk.hands.filter(k => digHands().includes(k));
+  if (!lead || (!pk.workers && hands.length < handsN()) || !pk.ok) return;
   if (!pk.at){ pk.at = Date.now(); save(); return; } if (Date.now() - pk.at < 2500) return;   // 쪽지를 닫고 잠깐 뒤
-  startGather(lead, hands);
+  startGather(lead, hands, pk.workers ? handsN() : 0);
 }
-function startGather(lead, hands){
+const workersOk = () => built('haeng') && !!S.worker;   // 행랑채에 일꾼이 있으면 조사단 손으로 쓸 수 있음
+function startGather(lead, hands, workers){
   const team = [lead, ...hands], now = Date.now();
   team.forEach((k, i) => {
     const labk = k !== 'sj', sc = labk ? 'lab' : 'seogo', side = homeSide(k);
@@ -167,19 +171,20 @@ function startGather(lead, hands){
     steps.push(waitAt('gate', [-10 + i*10, -12], [0, 1], 1e12, null, null, k === lead ? 'bundle' : null));
     S.errs[k] = { t0: now, dig: true, gather: true, home: true, lead: k === lead, steps };
   });
-  S.dig.gather = { lead, hands, t0: now }; S.dig.pick = null; save();
-  pushNote('<h3>쪽지</h3>' + vlet(['가주께.', `${team.map(gname).join('·')}, 보퉁이를 메고`, '대문 앞에 모였습니다.', isNight() ? '해 뜨면 열어 주십시오.' : '대문을 열어 주시면 떠나겠습니다.'], (lead === 'ojr' ? '오정림' : '한서진') + ' 올림.', 'min(40vh,280px)'));   // 보퉁이가 대문 앞으로 간 것을 알림(11/7 시험자 제보 '보퉁이가 없어')
+  S.dig.gather = { lead, hands, t0: now, workers: workers || 0 }; S.dig.pick = null; save();
+  pushNote('<h3>쪽지</h3>' + vlet(['가주께.', `${team.map(gname).join('·')}${workers ? `과 일꾼 ${NUMW[workers]}` : ''}, 보퉁이를 메고`, '대문 앞에 모였습니다.', isNight() ? '해 뜨면 열어 주십시오.' : '대문을 열어 주시면 떠나겠습니다.'], (lead === 'ojr' ? '오정림' : '한서진') + ' 올림.', 'min(40vh,280px)'));   // 보퉁이가 대문 앞으로 간 것을 알림(11/7 시험자 제보 '보퉁이가 없어')
   if (typeof tlog === 'function') tlog('대문 앞에 모임: ' + team.map(digName).join('·'));
 }
 function digDepart(){
   const g = S.dig.gather; if (!g) return;
   const team = [g.lead, ...g.hands], now = Date.now(), pack = Object.assign({}, S.pack), food = pack.food === 'in';
+  if (g.workers) pack.paper = '';   // 일꾼은 글을 몰라 글 있는 것에 손대지 않음
   const brave = {}; team.forEach(k => { brave[k] = fearOf(k) < FEAR_AT[2]; });
   const order = team.slice().sort((a, b) => fearOf(b) - fearOf(a));
   team.forEach(k => { const i = order.indexOf(k), steps = digSteps(k, (DIG_MS + i*DIG_GAP_MS + (brave[k] ? DIG_LATE_MS : 0)) * (food ? 1 : 0.5), i);
     const ai = steps.findIndex(st => st.k === 'wait' && st.sc === 'away'); let pre = 0; for (let j = 0; j < ai; j++) pre += stepDur(steps[j]);
     S.errs[k] = { t0: now - pre, dig: true, home: true, lead: k === g.lead, steps, done: ai }; });
-  S.dig.cur = { lead: g.lead, hands: g.hands, t0: now, brave, back: [], pack }; S.dig.gather = null; S.dig.talked = false;
+  S.dig.cur = { lead: g.lead, hands: g.hands, t0: now, brave, back: [], pack, workers: g.workers || 0 }; S.dig.gather = null; S.dig.talked = false;
   if (typeof applyDest === 'function') applyDest(nextDest(pack), g.lead, g.hands);   // 지도에서 고른 곳(19_deep) — 11/1 전엔 이 길로 보내면 늘 여울이었음
   S.pack = {}; save();
   sDoor(); ERR_ACT.digLeave(g.lead);
@@ -188,7 +193,7 @@ function digDepart(){
 { const gate = GATE_OBJ.find(o => o.id === 'gate'), c0 = gate.click; gate.click = () => {
     if (!S.dig.gather) return c0();
     const g = S.dig.gather, night = isNight();
-    openOv(`<h3>대문</h3>대문 앞에 셋이 서 있다. 보퉁이를 멘 ${digName(g.lead)}이 이쪽을 본다.<br>${night ? (g.dawn ? '밤이다. 해 뜨면 열어 주기로 했다.' : '밤이다. 밤에는 바닷가에 가지 않는다.') : '바람이 바다 쪽에서 분다.'}`
+    openOv(`<h3>대문</h3>${g.workers ? `대문 앞에 일꾼 ${NUMW[g.workers]}이 서 있다.` : '대문 앞에 셋이 서 있다.'} 보퉁이를 멘 ${digName(g.lead)}이 이쪽을 본다.<br>${night ? (g.dawn ? '밤이다. 해 뜨면 열어 주기로 했다.' : '밤이다. 밤에는 바닷가에 가지 않는다.') : '바람이 바다 쪽에서 분다.'}`
       + `<div style="text-align:center;margin-top:14px"><button class="btn rec" id="bOpenGate" style="color:var(--ink);border-color:#00000066">${night ? (g.dawn ? '들어간다' : '해 뜨면 열어 주겠다') : '대문을 열어 준다'}</button></div>`);
     document.getElementById('bOpenGate').addEventListener('click', ev => { ev.stopPropagation(); ov.classList.add('hidden');
       if (!night) digDepart(); else if (!g.dawn){ g.dawn = true; save(); } });
@@ -198,8 +203,15 @@ function digStaleFix(){   // 남은 조사 심부름 치우기(11/7 시험자 �
     const s = k === 'sj' ? null : S.st[k], miss = er.steps.some(st => st.act === 'digMiss');
     if ((er.gather && !S.dig.gather) || (s && s.gone && !miss) || (!er.gather && Date.now() - er.t0 > 24 * 3600e3)){ delete S.errs[k]; save(); if (typeof tlog === 'function') tlog('남은 조사 심부름 치움: ' + k); } }
 }
+function workerBackTick(){   // 일꾼을 데려간 조사단이 다 돌아오면: 반장 쪽지 · 겁먹은 일꾼이 장터에 말을 퍼뜨림(19_bang 소문)
+  const c = S.dig.cur; if (!c || !c.workers || c.workerNoted || digOn()) return;
+  c.workerNoted = true; S.rumor = 'bad';
+  S.rumors = (S.rumors || []).concat([['그 집 일꾼이 바다에서 무얼 봤다더라.', '그 집 서고에 다녀온 일꾼이 밤마다 헛소리를 한다더라.', '그 집 일은 품삯을 곱으로 줘도 안 간다더라.'][Math.floor(Math.random() * 3)]]).slice(-12);
+  pushNote('<h3>쪽지</h3>' + vlet(['가주께.', '일꾼들은 물가에서 내내 떨었습니다.', '글이 적힌 것은 손도 대지 않으려 하여', '그대로 두고 왔습니다.', '돌아오는 길에 장터에서 말이 많았습니다.'], c.lead === 'ojr' ? '오정림 올림.' : '한서진 올림.', 'min(44vh,320px)'));
+  save(); if (typeof tlog === 'function') tlog('일꾼 조사단 돌아옴 — 소문');
+}
 HOOK.tick.push(() => { if (S.stage !== 'room' || S.ended) return;
-  digStaleFix();
+  digStaleFix(); workerBackTick();
   for (const id of Object.keys(PACK)) if (S.pack[id] === 'carry' && !S.errs.sj){ S.pack[id] = 'in'; if (id === 'map') S.loc.map = 'pack'; packFirstNote(); save(); }   // 심부름이 끊겼어도 넣은 것으로
   gatherTick();
   if (S.dig.gather && S.dig.gather.dawn && !isNight() && gameHour() >= 7) digDepart(); });        // 해 뜨면 저절로

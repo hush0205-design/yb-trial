@@ -61,6 +61,26 @@ function madTick(dt){
     else if (now >= madSndAt){ madSndAt = 0; if (Math.random() < 0.5) knock(0.18); else noise(0.6, 300, 0.05, 'bandpass'); } }
 }
 let madSndAt = 0;
+// 가주 광기가 오를 때마다 사람들이 알아챔(11/7 선생님 "명시적으로 알려 줘야 — 한서진 쪽지, 오정림이 차를 가져다주며 찻잔 밑 쪽지로 진정하라고")
+const MAD_NOTES = {
+  2:  ['sj',  ['가주께.', '요즘 글을 오래 들여다보십니다.', '눈을 좀 쉬게 하십시오.', '차를 한 잔 드시지요.']],
+  3:  ['ojr', ['가주께.', '차를 진하게 우렸습니다.', '천천히 드십시오.']],
+  4:  ['sj',  ['가주께.', '어젯밤 서고에서 혼잣말을 하셨습니다.', '무엇을 읽으셨는지 묻지 않겠습니다.', '다만 오늘은 덮으시지요.']],
+  6:  ['ojr', ['가주께.', '한 주전자 더 올려 두었습니다.', '식기 전에 드십시오.', '손이 떨리시면 저를 부르십시오.']],
+  8:  ['sj',  ['가주께.', '일지의 글씨가 가주의 글씨와 닮아 갑니다.', '같은 손이 쓴 것처럼.', '의원을 부르는 것이 좋겠습니다.']],
+  10: ['ojr', ['가주께.', '찻잔에 손을 대지 않으셨습니다.', '사흘째입니다.', '진정하십시오. 제발.']],
+  12: ['sj',  ['가주께.', '서고 문을 잠그지 마십시오.', '안에서 들리는 소리는', '가주의 목소리가 아닙니다.']],
+};
+function madNoteTick(){   // 여러 단계를 한꺼번에 넘으면 지금 단계에 맞는 쪽지 하나만
+  const st = myMad(); S.madNoted = S.madNoted || [];
+  const due = Object.keys(MAD_NOTES).map(Number).filter(k => k <= st && !S.madNoted.includes(k)); if (!due.length) return;
+  const k = Math.max(...due), [who, lines] = MAD_NOTES[k], ojr = who === 'ojr' && working('ojr'), by = who === 'ojr' ? (ojr ? '오정림 올림.' : null) : (S.rArrived ? '한서진 올림.' : null);
+  S.madNoted.push(...due); save(); if (!by) return;   // 쓸 사람이 아직 없으면 그 쪽지는 건너뜀
+  pushNote((ojr ? '<h3>찻잔 밑에 접힌 쪽지</h3>' : '<h3>쪽지</h3>') + vlet(lines, by, 'min(40vh,280px)'));
+  if (ojr) S.myCup = true;
+  if (typeof tlog === 'function') tlog('광기 쪽지: ' + k + '단계');
+}
+HOOK.tick.push(() => { if (S.stage !== 'room' || S.ended || window.BOOTING) return; madNoteTick(); });
 function madLimit(k, change){
   const nm = DEF(k).name, by = S.rArrived ? '한서진 올림.' : '오정림 올림.';
   if (change){ const s = S.st[k]; s.changed = true; s.fear = 0;
@@ -91,12 +111,24 @@ for (const d of Object.keys(LAB_DESKS)) LAB_OBJ.push({ id:'nw_' + d, x: LAB_DESK
   click:()=> openOv(`<h3>빈 종이</h3>저녁에 비워 두고 간 종이에 글씨가 빼곡하다. ${DEF(deskOwner(d)).name}의 손이다.<br><br><span style="color:#3a2a20">${alienHtml(glyphs('읽은 이는 쓴다 쓴 이는 읽힌다', 1600))}</span>`) });
 
 // ── 화면 오염: 기록 창이 열릴 때(04 openOv → HOOK.ov) ──
-const madTexts = () => { const w = document.createTreeWalker(ovBody, NodeFilter.SHOW_TEXT, { acceptNode: n => n.parentElement.closest('button,.close,h3') || !/[가-힣]/.test(n.nodeValue) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT }); const a = []; while (w.nextNode()) a.push(w.currentNode); return a; };
-function madSmear(nodes, n){                                                              // 글자 몇 개가 번짐
+const madTexts = () => { const w = document.createTreeWalker(ovBody, NodeFilter.SHOW_TEXT, { acceptNode: n => n.parentElement.closest('.close,.mch') || !/[가-힣]/.test(n.nodeValue) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT }); const a = []; while (w.nextNode()) a.push(w.currentNode); return a; };
+function madSmear(nodes, n){                                                              // 글자 몇 개가 먹처럼 옆으로 끌려 번짐 — 깊을수록 길고 짙게
+  const st = myMad(), L = 3 + Math.floor(st / 3), k = (0.7 + st * 0.12).toFixed(2);
   for (let t = 0; t < n && nodes.length; t++){
-    const nd = nodes[Math.floor(Math.random() * nodes.length)], s = nd.nodeValue, i = Math.floor(Math.random() * Math.max(1, s.length - 3));
-    const sp = document.createElement('span'); sp.className = 'smear'; sp.textContent = s.slice(i, i + 3);
-    const rest = nd.splitText(i); rest.nodeValue = rest.nodeValue.slice(3); nd.parentNode.insertBefore(sp, rest);
+    const nd = nodes[Math.floor(Math.random() * nodes.length)], s = nd.nodeValue, i = Math.floor(Math.random() * Math.max(1, s.length - L));
+    const sp = document.createElement('span'); sp.className = 'smear'; sp.style.setProperty('--k', k); sp.textContent = s.slice(i, i + L);
+    const rest = nd.splitText(i); rest.nodeValue = rest.nodeValue.slice(L); nd.parentNode.insertBefore(sp, rest);
+  }
+}
+function madShake(n, mirror){
+  for (let t = 0; t < n; t++){
+    const nodes = madTexts(); if (!nodes.length) return;
+    const nd = nodes[Math.floor(Math.random() * nodes.length)], a = Array.from(nd.nodeValue), idx = a.map((c, i) => /[가-힣]/.test(c) ? i : -1).filter(i => i >= 0);
+    if (!idx.length) continue;
+    const ci = idx[Math.floor(Math.random() * idx.length)], off = a.slice(0, ci).join('').length;
+    const mid = nd.splitText(off); mid.splitText(a[ci].length);
+    const sp = document.createElement('span'); sp.className = 'mch tremble' + (mirror && Math.random() < Math.min(0.75, 0.2 + myMad() * 0.05) ? ' mirror' : ''); sp.style.animationDelay = (-Math.random()).toFixed(2) + 's'; sp.style.animationDuration = (0.12 + Math.random() * 0.14).toFixed(2) + 's';
+    mid.parentNode.insertBefore(sp, mid); sp.appendChild(mid);
   }
 }
 function madStroke(nodes, n){                                                             // 받침이 한 획 어긋남(겁 → 겂, 서고 → 서곡)
@@ -117,7 +149,8 @@ HOOK.ov.push(() => {
   const st = myMad(), nodes = madTexts();
   if (st >= 3 && h3 === '낱말 장부'){ const e = ovBody.querySelectorAll('.glE'); if (e.length){ const el = e[Math.floor(Math.random() * e.length)], br = el.querySelector('br'); if (br && br.nextSibling) br.nextSibling.nodeValue = GLOSS_ODD[Math.floor(Math.random() * GLOSS_ODD.length)]; } }
   if (st >= 2 && Math.random() < 0.6) madStroke(nodes, st >= 3 ? 2 : 1);
-  if (st >= 1 && Math.random() < 0.5) madSmear(nodes, 1);
+  if (st >= 1 && Math.random() < 0.6 + st * 0.04) madSmear(madTexts(), Math.ceil(st / 2));   // 단계마다 번지는 곳이 늘고 길어짐
+  if (st >= 2) madShake(Math.min(26, st * 2), st >= 3);   // 떨림 — 3단계부터 몇 자는 좌우로 뒤집힘(뒤집히는 몫도 단계마다 늚)
   if (st >= 4) madTexts().forEach(nd => { if (!/\d/.test(nd.nodeValue)) return; const sp = document.createElement('span'); sp.className = 'smear'; sp.textContent = nd.nodeValue; nd.replaceWith(sp); });   // 얼이 빠짐: 숫자가 든 글이 흐려짐
   if (st >= 6 && Math.random() < 0.4) ovBody.querySelectorAll('.vletter').forEach(e => { e.style.writingMode = 'horizontal-tb'; e.style.height = 'auto'; });   // 넋이 나감: 세로쓰기가 가로로
   // 연구원의 창·일지: 그 사람의 광기

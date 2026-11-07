@@ -79,7 +79,8 @@ for (let f = 0; f <= JAR_IN; f++) M['riceJar' + f] = model(13, 13, 7, (x, y, z) 
 const riceFill = () => { const n = S.riceN || 0, L = END.rice.lim(); return n >= L - 1 ? 0 : Math.round(JAR_IN * (1 - n / Math.max(1, L - 1))); };
 const quitN = () => Math.min(END.nobody.n(), END.nobody.lim() - 1);
 const SIGN_OBJ = [
-  { id:'riceJar', x:11, y:21, rot:0, m:()=> 'riceJar' + riceFill(), show:()=> !!S.bangAt },
+  { id:'riceJar', x:11, y:21, rot:0, m:()=> 'riceJar' + riceFill(), show:()=> !!S.bangAt,   // 11/7 시험자 "역할을 모르겠다" — 누르면 쌀독 창
+    click:()=>{ const f = riceFill(); openOv('<h3>쌀독</h3>집안 사람들 끼니가 여기서 나간다.<br>' + (f >= JAR_IN ? '쌀이 넉넉하다.' : f > 0 ? '쌀이 줄었다. 궤짝의 엽전이 바닥나고 별채에 사람이 없으면 다시 채우지 못한다.' : '바닥이 보인다. 긁힌 자국이 있다.')); } },
 ];
 OBJ.push(SIGN_OBJ[0]);
 for (let i = 0; i < 8; i++){                                          // 빈 방석(한도는 유품·가훈으로 늘어도 여덟을 넘지 않음)

@@ -281,8 +281,17 @@
 #endScene .bk::before { content:''; position:absolute; left:calc(50% - 5px); top:0; width:3px; height:100%; background:repeating-linear-gradient(#e8e0cc 0 6px, #0000 6px 14px); }
 #endScene .sv.on .bk::after, #endScene .sv.on .bk::before { animation:sxSalt .6s ease 1.9s both; }
 /* 광기(19_mad): 기록 창 글자가 번짐 */
-.smear { filter:blur(1.4px); animation:smearIn 3s ease-out both; }
-@keyframes smearIn { 0% { filter:blur(0); } 30% { filter:blur(2px); } 100% { filter:blur(1.1px); } }
+/* 광기(19_mad, 11/7 선생님 "더 실감나게"): 먹이 옆으로 끌려 번짐 · 글자 떨림 · 좌우 뒤집힘 */
+.smear { filter:blur(calc(var(--k,1) * .4px)); letter-spacing:-.03em; animation:smearIn 2.6s ease-out both;
+  text-shadow:calc(var(--k,1) * -2px) 0 calc(var(--k,1) * 1px) color-mix(in srgb, currentColor 60%, transparent), calc(var(--k,1) * -5px) calc(var(--k,1) * .3px) calc(var(--k,1) * 2px) color-mix(in srgb, currentColor 42%, transparent), calc(var(--k,1) * -9px) calc(var(--k,1) * .6px) calc(var(--k,1) * 3px) color-mix(in srgb, currentColor 28%, transparent), calc(var(--k,1) * -14px) calc(var(--k,1) * 1px) calc(var(--k,1) * 4px) color-mix(in srgb, currentColor 16%, transparent), calc(var(--k,1) * 2px) 0 calc(var(--k,1) * 1.5px) color-mix(in srgb, currentColor 35%, transparent), 0 calc(var(--k,1) * 1.5px) calc(var(--k,1) * 2.5px) color-mix(in srgb, currentColor 30%, transparent); }
+@keyframes smearIn { 0% { text-shadow:none; filter:none; } 100% { text-shadow:calc(var(--k,1) * -2px) 0 calc(var(--k,1) * 1px) color-mix(in srgb, currentColor 60%, transparent), calc(var(--k,1) * -5px) calc(var(--k,1) * .3px) calc(var(--k,1) * 2px) color-mix(in srgb, currentColor 42%, transparent), calc(var(--k,1) * -9px) calc(var(--k,1) * .6px) calc(var(--k,1) * 3px) color-mix(in srgb, currentColor 28%, transparent), calc(var(--k,1) * -14px) calc(var(--k,1) * 1px) calc(var(--k,1) * 4px) color-mix(in srgb, currentColor 16%, transparent), calc(var(--k,1) * 2px) 0 calc(var(--k,1) * 1.5px) color-mix(in srgb, currentColor 35%, transparent), 0 calc(var(--k,1) * 1.5px) calc(var(--k,1) * 2.5px) color-mix(in srgb, currentColor 30%, transparent); filter:blur(calc(var(--k,1) * .4px)); } }
+.mch { display:inline-block; }
+.tremble { animation:tremble .18s steps(2) infinite; }
+.smear { --k:1; }
+.tremble.mirror { animation-name:trembleM; }
+@keyframes tremble { 0% { transform:translate(.5px,-.4px) rotate(-1.5deg); } 50% { transform:translate(-.6px,.5px) rotate(1.8deg); } 100% { transform:translate(.4px,.3px) rotate(-.8deg); } }
+@keyframes trembleM { 0% { transform:scaleX(-1) translate(.5px,-.4px) rotate(-1.5deg); } 50% { transform:scaleX(-1) translate(-.6px,.5px) rotate(1.8deg); } 100% { transform:scaleX(-1) translate(.4px,.3px) rotate(-.8deg); } }
+@media (prefers-reduced-motion: reduce) { .tremble { animation:none; } .tremble.mirror { transform:scaleX(-1); } }
 /* 집 지도(19_house): 한지에 먹선 배치도 */
 .hmap { position:relative; display:grid; grid-template-columns:repeat(3, 1fr); grid-template-rows:repeat(3, 72px); grid-auto-rows:72px; gap:10px; padding:64px 26px 34px; background:#e9dfc4; background-size:100% 100%; -webkit-mask-size:100% 100%; mask-size:100% 100%; font-family:'Nanum Myeongjo', serif; }   /* 11/7: 옛 한지(19_house hmPaper) — 해진 가장자리로 가림 */
 .hmap.night { filter:brightness(.72) sepia(.25); }
@@ -301,7 +310,7 @@
 #oddSlip { position:absolute; left:46%; bottom:-14px; width:26px; height:40px; z-index:4; display:none; cursor:pointer; transform:rotate(-8deg);
   background:#d9cdab; box-shadow:0 2px 4px #0004; border-top:2px solid #c2b48e; }
 #oddSlip.on { display:block; }
-#counter.madblur { filter:blur(1.2px); opacity:.75; }   /* 광기 4단계(19_mad): 숫자가 흐려짐 */
+#counter.madblur { opacity:.85; text-shadow:-3px 0 1.5px currentColor, -7px .5px 3px rgba(207,198,174,.35); animation:tremble .2s steps(2) infinite; }   /* 광기 4단계(19_mad): 숫자가 흐려짐 */
 .ln.madHand { color:#6a2a16; opacity:.8; font-style:italic; }   /* 광기 10단계(19_mad): 가주의 손이 저절로 씀 */
 .hmCell.ghostRoom { border:2.5px solid #1a120b; background:#2a1e1411 !important; }   /* 광기 9(19_house): 지은 적 없는 방 */
 .hmCell.ghostRoom.door::after { content:''; position:absolute; left:calc(50% - 7px); bottom:0; width:14px; height:22px; border:1.5px solid #1a120b; border-bottom:none; background:#1a120bcc; }
@@ -320,3 +329,13 @@
 .hmCell.hmSpot.smoke::after { display:none; }
 .hmCell.hmSpot.ghostRoom.door::after { display:none; }
 #overlay .hanji:has(.hmPic) { width:min(96vw, 860px); }   /* 가옥도는 넓게 */
+.opt .ch span.mch, .opt .ch span.smear, .opt .ch span .mch, .opt .ch span .smear { padding:0; border:none; background:none; color:inherit; font-size:inherit; }   /* 광기 글자 조각엔 선택 칸 꾸밈을 안 붙임 */
+.hmCell.hmSpot.hint b { color:#7a2a1a; animation:hintPulse 1.6s ease-in-out infinite; }   /* 사람들이 권한 터(19_house guidePlot) */
+@keyframes hintPulse { 0%,100% { text-shadow:0 0 3px #efe5cc, 0 0 6px #efe5cc; } 50% { text-shadow:0 0 6px #f0c060, 0 0 12px #e8a040; } }
+/* 글자 지네(19_madfx madDocSwarm): 글자마다 양옆에 꿈틀대는 다리 */
+.lseg { display:block; line-height:1; text-shadow:0 0 1px currentColor; }
+.lseg::before, .lseg::after { content:''; position:absolute; top:45%; width:.55em; height:1.5px; background:currentColor; opacity:.85; animation:lsegLeg .16s steps(2) infinite alternate; }
+.lseg::before { right:100%; transform-origin:right center; } .lseg::after { left:100%; transform-origin:left center; animation-delay:-.08s; }
+.lseg.head::before, .lseg.head::after { width:.8em; height:1px; top:5%; }   /* 맨 앞은 더듬이 */
+@keyframes lsegLeg { from { transform:rotate(-28deg); } to { transform:rotate(28deg); } }
+

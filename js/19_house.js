@@ -32,7 +32,7 @@ const wageK = () => built('kitchen') ? 0.8 : 1;                                 
 
 // ── 두루마리 ──
 M.houseScroll = model(8, 3, 2, (x, y, z) => (y === 1 || z === 1) ? (x === 0 || x === 7 ? '#5a3a20' : '#d9ccaa') : null);
-OBJ.push({ id:'houseScroll', x:23, y:-17, rot:0.2, m:()=>'houseScroll', show:()=> S.D >= T.door && houseOn(), glow:()=> !S.houseSeen, click:()=>showHouse() });
+OBJ.push({ id:'houseScroll', x:23, y:-17, rot:0.2, m:()=>'houseScroll', show:()=> S.D >= T.door && houseOn(), glow:()=> !S.houseSeen || !!guidePlot(), click:()=>showHouse() });
 
 function plotState(id){
   const p = (S.land || {})[id];
@@ -60,6 +60,25 @@ function houseTick(){
 }
 
 // ── 가옥도 창 ──
+// ── 다음에 할 일을 사람들이 쪽지로 권함(11/7 선생님 "순서가 꼭 있어야 진행되는 것은 자연스럽게 그 순서대로") — 권한 터는 가옥도에서 빛남 ──
+const GUIDE = [   // [이름, 권할 때, 다 됐을 때, 빛낼 터, 쪽지]
+  ['haeng', () => S.dig && S.dig.n >= 1 && houseOn() && !S.errs.sj, () => built('haeng') || !!(S.land && S.land.row && S.land.row.b), 'row',
+    ['가주께.', '바다에 사람을 보낼 때마다 별채가 빕니다.', '읽을 사람이 짐을 지는 셈입니다.', '행랑 터에 행랑채를 지어 일꾼을 들이면', '궂은일은 일꾼에게 맡기고 우리는 읽을 수 있습니다.', '가옥도에 표시해 두었습니다.']],
+  ['teaf', () => built('haeng') && !!S.worker, () => built('teaf') || !!(S.land && S.land.field && S.land.field.b), 'field',
+    ['가주께.', '일꾼이 왔습니다. 손이 남습니다.', '뒷산 비탈이 놀고 있으니', '차나무를 심으면 어떨지요.', '오정림이 찻잎 값을 걱정합니다.']],
+  ['mill', () => built('teaf'), () => built('mill') || !!(S.land && S.land.mill && S.land.mill.b), 'mill',
+    ['가주께.', '차나무에 잎이 오릅니다.', '덖을 곳이 없으면 그냥 시들 것입니다.', '아랫마을 쪽 터에 제다소를 올리면', '우리 손으로 차를 만들 수 있습니다.']],
+];
+function guideTick(){
+  S.guided = S.guided || [];
+  for (const [id, when, done, , lines] of GUIDE){ if (S.guided.includes(id) || done() || !when()) continue;
+    S.guided.push(id); S.guideNow = id; save();
+    pushNote('<h3>쪽지</h3>' + vlet(lines, S.rArrived ? '한서진 올림.' : '오정림 올림.', 'min(44vh,320px)'));
+    if (typeof tlog === 'function') tlog('권함: ' + id); break; }
+  if (S.guideNow){ const g = GUIDE.find(x => x[0] === S.guideNow); if (g && g[2]()){ S.guideNow = null; save(); } }
+}
+HOOK.tick.push(() => { if (S.stage !== 'room' || S.ended || window.BOOTING || isNight()) return; guideTick(); });
+const guidePlot = () => { const g = S.guideNow && GUIDE.find(x => x[0] === S.guideNow); return g ? g[3] : null; };
 // ── 가옥도 그림(11/7 선생님: 도성도처럼 — 산이 둘러싼 땅의 집을 멀리서 내려다본 그림, 해·달은 산 위로 뜨고 짐) ──
 const HM_W = 640, HM_H = 540;
 // 한옥 배치: 뒤(위)가 높은 곳 — 사당은 맨 뒤 · 서고는 안채 자리(가운데 안쪽) · 부엌은 서고 옆 ㄱ자 날개 · 별채는 옆으로 떨어짐 · 사랑채는 대문 안 사랑마당 · 행랑채는 대문 양옆 바깥 담 · 솟을대문 · 담 밖 개울가에 제다소·길가
@@ -78,7 +97,7 @@ function hmInfo([id, nm, at, b]){
 }
 function hmCell(P){
   const [id, , at] = P, I = hmInfo(P), [x, y, s] = hmAt(id, at);
-  return `<div class="hmCell hmSpot ${I.cls}" data-hm="${id}" style="left:${(x / HM_W * 100).toFixed(2)}%;top:${((y - 58 * s) / HM_H * 100).toFixed(2)}%;height:${(80 * s / HM_H * 100).toFixed(2)}%"><b>${I.label}</b><span>${I.sub}</span></div>`;
+  return `<div class="hmCell hmSpot ${I.cls}${guidePlot() === id ? ' hint' : ''}" data-hm="${id}" style="left:${(x / HM_W * 100).toFixed(2)}%;top:${((y - 58 * s) / HM_H * 100).toFixed(2)}%;height:${(80 * s / HM_H * 100).toFixed(2)}%"><b>${I.label}</b><span>${I.sub}</span></div>`;
 }
 // 기와집 한 채: (x, y) = 앞 기단 가운데 · w = 폭 · o.lit 불빛 · o.red 붉은 기둥(사당) · o.ghost 먹으로만
 function hmHouse(g, x, y, s, w, o = {}){
